@@ -293,7 +293,8 @@
     /* INFORMES */
     #panel-informes-proyectos table,
     #panel-informes-gastos table,
-    #panel-informes-desviaciones table {
+    #panel-informes-desviaciones table,
+    #panel-informes-tecnico-analisis table {
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
@@ -301,7 +302,8 @@
     }
     #panel-informes-proyectos th,
     #panel-informes-gastos th,
-    #panel-informes-desviaciones th {
+    #panel-informes-desviaciones th,
+    #panel-informes-tecnico-analisis th {
       background: #f5f5f0;
       padding: 10px 12px;
       text-align: left;
@@ -315,7 +317,8 @@
     }
     #panel-informes-proyectos td,
     #panel-informes-gastos td,
-    #panel-informes-desviaciones td {
+    #panel-informes-desviaciones td,
+    #panel-informes-tecnico-analisis td {
       padding: 10px 12px;
       border-bottom: 1px solid #f0f0ea;
       font-size: 12px;
@@ -324,12 +327,14 @@
     }
     #panel-informes-proyectos tr:hover td,
     #panel-informes-gastos tr:hover td,
-    #panel-informes-desviaciones tr:hover td {
+    #panel-informes-desviaciones tr:hover td,
+    #panel-informes-tecnico-analisis tr:hover td {
       background: #fafaf8;
     }
     #panel-informes-proyectos .card,
     #panel-informes-gastos .card,
-    #panel-informes-desviaciones .card {
+    #panel-informes-desviaciones .card,
+    #panel-informes-tecnico-analisis .card {
       padding: 0;
       overflow: hidden;
     }
@@ -469,6 +474,7 @@
   <div class="nav-item sub" id="nav-informes-proyectos" onclick="showPanel('informes-proyectos')" style="display:none;">Histórico proyectos</div>
   <div class="nav-item sub" id="nav-informes-gastos" onclick="showPanel('informes-gastos')" style="display:none;">Gastos</div>
   <div class="nav-item sub" id="nav-informes-desviaciones" onclick="showPanel('informes-desviaciones')" style="display:none;">Desviaciones de obra</div>
+  <div class="nav-item sub" id="nav-informes-tecnico-analisis" onclick="showPanel('informes-tecnico-analisis')" style="display:none;">Informes técnicos de análisis</div>
 
   <div class="user-pill">
     <strong id="user-name">Dept. Técnico</strong>
@@ -1638,6 +1644,28 @@
 </div>
 
 
+<!-- PANEL INFORMES: INFORMES TÉCNICOS DE ANÁLISIS -->
+<div id="panel-informes-tecnico-analisis" class="panel">
+  <div class="topbar">
+    <h1>Informes técnicos de análisis de Proyectos</h1>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" onclick="imprimirInformeTecnicoAnalisis()">🖨️ Imprimir / PDF</button>
+      <button class="btn-refresh" onclick="cargarInformeTecnicoAnalisis()">Actualizar</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+    <input type="text" id="inf-ta-buscar" placeholder="Buscar por proyecto, código o cliente..." oninput="filtrarInformeTecnicoAnalisis()" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;">
+    <input type="date" id="inf-ta-desde" onchange="filtrarInformeTecnicoAnalisis()" style="padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;" title="Desde">
+    <input type="date" id="inf-ta-hasta" onchange="filtrarInformeTecnicoAnalisis()" style="padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;" title="Hasta">
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+    <div id="inf-ta-count" style="font-size:12px;color:#888;"></div>
+    <button class="btn btn-sm" onclick="limpiarFiltrosTecnicoAnalisis()" style="font-size:11px;">✕ Limpiar filtros</button>
+  </div>
+  <div id="informes-ta-content"><div class="loading">Cargando...</div></div>
+</div>
+
+
 <!-- MODAL PETICIÓN DE OFERTA -->
 <div id="modal-peticion-oferta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:white;border-radius:12px;padding:1.5rem;max-width:560px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
@@ -1776,6 +1804,7 @@ function showPanel(name) {
   if (name==='informes-proyectos') cargarInformeProyectos();
   if (name==='informes-gastos') cargarInformeGastos();
   if (name==='informes-desviaciones') cargarInformeDesviaciones();
+  if (name==='informes-tecnico-analisis') cargarInformeTecnicoAnalisis();
 }
 
 var currentDept = 'tecnico';
@@ -1805,6 +1834,7 @@ function setDept(dept, btn) {
   var navInfProy = document.getElementById('nav-informes-proyectos');
   var navInfGas = document.getElementById('nav-informes-gastos');
   var navInfDesv = document.getElementById('nav-informes-desviaciones');
+  var navInfTA = document.getElementById('nav-informes-tecnico-analisis');
   var showInformes = ['tecnico','direccion','comercial'].indexOf(dept) > -1;
   if (secInformes) secInformes.style.display = showInformes ? 'block' : 'none';
   if (navInfProy) navInfProy.style.display = showInformes ? 'block' : 'none';
@@ -1812,6 +1842,8 @@ function setDept(dept, btn) {
   if (navInfGas) navInfGas.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
   // Desviaciones solo técnico y dirección
   if (navInfDesv) navInfDesv.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
+  // Informes técnicos de análisis solo técnico y dirección
+  if (navInfTA) navInfTA.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
 
   loadDashboard();
 }
@@ -4450,11 +4482,13 @@ function iniciarApp() {
   var navInfProy2 = document.getElementById('nav-informes-proyectos');
   var navInfGas2 = document.getElementById('nav-informes-gastos');
   var navInfDesv2 = document.getElementById('nav-informes-desviaciones');
+  var navInfTA2 = document.getElementById('nav-informes-tecnico-analisis');
   var showInformes2 = ['tecnico','direccion','comercial'].indexOf(dept) > -1;
   if (secInformes2) secInformes2.style.display = showInformes2 ? 'block' : 'none';
   if (navInfProy2) navInfProy2.style.display = showInformes2 ? 'block' : 'none';
   if (navInfGas2) navInfGas2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
   if (navInfDesv2) navInfDesv2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
+  if (navInfTA2) navInfTA2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
 
   loadDashboard();
 }
@@ -8282,6 +8316,116 @@ async function compararCertificacionIA(certId, projectId) {
     btn.textContent = '🤖 Comparar con IA';
     btn.disabled = false;
   }
+}
+
+// ---- INFORMES TÉCNICOS DE ANÁLISIS ----
+var infTAData = [];
+
+async function cargarInformeTecnicoAnalisis() {
+  var el = document.getElementById('informes-ta-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    var res = await db.from('project_analysis')
+      .select('project_id, tech_notes, updated_at, projects(id, code, name, contact_email, category)')
+      .not('tech_notes', 'is', null)
+      .neq('tech_notes', '')
+      .order('updated_at', { ascending: false });
+
+    infTAData = (res.data || []).filter(function(r) {
+      return r.tech_notes && r.tech_notes.trim() !== '';
+    });
+
+    document.getElementById('inf-ta-desde').value = '';
+    document.getElementById('inf-ta-hasta').value = '';
+    document.getElementById('inf-ta-buscar').value = '';
+    renderInformeTecnicoAnalisis(infTAData);
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Error al cargar los informes: ' + e.message + '</div>';
+  }
+}
+
+function filtrarInformeTecnicoAnalisis() {
+  var q = (document.getElementById('inf-ta-buscar').value || '').toLowerCase();
+  var desde = document.getElementById('inf-ta-desde').value;
+  var hasta = document.getElementById('inf-ta-hasta').value;
+
+  var filtered = infTAData.filter(function(r) {
+    var proy = r.projects || {};
+    var texto = ((proy.name || '') + ' ' + (proy.code || '') + ' ' + (proy.contact_email || '') + ' ' + (proy.category || '')).toLowerCase();
+    if (q && texto.indexOf(q) === -1) return false;
+    if (desde && r.updated_at < desde) return false;
+    if (hasta && r.updated_at.substring(0, 10) > hasta) return false;
+    return true;
+  });
+
+  renderInformeTecnicoAnalisis(filtered);
+}
+
+function limpiarFiltrosTecnicoAnalisis() {
+  document.getElementById('inf-ta-buscar').value = '';
+  document.getElementById('inf-ta-desde').value = '';
+  document.getElementById('inf-ta-hasta').value = '';
+  renderInformeTecnicoAnalisis(infTAData);
+}
+
+function renderInformeTecnicoAnalisis(data) {
+  var count = document.getElementById('inf-ta-count');
+  var el = document.getElementById('informes-ta-content');
+  count.textContent = data.length + ' informe(s)';
+
+  if (!data.length) {
+    el.innerHTML = '<div class="empty">No hay informes técnicos de análisis guardados.</div>';
+    return;
+  }
+
+  var rows = data.map(function(r) {
+    var proy = r.projects || {};
+    var fecha = r.updated_at ? new Date(r.updated_at).toLocaleDateString('es-ES') : '-';
+    var hora  = r.updated_at ? new Date(r.updated_at).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}) : '';
+    var nombre = proy.name || proy.code || ('#' + r.project_id);
+    var codigo = proy.code || '-';
+    var cliente = proy.contact_email || '-';
+    var categoria = proy.category || '-';
+    // Truncar el informe para vista previa
+    var preview = (r.tech_notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var previewShort = preview.length > 200 ? preview.substring(0, 200) + '…' : preview;
+
+    return '<tr>' +
+      '<td><strong>' + nombre + '</strong><br><span style="font-size:11px;color:#888;">' + codigo + '</span></td>' +
+      '<td>' + categoria + '</td>' +
+      '<td style="color:#555;">' + cliente + '</td>' +
+      '<td style="white-space:nowrap;">' + fecha + '<br><span style="font-size:11px;color:#aaa;">' + hora + '</span></td>' +
+      '<td style="max-width:320px;white-space:pre-wrap;line-height:1.5;color:#444;">' + previewShort + '</td>' +
+      '</tr>';
+  }).join('');
+
+  el.innerHTML = '<div class="card">' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th>Proyecto</th>' +
+    '<th>Categoría</th>' +
+    '<th>Cliente</th>' +
+    '<th>Fecha guardado</th>' +
+    '<th>Informe técnico</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    '</table></div>';
+}
+
+function imprimirInformeTecnicoAnalisis() {
+  var w = window.open('', '_blank');
+  var el = document.getElementById('informes-ta-content');
+  w.document.write('<html><head><title>Informes técnicos de análisis</title>' +
+    '<style>body{font-family:sans-serif;font-size:12px;padding:1rem;}table{width:100%;border-collapse:collapse;}' +
+    'th{background:#f5f5f0;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;border-bottom:2px solid #ccc;}' +
+    'td{padding:8px 10px;border-bottom:1px solid #eee;vertical-align:top;}' +
+    'h1{font-size:16px;margin-bottom:0.5rem;}' +
+    '</style></head><body>' +
+    '<h1>Informes técnicos de análisis de Proyectos</h1>' +
+    '<p style="font-size:11px;color:#888;margin-bottom:1rem;">Generado el ' + new Date().toLocaleDateString('es-ES') + '</p>' +
+    el.innerHTML + '</body></html>');
+  w.document.close();
+  w.print();
 }
 
 </script>
