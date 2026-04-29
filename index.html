@@ -8021,7 +8021,7 @@ async function ejecutarAnalisisIA(projectId) {
         var promptFinal = isImage ? prompt : prompt + '\n\nCONTENIDO DEL DOCUMENTO:\n' + textoExtraido.substring(0, 8000);
 
         // Call n8n webhook → OpenAI GPT-4o
-        var n8nUrl = 'https://unspiring-jerry-extraterritorially.ngrok-free.dev/webhook/analisis-documental';
+        var n8nUrl = 'https://unspiring-jerry-extraterritorially.ngrok-free.dev/ /api/analisis';
         var apiResp = await fetch(n8nUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -8284,7 +8284,7 @@ async function compararCertificacionIA(certId, projectId) {
       "DOCUMENTO BYG:\n" + textoByg;
 
     // Call n8n webhook
-    var n8nUrl = 'https://unspiring-jerry-extraterritorially.ngrok-free.dev/webhook/analisis-documental';
+    var n8nUrl = 'https://unspiring-jerry-extraterritorially.ngrok-free.dev/ /api/analisis';
     var apiResp = await fetch(n8nUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
