@@ -3077,6 +3077,7 @@ async function registrarEvaluación(dept, decision) {
         await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message: notifMsg, created_at: new Date().toISOString()});
       } catch(ne) { console.error('Error notif:', ne); }
       resetAlertaEval();
+      var projIdAvanzado = evalProyecto.id;
       setTimeout(function() {
         evalProyecto = null;
         evalDecisiones = {};
@@ -6598,6 +6599,13 @@ async function npGuardar() {
     var nProj=1;
     if(lastProj.data&&lastProj.data.length&&lastProj.data[0].project_code){var mP=lastProj.data[0].project_code.match(/\d+$/);if(mP)nProj=parseInt(mP[0])+1;}
     var projCode='BYG-'+acronimo.substring(0,3)+'-'+anyo+'-'+String(nProj).padStart(3,'0');
+    // Asegurar que el código no existe ya
+    var codeCheck=await db.from('projects').select('id').eq('project_code',projCode);
+    while(codeCheck.data&&codeCheck.data.length>0){
+      nProj++;
+      projCode='BYG-'+acronimo.substring(0,3)+'-'+anyo+'-'+String(nProj).padStart(3,'0');
+      codeCheck=await db.from('projects').select('id').eq('project_code',projCode);
+    }
     var stRes=await db.from('project_statuses').select('id').eq('code','solicitado').single();
     var statusId=stRes.data?stRes.data.id:null;
     var newProj={
@@ -6619,6 +6627,7 @@ async function npGuardar() {
       updated_at:new Date().toISOString()
     };
     var projRes=await db.from('projects').insert(newProj).select().single();
+    if(projRes.error) throw new Error('Error al registrar proyecto: '+projRes.error.message);
     var proyectoId=projRes.data.id;
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
