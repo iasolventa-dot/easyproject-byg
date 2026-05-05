@@ -6742,32 +6742,60 @@ async function anAgregarEnlace(projectId) {
   var url = inp ? inp.value.trim() : '';
   if (!url) { alert('Pega un enlace antes de añadirlo.'); return; }
   if (!url.startsWith('http')) { alert('El enlace debe empezar por http:// o https://'); return; }
-  // Detectar proveedor del enlace
-  var nombre = 'Enlace externo';
-  if (url.includes('wetransfer')) nombre = 'WeTransfer';
-  else if (url.includes('drive.google')) nombre = 'Google Drive';
-  else if (url.includes('dropbox')) nombre = 'Dropbox';
-  else if (url.includes('onedrive') || url.includes('sharepoint')) nombre = 'OneDrive / SharePoint';
-  else if (url.includes('1drv.ms')) nombre = 'OneDrive';
-  // Pedir nombre personalizado
-  var nombreCustom = prompt('Nombre del documento (opcional):', nombre);
-  if (nombreCustom === null) return; // canceló
-  if (nombreCustom.trim()) nombre = nombreCustom.trim();
-  var { error } = await db.from('project_attachments').insert({
-    project_id: projectId,
-    file_name: nombre,
-    file_path: url,
-    file_size: null,
-    file_type: 'enlace',
-    mime_type: 'text/uri-list',
-    is_measurements: false,
-    uploaded_by: currentUser ? currentUser.email : 'manual',
-    uploaded_at: new Date().toISOString(),
-    storage_provider: 'external'
-  });
-  if (error) { alert('Error al guardar el enlace: ' + error.message); return; }
-  if (inp) inp.value = '';
-  cargarDocumentosAnálisis(projectId, null);
+
+  // Mostrar estado de carga
+  var linkBtn = inp ? inp.nextElementSibling : null;
+  var btnOriginal = linkBtn ? linkBtn.textContent : '';
+  if (linkBtn) { linkBtn.textContent = '⏳ Descargando...'; linkBtn.disabled = true; }
+
+  try {
+    // Llamar al webhook de n8n para descargar y subir automáticamente
+    var n8nUrl = 'https://unspiring-jerry-extraterritorially.ngrok-free.dev/webhook/descargar-archivo';
+    var resp = await fetch(n8nUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: url,
+        project_id: projectId,
+        user_email: currentUser ? currentUser.email : 'manual'
+      })
+    });
+
+    if (!resp.ok) throw new Error('Error en el servidor: ' + resp.status);
+    var result = await resp.json();
+
+    if (result.ok) {
+      // Archivo ya subido a Supabase por n8n — solo recargar la lista
+      if (inp) inp.value = '';
+      cargarDocumentosAnálisis(projectId, null);
+      // Mostrar confirmación breve
+      if (linkBtn) { linkBtn.textContent = '✅ Añadido'; linkBtn.style.background = '#3B6D11'; }
+      setTimeout(function() {
+        if (linkBtn) { linkBtn.textContent = btnOriginal; linkBtn.disabled = false; linkBtn.style.background = '#185FA5'; }
+      }, 2000);
+    } else {
+      throw new Error(result.error || 'Error desconocido');
+    }
+  } catch(e) {
+    console.error('Error descargando enlace:', e);
+    // Fallback: guardar como enlace externo si n8n falla
+    if (confirm('No se pudo descargar automáticamente.\n\n¿Guardar el enlace como referencia externa?')) {
+      var nombre = 'Enlace externo';
+      if (url.includes('wetransfer')) nombre = 'WeTransfer';
+      else if (url.includes('drive.google')) nombre = 'Google Drive';
+      else if (url.includes('dropbox')) nombre = 'Dropbox';
+      else if (url.includes('onedrive') || url.includes('sharepoint')) nombre = 'OneDrive';
+      await db.from('project_attachments').insert({
+        project_id: projectId, file_name: nombre, file_path: url,
+        file_size: null, file_type: 'enlace', mime_type: 'text/uri-list',
+        is_measurements: false, uploaded_by: currentUser ? currentUser.email : 'manual',
+        uploaded_at: new Date().toISOString(), storage_provider: 'external'
+      });
+      if (inp) inp.value = '';
+      cargarDocumentosAnálisis(projectId, null);
+    }
+    if (linkBtn) { linkBtn.textContent = btnOriginal; linkBtn.disabled = false; }
+  }
 }
 
 // ============================================================
@@ -7929,9 +7957,9 @@ async function cargarSeccionAnalisisDocumental(projectId) {
   if (!el) return;
 
   try {
-    // Load attachments with their doc_type
+    // Load attachments with their doc_type — excluir enlaces externos
     var res = await db.from('project_attachments').select('*').eq('project_id', projectId).order('uploaded_at');
-    var adj = res.data || [];
+    var adj = (res.data || []).filter(function(a){ return a.file_type !== 'enlace' && a.storage_provider !== 'external'; });
 
     // Load existing AI report
     var repRes = await db.from('project_analysis').select('ai_report,ai_report_generated_at,ai_report_by,external_links').eq('project_id', projectId).maybeSingle();
@@ -7942,6 +7970,7 @@ async function cargarSeccionAnalisisDocumental(projectId) {
     html += '<div style="font-size:13px;font-weight:600;color:#1a1a1a;">🤖 Análisis documental con IA</div>';
 
     var hasAnalyzable = adj.some(function(a) {
+      if (a.file_type === 'enlace' || a.storage_provider === 'external') return false;
       var t = a.doc_type || clasificarDocumentoPorNombre(a.file_name, a.mime_type);
       return t !== 'DWG' && t !== 'MEDICIONES';
     });
@@ -7956,6 +7985,22 @@ async function cargarSeccionAnalisisDocumental(projectId) {
       html += '<div style="background:#FEF3C7;border:1px solid #FAC775;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#854F0B;">';
       html += '⚠️ <strong>Archivos en enlace externo detectado:</strong> ' + repData.external_links;
       html += ' — Descárgalos manualmente y súbelos al proyecto.</div>';
+    }
+
+    // Mostrar enlaces externos por separado
+    var enlaces = (res.data || []).filter(function(a){ return a.file_type === 'enlace' || a.storage_provider === 'external'; });
+    if (enlaces.length) {
+      html += '<div style="margin-bottom:1rem;">';
+      html += '<div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:6px;">🔗 Enlaces externos</div>';
+      enlaces.forEach(function(e) {
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;margin-bottom:6px;">';
+        html += '<span style="font-size:14px;">🔗</span>';
+        html += '<div style="flex:1;font-size:12px;font-weight:500;">' + e.file_name + '</div>';
+        html += '<span style="font-size:10px;color:#888;background:#f0f0f0;padding:2px 7px;border-radius:5px;">No analizable con IA</span>';
+        html += '<button class="btn btn-sm" style="font-size:11px;" onclick="window.open('' + e.file_path.replace(/'/g,"\'") + '','_blank')">Abrir enlace</button>';
+        html += '</div>';
+      });
+      html += '</div>';
     }
 
     if (!adj.length) {
