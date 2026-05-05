@@ -1413,8 +1413,8 @@
 
   <!-- ALERTA ESTADO -->
   <div id="eval-alert" class="alert-box" style="margin-bottom:1.5rem;">
-    <div class="alert-box-title">Aprobación por Dpto. Técnico</div>
-    <div class="alert-box-desc">El Dpto. Técnico decide si el proyecto avanza a En Análisis. Comercial y Dirección pueden añadir observaciones a título informativo.</div>
+    <div class="alert-box-title">Evaluación simultánea requerida</div>
+    <div class="alert-box-desc">Los tres departamentos deben evaluar este proyecto de forma independiente. Si cualquier departamento lo rechaza, el proyecto queda cancelado y se notifica al resto.</div>
   </div>
 
   <!-- GRID 3 DEPARTAMENTOS -->
@@ -1444,10 +1444,10 @@
     <div class="card" id="eval-card-comercial">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DCFCE7;display:flex;align-items:center;justify-content:center;font-size:14px;">💼</div>
-        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dpto. Comercial</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dpto. Comercial</div><div style="font-size:11px;color:#888;">Interés estratégico y margen</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Sus observaciones quedan registradas en el histórico del proyecto a título informativo. No bloquean el avance.
+        Evalúa si el cliente es estratégico, el margen comercial es interesante y la operación encaja en la estrategia de ByG.
       </div>
       <div id="eval-estado-comercial" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-comercial">
@@ -1464,10 +1464,10 @@
     <div class="card" id="eval-card-direccion">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:14px;">🏢</div>
-        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dirección</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dirección</div><div style="font-size:11px;color:#888;">Visto bueno ejecutivo</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Sus observaciones quedan registradas en el histórico del proyecto a título informativo. No bloquean el avance.
+        Aprobación final de Dirección para que el proyecto entre en fase de análisis y presupuestación.
       </div>
       <div id="eval-estado-direccion" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-direccion">
@@ -3004,39 +3004,38 @@ function mostrarEstadoEval(dept, decision, reason, by) {
 }
 
 function resetAlertaEval() {
+  var depts = ['tecnico','comercial','direccion'];
+  var aprobados = depts.filter(function(d){return evalDecisiones[d] && evalDecisiones[d].decision==='approved';});
+  var rechazados = depts.filter(function(d){return evalDecisiones[d] && evalDecisiones[d].decision==='rejected';});
   var alert = document.getElementById('eval-alert');
   var resultado = document.getElementById('eval-resultado');
 
-  var tecnicoDecision = evalDecisiones['tecnico'] ? evalDecisiones['tecnico'].decision : null;
-
-  // Si técnico rechaza, proyecto cancelado
-  if (tecnicoDecision === 'rejected') {
+  if (rechazados.length > 0) {
     alert.className = 'alert-box';
     alert.style.display = 'block';
-    alert.innerHTML = '<div class="alert-box-title">Proyecto rechazado por Dpto. Técnico</div>' +
-      '<div class="alert-box-desc">El Dpto. Técnico ha rechazado el proyecto. Queda cancelado y se notifica al resto de departamentos.</div>';
+    alert.innerHTML = '<div class="alert-box-title">Proyecto rechazado por '+rechazados.join(', ')+'</div>' +
+      '<div class="alert-box-desc">Se ha notificado al resto de departamentos. El proyecto quedará cancelado.</div>';
     resultado.style.display = 'block';
     resultado.innerHTML = '<div style="background:#FCEBEB;border:1px solid #F7C1C1;border-radius:10px;padding:1.5rem;text-align:center;">' +
-      '<div style="font-size:28px;margin-bottom:8px;">✗</div>' +
+      '<div style="font-size:28px;margin-bottom:8px;">X</div>' +
       '<div style="font-size:15px;font-weight:600;color:#A32D2D;margin-bottom:6px;">Proyecto no aceptado</div>' +
-      '<div style="font-size:12px;color:#A32D2D;">El Dpto. Técnico ha rechazado el proyecto. Se notifica automáticamente al equipo.</div></div>';
-  // Si técnico aprueba, proyecto avanza automáticamente
-  } else if (tecnicoDecision === 'approved') {
+      '<div style="font-size:12px;color:#A32D2D;">Al menos un departamento ha rechazado el proyecto. Se notifica automáticamente al equipo.</div></div>';
+  } else if (aprobados.length === 3) {
     alert.className = 'alert-box alert-box-success';
     alert.style.display = 'block';
-    alert.innerHTML = '<div class="alert-box-title">✓ Dpto. Técnico ha aprobado el proyecto</div>' +
-      '<div class="alert-box-desc">El proyecto avanza a En Análisis. Comercial y Dirección pueden seguir añadiendo observaciones a título informativo.</div>';
+    alert.innerHTML = '<div class="alert-box-title">Los tres departamentos han aprobado el proyecto</div>' +
+      '<div class="alert-box-desc">El proyecto pasará automáticamente a fase En Análisis.</div>';
     resultado.style.display = 'block';
     resultado.innerHTML = '<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:10px;padding:1.5rem;text-align:center;">' +
-      '<div style="font-size:28px;margin-bottom:8px;">✓</div>' +
-      '<div style="font-size:15px;font-weight:600;color:#3B6D11;margin-bottom:6px;">Proyecto aceptado por Dpto. Técnico</div>' +
-      '<div style="font-size:12px;color:#3B6D11;">El proyecto ha avanzado a fase En Análisis. Comercial y Dirección han sido notificados.</div></div>';
-  // Técnico aún no ha respondido
+      '<div style="font-size:28px;margin-bottom:8px;">OK</div>' +
+      '<div style="font-size:15px;font-weight:600;color:#3B6D11;margin-bottom:6px;">Proyecto aceptado</div>' +
+      '<div style="font-size:12px;color:#3B6D11;margin-bottom:1rem;">Los tres departamentos han aprobado. El proyecto avanza a fase En Análisis.</div>' +
+      '<button class="btn btn-success" onclick="avanzarAAnálisis()">Confirmar y avanzar a En Análisis</button></div>';
   } else {
     alert.className = 'alert-box';
     alert.style.display = 'block';
-    alert.innerHTML = '<div class="alert-box-title">Pendiente de aprobación técnica</div>' +
-      '<div class="alert-box-desc">El Dpto. Técnico debe evaluar el proyecto. Comercial y Dirección pueden añadir sus observaciones mientras tanto.</div>';
+    alert.innerHTML = '<div class="alert-box-title">Evaluación en curso - '+aprobados.length+' de 3 departamentos han respondido</div>' +
+      '<div class="alert-box-desc">Pendiente de respuesta de los departamentos restantes.</div>';
     resultado.style.display = 'none';
   }
 }
@@ -3064,43 +3063,13 @@ async function registrarEvaluación(dept, decision) {
     evalDecisiones[dept] = evalData;
     mostrarEstadoEval(dept, decision, reason, deptNames[dept]);
 
-    // Si técnico aprueba → avanzar automáticamente y notificar
-    if (dept === 'tecnico' && decision === 'approved') {
-      var stRes = await db.from('project_statuses').select('id').eq('code','en_analisis').single();
-      if (stRes.data) {
-        await db.from('projects').update({project_status_id:stRes.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
-      }
-      // Notificar a comercial y dirección
-      var notifMsg = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido aprobado por el Dpto. Técnico y pasa a fase En Análisis. Podéis añadir vuestras observaciones a título informativo.';
-      try {
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'comercial', error_message: notifMsg, created_at: new Date().toISOString()});
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message: notifMsg, created_at: new Date().toISOString()});
-      } catch(ne) { console.error('Error notif:', ne); }
-      resetAlertaEval();
-      var projIdAvanzado = evalProyecto.id;
-      setTimeout(function() {
-        evalProyecto = null;
-        evalDecisiones = {};
-        showProyectosFase('solicitado');
-        loadDashboard();
-      }, 2500);
-      return;
-    }
-
-    // Si técnico rechaza, actualizar estado a cancelado
-    if (dept === 'tecnico' && decision === 'rejected') {
+    // Si rechazado, actualizar estado proyecto a cancelado
+    if (decision === 'rejected') {
       var cancelId = await db.from('project_statuses').select('id').eq('code','cancelled').single();
       if (cancelId.data) {
         await db.from('projects').update({project_status_id:cancelId.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
       }
-      // Notificar a comercial y dirección
-      try {
-        var notifRej = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido rechazado por el Dpto. Técnico y queda cancelado.';
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'comercial', error_message: notifRej, created_at: new Date().toISOString()});
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message: notifRej, created_at: new Date().toISOString()});
-      } catch(ne) { console.error('Error notif:', ne); }
     }
-
     resetAlertaEval();
   } catch(e) { alert('Error al registrar: '+e.message); }
 }
@@ -3209,7 +3178,8 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
         row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':'white')+';border:1px solid '+(esMed?'#C0DD97':'#e5e5e0')+';border-radius:8px;';
         var ic=document.createElement('div');
         ic.style.cssText='width:32px;height:32px;border-radius:6px;background:'+(a.file_type==='excel'?'#217346':a.file_type==='pdf'?'#E02020':'#185FA5')+';color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
-        ic.textContent=a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':'FILE';
+        ic.textContent=a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':a.file_type==='enlace'?'URL':'FILE';
+        if(a.file_type==='enlace') ic.style.background='#6B7280';
         var info=document.createElement('div'); info.style.cssText='flex:1;min-width:0;';
         info.innerHTML='<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.file_name+'</div><div style="font-size:11px;color:#888;">'+sz+(esMed?' <strong style="color:#3B6D11;">MEDICIONES</strong>':'')+'</div>';
         row.appendChild(ic); row.appendChild(info);
@@ -3218,7 +3188,17 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
         bm.style.cssText='background:'+(esMed?'#EAF3DE':'#f0f7ff')+';border:1px solid '+(esMed?'#C0DD97':'#B5D4F4')+';color:'+(esMed?'#3B6D11':'#185FA5')+';padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
         bm.onclick=(function(id,pid,marked){return function(){marked?anDesmarcarMediciones(id,pid):anMarcarMediciones(id,pid);};})(a.id,projectId,esMed);
         row.appendChild(bm);
-        var bd=document.createElement('button');bd.textContent='Ver';bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);row.appendChild(bd);
+        var bd=document.createElement('button');
+        if(a.file_type==='enlace'){
+          bd.textContent='Abrir enlace';
+          bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bd.onclick=(function(url){return function(){window.open(url,'_blank');};})(a.file_path);
+        } else {
+          bd.textContent='Ver';
+          bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);
+        }
+        row.appendChild(bd);
         lista.appendChild(row);
       });
       el.appendChild(lista);
@@ -3255,8 +3235,24 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       if(e.dataTransfer.files.length) anAgregarArchivos(e.dataTransfer.files, projectId);
     };
     
+    // Separador + opción de pegar enlace externo
+    var sepDiv=document.createElement('div');
+    sepDiv.style.cssText='display:flex;align-items:center;gap:10px;margin:12px 0;';
+    sepDiv.innerHTML='<div style="flex:1;height:1px;background:#e5e5e0;"></div><span style="font-size:11px;color:#aaa;white-space:nowrap;">o pega un enlace</span><div style="flex:1;height:1px;background:#e5e5e0;"></div>';
+    var linkDiv=document.createElement('div');
+    linkDiv.style.cssText='display:flex;gap:8px;align-items:center;';
+    var linkInp=document.createElement('input');
+    linkInp.type='text'; linkInp.id='an-link-input'; linkInp.placeholder='WeTransfer, Drive, Dropbox, OneDrive...';
+    linkInp.style.cssText='flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none;font-family:inherit;';
+    var linkBtn=document.createElement('button');
+    linkBtn.textContent='+ Añadir enlace';
+    linkBtn.style.cssText='background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;';
+    linkBtn.onclick=function(){ anAgregarEnlace(projectId); };
+    linkDiv.appendChild(linkInp); linkDiv.appendChild(linkBtn);
     addDiv.appendChild(inp);
     addDiv.appendChild(dropzone);
+    addDiv.appendChild(sepDiv);
+    addDiv.appendChild(linkDiv);
     el.appendChild(addDiv);
     var archsMed=adj.filter(function(a){return a.is_measurements;});
     if(archsMed.length){
@@ -6599,13 +6595,6 @@ async function npGuardar() {
     var nProj=1;
     if(lastProj.data&&lastProj.data.length&&lastProj.data[0].project_code){var mP=lastProj.data[0].project_code.match(/\d+$/);if(mP)nProj=parseInt(mP[0])+1;}
     var projCode='BYG-'+acronimo.substring(0,3)+'-'+anyo+'-'+String(nProj).padStart(3,'0');
-    // Asegurar que el código no existe ya
-    var codeCheck=await db.from('projects').select('id').eq('project_code',projCode);
-    while(codeCheck.data&&codeCheck.data.length>0){
-      nProj++;
-      projCode='BYG-'+acronimo.substring(0,3)+'-'+anyo+'-'+String(nProj).padStart(3,'0');
-      codeCheck=await db.from('projects').select('id').eq('project_code',projCode);
-    }
     var stRes=await db.from('project_statuses').select('id').eq('code','solicitado').single();
     var statusId=stRes.data?stRes.data.id:null;
     var newProj={
@@ -6627,7 +6616,6 @@ async function npGuardar() {
       updated_at:new Date().toISOString()
     };
     var projRes=await db.from('projects').insert(newProj).select().single();
-    if(projRes.error) throw new Error('Error al registrar proyecto: '+projRes.error.message);
     var proyectoId=projRes.data.id;
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
@@ -6698,6 +6686,39 @@ async function anAgregarArchivos(files, projectId) {
   }
   document.getElementById('an-file-input').value='';
   cargarDocumentosAnálisis(projectId,null);
+}
+
+async function anAgregarEnlace(projectId) {
+  var inp = document.getElementById('an-link-input');
+  var url = inp ? inp.value.trim() : '';
+  if (!url) { alert('Pega un enlace antes de añadirlo.'); return; }
+  if (!url.startsWith('http')) { alert('El enlace debe empezar por http:// o https://'); return; }
+  // Detectar proveedor del enlace
+  var nombre = 'Enlace externo';
+  if (url.includes('wetransfer')) nombre = 'WeTransfer';
+  else if (url.includes('drive.google')) nombre = 'Google Drive';
+  else if (url.includes('dropbox')) nombre = 'Dropbox';
+  else if (url.includes('onedrive') || url.includes('sharepoint')) nombre = 'OneDrive / SharePoint';
+  else if (url.includes('1drv.ms')) nombre = 'OneDrive';
+  // Pedir nombre personalizado
+  var nombreCustom = prompt('Nombre del documento (opcional):', nombre);
+  if (nombreCustom === null) return; // canceló
+  if (nombreCustom.trim()) nombre = nombreCustom.trim();
+  var { error } = await db.from('project_attachments').insert({
+    project_id: projectId,
+    file_name: nombre,
+    file_path: url,
+    file_size: null,
+    file_type: 'enlace',
+    mime_type: 'text/uri-list',
+    is_measurements: false,
+    uploaded_by: currentUser ? currentUser.email : 'manual',
+    uploaded_at: new Date().toISOString(),
+    storage_provider: 'external'
+  });
+  if (error) { alert('Error al guardar el enlace: ' + error.message); return; }
+  if (inp) inp.value = '';
+  cargarDocumentosAnálisis(projectId, null);
 }
 
 // ============================================================
