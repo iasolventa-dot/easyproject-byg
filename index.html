@@ -6818,14 +6818,9 @@ async function anAgregarEnlace(projectId) {
 function mostrarAvisoEnlace(btn) {
   var url = btn.dataset.url;
   if (!url) return;
-  var aviso = document.createElement('div');
-  aviso.style.cssText = 'position:fixed;top:20px;right:20px;background:#1C1C1E;color:white;padding:16px 20px;border-radius:10px;font-size:13px;z-index:9999;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
-  aviso.innerHTML = '<div style="font-weight:600;margin-bottom:6px;">📂 Descarga automática no disponible</div>' +
-    '<div style="font-size:12px;color:#aaa;margin-bottom:12px;">Abriendo el enlace. Descarga los archivos y arrástralos al recuadro de carga.</div>' +
-    '<div style="font-size:11px;color:#52B788;">↓ Arrastra los archivos al recuadro de arriba</div>';
-  document.body.appendChild(aviso);
-  setTimeout(function() { window.open(url, '_blank'); }, 400);
-  setTimeout(function() { if (aviso.parentNode) aviso.remove(); }, 5000);
+  // Mostrar aviso nativo — el usuario lo cierra cuando quiera
+  alert('📂 Descarga automática no disponible\n\nSe abrirá el enlace en una nueva pestaña.\nDescarga los archivos y arrástralos al recuadro de carga del proyecto.\n\nPulsa Aceptar para abrir el enlace.');
+  window.open(url, '_blank');
 }
 
 async function anFallbackEnlace(url, projectId, inp, linkBtn, btnOriginal) {
