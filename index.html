@@ -7997,7 +7997,7 @@ async function cargarSeccionAnalisisDocumental(projectId) {
         html += '<span style="font-size:14px;">🔗</span>';
         html += '<div style="flex:1;font-size:12px;font-weight:500;">' + e.file_name + '</div>';
         html += '<span style="font-size:10px;color:#888;background:#f0f0f0;padding:2px 7px;border-radius:5px;">No analizable con IA</span>';
-        html += '<button class="btn btn-sm" style="font-size:11px;" onclick="window.open('' + e.file_path.replace(/'/g,"\'") + '','_blank')">Abrir enlace</button>';
+        html += '<button class="btn btn-sm" style="font-size:11px;" data-url="' + e.file_path.replace(/"/g, '&quot;') + '" onclick="window.open(this.dataset.url,\'_blank\')">' + 'Abrir enlace</button>';
         html += '</div>';
       });
       html += '</div>';
