@@ -1536,6 +1536,15 @@
       <div style="display:inline-block;background:#185FA5;color:white;padding:7px 18px;border-radius:7px;font-size:12px;">Seleccionar archivos</div>
     </div>
     <input type="file" id="np-file-input" multiple style="display:none;" onchange="npAgregarArchivos(this.files)">
+    <div style="display:flex;align-items:center;gap:10px;margin:12px 0;">
+      <div style="flex:1;height:1px;background:#e5e5e0;"></div>
+      <span style="font-size:11px;color:#aaa;white-space:nowrap;">o pega un enlace</span>
+      <div style="flex:1;height:1px;background:#e5e5e0;"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;">
+      <input type="text" id="np-link-input" placeholder="WeTransfer, Google Drive, Dropbox, OneDrive..." style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none;font-family:inherit;">
+      <button onclick="npAgregarEnlace()" style="background:#185FA5;color:white;border:none;padding:9px 14px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;">+ Añadir enlace</button>
+    </div>
     <div id="np-archivos-lista"></div>
     <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(3)">Anterior</button><button class="btn btn-primary" onclick="npSiguiente(3)">Siguiente</button></div>
   </div></div>
@@ -6490,6 +6499,25 @@ function npDetectarTipo(file) {
   return 'otro';
 }
 
+function npAgregarEnlace() {
+  var inp = document.getElementById('np-link-input');
+  var url = inp ? inp.value.trim() : '';
+  if (!url) { alert('Pega un enlace antes de añadirlo.'); return; }
+  if (!url.startsWith('http')) { alert('El enlace debe empezar por http:// o https://'); return; }
+  var nombre = 'Enlace externo';
+  if (url.includes('wetransfer')) nombre = 'WeTransfer';
+  else if (url.includes('drive.google')) nombre = 'Google Drive';
+  else if (url.includes('dropbox')) nombre = 'Dropbox';
+  else if (url.includes('onedrive') || url.includes('sharepoint') || url.includes('1drv.ms')) nombre = 'OneDrive';
+  var nombreCustom = prompt('Nombre del documento (opcional):', nombre);
+  if (nombreCustom === null) return;
+  if (nombreCustom.trim()) nombre = nombreCustom.trim();
+  // Añadir como archivo especial de tipo enlace
+  npArchivos.push({ file: { name: nombre, size: 0, type: 'text/uri-list' }, nombre: nombre, tipo: 'enlace', esMediciones: false, url: url });
+  if (inp) inp.value = '';
+  npRenderArchivos();
+}
+
 function npAgregarArchivos(files) {
   for (var i=0;i<files.length;i++) {
     var file=files[i];
@@ -6509,7 +6537,7 @@ function npRenderArchivos() {
     el.innerHTML='<div style="text-align:center;padding:1rem;font-size:12px;color:#aaa;">No hay archivos añadidos aún</div>';
     return;
   }
-  var iconos={excel:'📊',pdf:'📄',word:'📝',imagen:'🖼️',otro:'📎'};
+  var iconos={excel:'📊',pdf:'📄',word:'📝',imagen:'🖼️',enlace:'🔗',otro:'📎'};
   npArchivos.forEach(function(a, idx) {
     var esMed=a.esMediciones;
     var row=document.createElement('div');
@@ -6619,6 +6647,13 @@ async function npGuardar() {
     var proyectoId=projRes.data.id;
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
+      if (arch.tipo === 'enlace') {
+        // Guardar enlace externo directamente sin subir a Storage
+        await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:arch.url,
+          file_size:null,file_type:'enlace',mime_type:'text/uri-list',is_measurements:false,
+          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
+        continue;
+      }
       var filePath='proyecto-'+proyectoId+'/'+Date.now()+'-'+arch.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
       var upRes=await db.storage.from('project-attachments').upload(filePath,arch.file,{cacheControl:'3600',upsert:false});
       if(upRes.error){console.error('Error subiendo '+arch.nombre+':',upRes.error);continue;}
