@@ -761,13 +761,10 @@
 <div id="modal-gremio" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:white;border-radius:12px;padding:1.5rem;width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
     <div style="font-size:15px;font-weight:600;margin-bottom:1.25rem;" id="modal-gremio-title">Nuevo gremio</div>
-    <div class="form-field" style="margin-bottom:1rem;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Código (ej: SOLDADURA)</label>
-      <input type="text" id="mg-codigo" placeholder="CODIGO" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase().replace(/\s/g,'_')">
-    </div>
     <div class="form-field" style="margin-bottom:1.5rem;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nombre *</label>
-      <input type="text" id="mg-nombre" placeholder="Nombre del gremio" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nombre del gremio *</label>
+      <input type="text" id="mg-nombre" placeholder="Ej: Pintura, Soldadura..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+      <div style="font-size:10px;color:#aaa;margin-top:4px;">El código se genera automáticamente a partir del nombre.</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn" onclick="cerrarModalGremio()">Cancelar</button>
@@ -2987,19 +2984,17 @@ async function loadGremios() {
 function abrirModalGremio() {
   gremioEditando = null;
   document.getElementById('modal-gremio-title').textContent = 'Nuevo gremio';
-  document.getElementById('mg-codigo').value = '';
   document.getElementById('mg-nombre').value = '';
-  document.getElementById('mg-codigo').readOnly = false;
   document.getElementById('modal-gremio').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mg-nombre').focus(); }, 100);
 }
 
 function editarGremio(id, codigo, nombreEnc) {
   gremioEditando = id;
-  document.getElementById('modal-gremio-title').textContent = 'Editar gremio';
-  document.getElementById('mg-codigo').value = codigo;
+  document.getElementById('modal-gremio-title').textContent = 'Editar nombre del gremio';
   document.getElementById('mg-nombre').value = decodeURIComponent(nombreEnc);
-  document.getElementById('mg-codigo').readOnly = true;
   document.getElementById('modal-gremio').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mg-nombre').focus(); }, 100);
 }
 
 function cerrarModalGremio() {
@@ -3008,17 +3003,30 @@ function cerrarModalGremio() {
 }
 
 async function guardarGremio() {
-  var codigo = document.getElementById('mg-codigo').value.trim().toUpperCase().replace(/\s/g,'_');
   var nombre = document.getElementById('mg-nombre').value.trim();
-  if (!nombre) { alert('El nombre es obligatorio.'); return; }
-  if (!codigo) { alert('El código es obligatorio.'); return; }
+  if (!nombre) { alert('El nombre es obligatorio.'); document.getElementById('mg-nombre').focus(); return; }
+
+  // Generar código a partir del nombre: mayúsculas, sin tildes, espacios → _
+  var codigo = nombre.toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // quitar tildes
+    .replace(/[^A-Z0-9\s]/g,'')                        // solo letras y números
+    .trim().replace(/\s+/g,'_');                        // espacios → _
+
   try {
     if (gremioEditando) {
       await db.from('supplier_specialties').update({name: nombre, updated_at: new Date().toISOString()}).eq('id', gremioEditando);
     } else {
-      // Comprobar si ya existe
-      var check = await db.from('supplier_specialties').select('id').eq('code', codigo);
-      if (check.data && check.data.length) { alert('Ya existe un gremio con ese código.'); return; }
+      // Comprobar si ya existe por nombre o código
+      var checkNombre = await db.from('supplier_specialties').select('id,name').ilike('name', nombre);
+      if (checkNombre.data && checkNombre.data.length) {
+        alert('⚠️ Ya existe un gremio con ese nombre:\n"' + checkNombre.data[0].name + '"');
+        return;
+      }
+      var checkCodigo = await db.from('supplier_specialties').select('id').eq('code', codigo);
+      if (checkCodigo.data && checkCodigo.data.length) {
+        // Añadir sufijo numérico para evitar colisión
+        codigo = codigo + '_2';
+      }
       await db.from('supplier_specialties').insert({code: codigo, name: nombre, created_at: new Date().toISOString()});
     }
     cerrarModalGremio();
