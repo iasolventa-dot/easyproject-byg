@@ -3008,30 +3008,40 @@ async function guardarGremio() {
 
   // Generar código a partir del nombre: mayúsculas, sin tildes, espacios → _
   var codigo = nombre.toUpperCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // quitar tildes
-    .replace(/[^A-Z0-9\s]/g,'')                        // solo letras y números
-    .trim().replace(/\s+/g,'_');                        // espacios → _
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Z0-9\s]/g,'')
+    .trim().replace(/\s+/g,'_');
 
   try {
     if (gremioEditando) {
-      await db.from('supplier_specialties').update({name: nombre, updated_at: new Date().toISOString()}).eq('id', gremioEditando);
+      var res = await db.from('supplier_specialties').update({name: nombre}).eq('id', gremioEditando);
+      if (res.error) throw res.error;
     } else {
-      // Comprobar si ya existe por nombre o código
+      // Comprobar si ya existe por nombre
       var checkNombre = await db.from('supplier_specialties').select('id,name').ilike('name', nombre);
       if (checkNombre.data && checkNombre.data.length) {
         alert('⚠️ Ya existe un gremio con ese nombre:\n"' + checkNombre.data[0].name + '"');
         return;
       }
+      // Comprobar código y añadir sufijo si colisiona
       var checkCodigo = await db.from('supplier_specialties').select('id').eq('code', codigo);
-      if (checkCodigo.data && checkCodigo.data.length) {
-        // Añadir sufijo numérico para evitar colisión
-        codigo = codigo + '_2';
-      }
-      await db.from('supplier_specialties').insert({code: codigo, name: nombre, created_at: new Date().toISOString()});
+      if (checkCodigo.data && checkCodigo.data.length) codigo = codigo + '_2';
+
+      var res = await db.from('supplier_specialties').insert({code: codigo, name: nombre});
+      if (res.error) throw res.error;
     }
     cerrarModalGremio();
     loadGremios();
-  } catch(e) { alert('Error al guardar: ' + e.message); }
+    // Notificación verde
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 20px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;';
+    notif.innerHTML = '<span style="font-size:18px;">✓</span><span>' + (gremioEditando ? 'Gremio actualizado' : 'Gremio <strong>"' + nombre + '"</strong> creado correctamente') + '</span>';
+    document.body.appendChild(notif);
+    setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3500);
+  } catch(e) {
+    console.error('Error guardarGremio:', e);
+    alert('Error al guardar el gremio:\n' + (e.message || JSON.stringify(e)));
+  }
 }
 
 async function loadAlertas() {
