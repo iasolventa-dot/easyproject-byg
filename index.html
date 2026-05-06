@@ -2623,7 +2623,8 @@ async function renderFichaProveedor(p, editable) {
 
   // Cargar categorías para el select
   var catRes = await db.from('supplier_categories').select('name').order('name');
-  var todasCategorias = catRes.data ? catRes.data.map(function(c){ return c.name; }) : ['Instaladora','Ingeniería','Materiales de Obra'];
+  console.log('categorias:', catRes.data, catRes.error);
+  var todasCategorias = (catRes.data && catRes.data.length) ? catRes.data.map(function(c){ return c.name; }) : ['Instaladora','Ingeniería','Materiales de Obra'];
 
   var campos = [
     {label:'Código interno',          key:'internal_code',     val:p.internal_code,        readonly:true},
