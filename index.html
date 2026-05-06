@@ -2575,19 +2575,23 @@ function abrirFichaProveedor(id) {
   renderFichaProveedor(proveedorActual, false);
 }
 
-function renderFichaProveedor(p, editable) {
-  var gremios = [];
+async function renderFichaProveedor(p, editable) {
+  var gremiosActuales = [];
   if (p.supplier_specialty_rel && p.supplier_specialty_rel.length) {
-    gremios = p.supplier_specialty_rel.map(function(r){ return r.specialty_code + (r.primary_specialty?' (principal)':''); });
-  } else if (p.specialty_code) { gremios = [p.specialty_code]; }
+    gremiosActuales = p.supplier_specialty_rel.map(function(r){ return r.specialty_code; });
+  } else if (p.specialty_code) { gremiosActuales = [p.specialty_code]; }
 
-  var camposObligatoriosProv = ['commercial_name','legal_name','cif','commercial_email','phone','address'];
+  var todosGremios = [];
+  if (editable) {
+    var grRes = await db.from('supplier_specialties').select('code,name').order('name');
+    todosGremios = grRes.data || [];
+  }
+
   var campos = [
     {label:'Código interno',          key:'internal_code',     val:p.internal_code,        readonly:true},
     {label:'Nombre comercial',        key:'commercial_name',   val:p.commercial_name,       required:true},
     {label:'Razón social',            key:'legal_name',        val:p.legal_name,            required:true},
     {label:'CIF / NIF',              key:'cif',               val:p.cif,                   required:true},
-    {label:'Gremios / Especialidades',key:'_gremios',          val:gremios.join(', '),      readonly:true},
     {label:'Categoría',              key:'category',          val:p.category},
     {label:'Estado',                 key:'status',            val:p.status},
     {label:'Valoración histórica',   key:'rating',            val:p.rating?p.rating+'/5':''},
@@ -2608,29 +2612,47 @@ function renderFichaProveedor(p, editable) {
     {label:'Última actualización',   key:'_updated',          val:p.updated_at?new Date(p.updated_at).toLocaleDateString('es-ES'):'-', readonly:true}
   ];
 
+  var gremiosHtml;
+  if (editable && todosGremios.length) {
+    gremiosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;">' +
+      todosGremios.map(function(g) {
+        var checked = gremiosActuales.indexOf(g.code) !== -1;
+        return '<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1px solid '+(checked?'#185FA5':'#ddd')+';border-radius:6px;background:'+(checked?'#EEF5FC':'white')+';user-select:none;">' +
+          '<input type="checkbox" class="prov-gremio-cb" value="'+g.code+'" '+(checked?'checked':'')+' style="width:13px;height:13px;">' +
+          g.name + '</label>';
+      }).join('') + '</div>' +
+      '<div style="font-size:10px;color:#aaa;margin-top:4px;">Marca todos los gremios en los que trabaja este proveedor.</div>';
+  } else {
+    gremiosHtml = '<div style="padding:5px 8px;font-size:13px;color:#1a1a1a;">' +
+      (gremiosActuales.length ? gremiosActuales.join(', ') : '-') + '</div>';
+  }
+
   document.getElementById('prov-ficha-content').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:0;">' +
+    '<div style="display:flex;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f5f5f0;">' +
+      '<div style="width:220px;font-size:11px;color:#888;font-weight:500;flex-shrink:0;text-transform:uppercase;letter-spacing:0.03em;padding-top:6px;">Gremios / Especialidades</div>' +
+      '<div style="flex:1;">' + gremiosHtml + '</div>' +
+    '</div>' +
     campos.map(function(f) {
       var isReadonly = f.readonly || !editable;
-      var inputStyle = isReadonly ?
-        'background:#f9f9f6;border:1px solid transparent;' :
-        (f.required ? 'background:white;border:1px solid #ddd;' : 'background:white;border:1px solid #ddd;');
-      var labelHtml = f.label + (f.required && editable ? ' <span style="color:#A32D2D;font-size:10px;">*</span>' : '');
+      var inputStyle = isReadonly ? 'background:#f9f9f6;border:1px solid transparent;' : 'background:white;border:1px solid #ddd;';
+      var labelHtml = f.label + (f.required && editable ? ' <span style=\"color:#A32D2D;font-size:10px;\">*</span>' : '');
       return '<div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #f5f5f0;">' +
         '<div style="width:220px;font-size:11px;color:#888;font-weight:500;flex-shrink:0;text-transform:uppercase;letter-spacing:0.03em;">' + labelHtml + '</div>' +
         '<input id="prov-field-'+f.key+'" value="'+(f.val||'')+'" '+(isReadonly?'readonly':'')+
         (f.required && !isReadonly ? ' required' : '') +
         ' style="flex:1;padding:5px 8px;border-radius:5px;font-size:13px;color:#1a1a1a;'+inputStyle+'"></div>';
     }).join('') +
-    (editable ? '<div style="font-size:11px;color:#888;margin-top:10px;"><span style="color:#A32D2D;">*</span> Campos obligatorios</div>' : '') +
+    (editable ? '<div style="font-size:11px;color:#888;margin-top:10px;"><span style=\"color:#A32D2D;\">*</span> Campos obligatorios</div>' : '') +
     '</div>';
 }
 
-function toggleEditarProveedor() {
+
+async function toggleEditarProveedor() {
   modoEdicion = true;
   document.getElementById('btn-editar-prov').style.display = 'none';
   document.getElementById('btn-guardar-prov').style.display = 'inline-block';
-  renderFichaProveedor(proveedorActual, true);
+  await renderFichaProveedor(proveedorActual, true);
 }
 
 async function guardarProveedor() {
@@ -2660,10 +2682,11 @@ async function guardarProveedor() {
     return;
   }
   try {
+    var provId;
     if (proveedorActual.id) {
       await db.from('suppliers').update(data).eq('id', proveedorActual.id);
+      provId = proveedorActual.id;
     } else {
-      // Generar código interno automático: PRV-XXX
       var lastProv = await db.from('suppliers').select('internal_code').order('id', {ascending:false}).limit(1);
       var lastNum = 0;
       if (lastProv.data && lastProv.data.length && lastProv.data[0].internal_code) {
@@ -2671,15 +2694,35 @@ async function guardarProveedor() {
         if (match) lastNum = parseInt(match[0]);
       }
       data.internal_code = 'PRV-' + String(lastNum + 1).padStart(3, '0');
-      await db.from('suppliers').insert(data);
+      var insRes = await db.from('suppliers').insert(data).select().single();
+      provId = insRes.data.id;
     }
+
+    // Guardar gremios seleccionados en supplier_specialty_rel
+    var checkboxes = document.querySelectorAll('.prov-gremio-cb');
+    if (checkboxes.length > 0) {
+      var seleccionados = [];
+      checkboxes.forEach(function(cb, idx) { if (cb.checked) seleccionados.push(cb.value); });
+      // Borrar relaciones anteriores
+      await db.from('supplier_specialty_rel').delete().eq('supplier_id', provId);
+      // Insertar nuevas
+      if (seleccionados.length > 0) {
+        var rels = seleccionados.map(function(code, idx) {
+          return {supplier_id: provId, specialty_code: code, primary_specialty: idx === 0};
+        });
+        await db.from('supplier_specialty_rel').insert(rels);
+        // Actualizar también el campo legacy specialty_code con el principal
+        await db.from('suppliers').update({specialty_code: seleccionados[0]}).eq('id', provId);
+      }
+    }
+
     alert('Proveedor guardado correctamente.');
     modoEdicion = false;
     document.getElementById('btn-editar-prov').style.display = 'inline-block';
     document.getElementById('btn-guardar-prov').style.display = 'none';
     await loadProveedores();
     var updated = proveedoresData.find(function(x){return x.commercial_name===data.commercial_name;});
-    if (updated) { proveedorActual = updated; renderFichaProveedor(updated, false); }
+    if (updated) { proveedorActual = updated; await renderFichaProveedor(updated, false); }
   } catch(e) { alert('Error al guardar: '+e.message); }
 }
 
