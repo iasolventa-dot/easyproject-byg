@@ -6626,7 +6626,7 @@ function npMostrarPaso(paso) {
 
 function npAnterior(p) { npMostrarPaso(p-1); }
 
-function npSiguiente(p) {
+async function npSiguiente(p) {
   if (p===1) {
     if (npClienteTipo==='existente' && !npClienteSeleccionado) { alert('Selecciona un cliente.'); return; }
     if (npClienteTipo==='nuevo') {
@@ -6636,6 +6636,18 @@ function npSiguiente(p) {
       var em=document.getElementById('np-new-email').value.trim();
       if (!n||!a||!co||!em) { alert('Rellena los campos obligatorios.'); return; }
       if (a.length!==3) { alert('El acrónimo debe tener exactamente 3 letras.'); return; }
+      // Validar duplicado por nombre
+      var dupNombre = await db.from('clients').select('id,commercial_name').ilike('commercial_name', n);
+      if (dupNombre.data && dupNombre.data.length) {
+        alert('⚠️ Ya existe un cliente con ese nombre:\n"' + dupNombre.data[0].commercial_name + '"\n\nBúscalo en la lista de clientes registrados.');
+        return;
+      }
+      // Validar duplicado por acrónimo
+      var dupAcro = await db.from('clients').select('id,commercial_name').eq('client_code', a.toUpperCase());
+      if (dupAcro.data && dupAcro.data.length) {
+        alert('⚠️ El acrónimo "' + a.toUpperCase() + '" ya está en uso por:\n"' + dupAcro.data[0].commercial_name + '"\n\nElige un acrónimo diferente.');
+        return;
+      }
     }
   }
   if (p===2) {
