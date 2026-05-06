@@ -3140,6 +3140,9 @@ async function guardarCategoriaProv() {
 }
 
 // ---- GREMIOS ----
+var gremioEditando = null;
+
+async function loadGremios() {
   var tbody=document.getElementById('gremios-tbody');
   tbody.innerHTML='<tr><td colspan="3" class="loading">Cargando...</td></tr>';
   try {
