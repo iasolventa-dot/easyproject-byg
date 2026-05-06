@@ -1445,18 +1445,17 @@
     <div class="card" id="eval-card-comercial">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DCFCE7;display:flex;align-items:center;justify-content:center;font-size:14px;">💼</div>
-        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dpto. Comercial</div><div style="font-size:11px;color:#888;">Interés estratégico y margen</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dpto. Comercial</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Evalúa si el cliente es estratégico, el margen comercial es interesante y la operación encaja en la estrategia de ByG.
+        Puede añadir observaciones sobre el interés estratégico o margen comercial. No bloquea ni aprueba el proyecto.
       </div>
       <div id="eval-estado-comercial" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-comercial">
-        <textarea id="eval-reason-comercial" placeholder="Observaciones comerciales (obligatorio si rechaza)..."
+        <textarea id="eval-reason-comercial" placeholder="Observaciones comerciales (informativo)..."
           style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-danger btn-sm" style="flex:1;" onclick="registrarEvaluación('comercial','rejected')">Rechazar</button>
-          <button class="btn btn-success btn-sm" style="flex:1;" onclick="registrarEvaluación('comercial','approved')">Aprobar</button>
+          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('comercial','approved')">Guardar observaciones</button>
         </div>
       </div>
     </div>
@@ -1465,18 +1464,17 @@
     <div class="card" id="eval-card-direccion">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:14px;">🏢</div>
-        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dirección</div><div style="font-size:11px;color:#888;">Visto bueno ejecutivo</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dirección</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Aprobación final de Dirección para que el proyecto entre en fase de análisis y presupuestación.
+        Puede añadir observaciones ejecutivas. La decisión final corresponde al Dpto. Técnico.
       </div>
       <div id="eval-estado-direccion" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-direccion">
-        <textarea id="eval-reason-direccion" placeholder="Observaciones de dirección (obligatorio si rechaza)..."
+        <textarea id="eval-reason-direccion" placeholder="Observaciones de dirección (informativo)..."
           style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-danger btn-sm" style="flex:1;" onclick="registrarEvaluación('direccion','rejected')">Rechazar</button>
-          <button class="btn btn-success btn-sm" style="flex:1;" onclick="registrarEvaluación('direccion','approved')">Aprobar</button>
+          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('direccion','approved')">Guardar observaciones</button>
         </div>
       </div>
     </div>
