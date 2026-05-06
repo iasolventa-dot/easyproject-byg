@@ -1415,7 +1415,7 @@
   <!-- ALERTA ESTADO -->
   <div id="eval-alert" class="alert-box" style="margin-bottom:1.5rem;">
     <div class="alert-box-title">Evaluación simultánea requerida</div>
-    <div class="alert-box-desc">Los tres departamentos deben evaluar este proyecto de forma independiente. Si cualquier departamento lo rechaza, el proyecto queda cancelado y se notifica al resto.</div>
+    <div class="alert-box-desc">El Dpto. Técnico aprueba o rechaza el proyecto. Comercial y Dirección pueden añadir observaciones informativas.</div>
   </div>
 
   <!-- GRID 3 DEPARTAMENTOS -->
@@ -3006,38 +3006,35 @@ function mostrarEstadoEval(dept, decision, reason, by) {
 }
 
 function resetAlertaEval() {
-  var depts = ['tecnico','comercial','direccion'];
-  var aprobados = depts.filter(function(d){return evalDecisiones[d] && evalDecisiones[d].decision==='approved';});
-  var rechazados = depts.filter(function(d){return evalDecisiones[d] && evalDecisiones[d].decision==='rejected';});
-  var alert = document.getElementById('eval-alert');
+  var alertEl = document.getElementById('eval-alert');
   var resultado = document.getElementById('eval-resultado');
+  var tecnicoDecision = evalDecisiones['tecnico'] ? evalDecisiones['tecnico'].decision : null;
 
-  if (rechazados.length > 0) {
-    alert.className = 'alert-box';
-    alert.style.display = 'block';
-    alert.innerHTML = '<div class="alert-box-title">Proyecto rechazado por '+rechazados.join(', ')+'</div>' +
-      '<div class="alert-box-desc">Se ha notificado al resto de departamentos. El proyecto quedará cancelado.</div>';
+  if (tecnicoDecision === 'rejected') {
+    alertEl.className = 'alert-box';
+    alertEl.style.display = 'block';
+    alertEl.innerHTML = '<div class="alert-box-title">❌ Proyecto rechazado por Dpto. Técnico</div>' +
+      '<div class="alert-box-desc">El proyecto queda cancelado. Comercial y Dirección han sido notificados.</div>';
     resultado.style.display = 'block';
     resultado.innerHTML = '<div style="background:#FCEBEB;border:1px solid #F7C1C1;border-radius:10px;padding:1.5rem;text-align:center;">' +
-      '<div style="font-size:28px;margin-bottom:8px;">X</div>' +
+      '<div style="font-size:28px;margin-bottom:8px;">✗</div>' +
       '<div style="font-size:15px;font-weight:600;color:#A32D2D;margin-bottom:6px;">Proyecto no aceptado</div>' +
-      '<div style="font-size:12px;color:#A32D2D;">Al menos un departamento ha rechazado el proyecto. Se notifica automáticamente al equipo.</div></div>';
-  } else if (aprobados.length === 3) {
-    alert.className = 'alert-box alert-box-success';
-    alert.style.display = 'block';
-    alert.innerHTML = '<div class="alert-box-title">Los tres departamentos han aprobado el proyecto</div>' +
-      '<div class="alert-box-desc">El proyecto pasará automáticamente a fase En Análisis.</div>';
+      '<div style="font-size:12px;color:#A32D2D;">El Dpto. Técnico ha rechazado el proyecto. Se notifica automáticamente al equipo.</div></div>';
+  } else if (tecnicoDecision === 'approved') {
+    alertEl.className = 'alert-box alert-box-success';
+    alertEl.style.display = 'block';
+    alertEl.innerHTML = '<div class="alert-box-title">✓ Dpto. Técnico ha aprobado — proyecto avanzado a En Análisis</div>' +
+      '<div class="alert-box-desc">Comercial y Dirección han sido notificados y pueden añadir observaciones informativas.</div>';
     resultado.style.display = 'block';
     resultado.innerHTML = '<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:10px;padding:1.5rem;text-align:center;">' +
-      '<div style="font-size:28px;margin-bottom:8px;">OK</div>' +
-      '<div style="font-size:15px;font-weight:600;color:#3B6D11;margin-bottom:6px;">Proyecto aceptado</div>' +
-      '<div style="font-size:12px;color:#3B6D11;margin-bottom:1rem;">Los tres departamentos han aprobado. El proyecto avanza a fase En Análisis.</div>' +
-      '<button class="btn btn-success" onclick="avanzarAAnálisis()">Confirmar y avanzar a En Análisis</button></div>';
+      '<div style="font-size:28px;margin-bottom:8px;">✓</div>' +
+      '<div style="font-size:15px;font-weight:600;color:#3B6D11;margin-bottom:6px;">Proyecto en análisis</div>' +
+      '<div style="font-size:12px;color:#3B6D11;">Aprobado por Dpto. Técnico. Comercial y Dirección revisarán a título informativo.</div></div>';
   } else {
-    alert.className = 'alert-box';
-    alert.style.display = 'block';
-    alert.innerHTML = '<div class="alert-box-title">Evaluación en curso - '+aprobados.length+' de 3 departamentos han respondido</div>' +
-      '<div class="alert-box-desc">Pendiente de respuesta de los departamentos restantes.</div>';
+    alertEl.className = 'alert-box';
+    alertEl.style.display = 'block';
+    alertEl.innerHTML = '<div class="alert-box-title">⚙️ Pendiente de decisión del Dpto. Técnico</div>' +
+      '<div class="alert-box-desc">El Dpto. Técnico aprueba o rechaza el proyecto. Comercial y Dirección pueden añadir observaciones informativas mientras tanto.</div>';
     resultado.style.display = 'none';
   }
 }
@@ -3045,33 +3042,67 @@ function resetAlertaEval() {
 async function registrarEvaluación(dept, decision) {
   if (!evalProyecto) return;
   var reason = document.getElementById('eval-reason-'+dept) ? document.getElementById('eval-reason-'+dept).value.trim() : '';
-  if (decision === 'rejected' && !reason) {
+  // Solo técnico necesita razón obligatoria al rechazar
+  if (dept === 'tecnico' && decision === 'rejected' && !reason) {
     document.getElementById('eval-reason-'+dept).style.borderColor = '#A32D2D';
     document.getElementById('eval-reason-'+dept).focus();
-    alert('El campo de observaciones es obligatorio al rechazar.');
+    alert('El motivo es obligatorio al rechazar.');
     return;
   }
   var deptNames = {tecnico:'Dept. Técnico', comercial:'Dept. Comercial', direccion:'Dirección'};
   var evalData = {
-    project_id:       evalProyecto.id,
-    department:       dept,
-    decision:         decision,
+    project_id:   evalProyecto.id,
+    department:   dept,
+    decision:     decision,
     rejection_reason: reason || null,
-    evaluated_by:     deptNames[dept],
-    evaluated_at:     new Date().toISOString()
+    evaluated_by: deptNames[dept],
+    evaluated_at: new Date().toISOString()
   };
   try {
     await db.from('project_evaluations').upsert(evalData, {onConflict:'project_id,department'});
     evalDecisiones[dept] = evalData;
-    mostrarEstadoEval(dept, decision, reason, deptNames[dept]);
-
-    // Si rechazado, actualizar estado proyecto a cancelado
-    if (decision === 'rejected') {
-      var cancelId = await db.from('project_statuses').select('id').eq('code','cancelled').single();
-      if (cancelId.data) {
-        await db.from('projects').update({project_status_id:cancelId.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
-      }
+    // Para comercial y dirección mostrar como "observación registrada"
+    if (dept !== 'tecnico') {
+      var el = document.getElementById('eval-estado-'+dept);
+      var form = document.getElementById('eval-form-'+dept);
+      if (el) el.innerHTML = '<div style="padding:8px 10px;background:#EAF3DE;border-radius:6px;font-size:12px;color:#3B6D11;">✓ Observación registrada' + (reason ? ': ' + reason : '') + '</div>';
+      if (form) form.style.display = 'none';
+    } else {
+      mostrarEstadoEval(dept, decision, reason, deptNames[dept]);
     }
+
+    // Si técnico aprueba → avanzar a En Análisis y notificar
+    if (dept === 'tecnico' && decision === 'approved') {
+      var stRes = await db.from('project_statuses').select('id').eq('code','en_analisis').single();
+      if (stRes.data) {
+        await db.from('projects').update({project_status_id:stRes.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
+      }
+      var notifMsg = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido aprobado por el Dpto. Técnico y pasa a En Análisis.';
+      try {
+        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'comercial', error_message:notifMsg, created_at:new Date().toISOString()});
+        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message:notifMsg, created_at:new Date().toISOString()});
+      } catch(ne) { console.error('Error notif:', ne); }
+      resetAlertaEval();
+      setTimeout(function() {
+        evalProyecto = null; evalDecisiones = {};
+        showProyectosFase('solicitado'); loadDashboard();
+      }, 2500);
+      return;
+    }
+
+    // Si técnico rechaza → cancelar y notificar
+    if (dept === 'tecnico' && decision === 'rejected') {
+      var cancelRes = await db.from('project_statuses').select('id').eq('code','cancelled').single();
+      if (cancelRes.data) {
+        await db.from('projects').update({project_status_id:cancelRes.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
+      }
+      try {
+        var notifRej = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido rechazado por el Dpto. Técnico y queda cancelado.';
+        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'comercial', error_message:notifRej, created_at:new Date().toISOString()});
+        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message:notifRej, created_at:new Date().toISOString()});
+      } catch(ne) { console.error('Error notif:', ne); }
+    }
+
     resetAlertaEval();
   } catch(e) { alert('Error al registrar: '+e.message); }
 }
@@ -7939,9 +7970,9 @@ async function cargarSeccionAnalisisDocumental(projectId) {
   if (!el) return;
 
   try {
-    // Load attachments with their doc_type
+    // Load attachments — excluir enlaces externos
     var res = await db.from('project_attachments').select('*').eq('project_id', projectId).order('uploaded_at');
-    var adj = res.data || [];
+    var adj = (res.data || []).filter(function(a){ return a.file_type !== 'enlace' && a.storage_provider !== 'external'; });
 
     // Load existing AI report
     var repRes = await db.from('project_analysis').select('ai_report,ai_report_generated_at,ai_report_by,external_links').eq('project_id', projectId).maybeSingle();
