@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; transition: background 0.3s; }
@@ -1440,37 +1441,43 @@
       </div>
     </div>
 
-    <!-- COMERCIAL — solo informativo -->
-    <div class="card" id="eval-card-comercial" style="background:#FAFFFE;border:1px solid #e5e5e0;">
+    <!-- COMERCIAL -->
+    <div class="card" id="eval-card-comercial">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DCFCE7;display:flex;align-items:center;justify-content:center;font-size:14px;">💼</div>
-        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dpto. Comercial</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dpto. Comercial</div><div style="font-size:11px;color:#888;">Interés estratégico y margen</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Sus observaciones quedan registradas a título informativo. <strong>No bloquean el avance</strong> — decide el Dpto. Técnico.
+        Evalúa si el cliente es estratégico, el margen comercial es interesante y la operación encaja en la estrategia de ByG.
       </div>
       <div id="eval-estado-comercial" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-comercial">
-        <textarea id="eval-reason-comercial" placeholder="Observaciones comerciales (opcional)..."
-          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:70px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
-        <button class="btn btn-sm" style="width:100%;background:#f0f7ff;border:1px solid #B5D4F4;color:#185FA5;" onclick="registrarEvaluación('comercial','approved')">Añadir observación</button>
+        <textarea id="eval-reason-comercial" placeholder="Observaciones comerciales (obligatorio si rechaza)..."
+          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-danger btn-sm" style="flex:1;" onclick="registrarEvaluación('comercial','rejected')">Rechazar</button>
+          <button class="btn btn-success btn-sm" style="flex:1;" onclick="registrarEvaluación('comercial','approved')">Aprobar</button>
+        </div>
       </div>
     </div>
 
-    <!-- DIRECCIÓN — solo informativa -->
-    <div class="card" id="eval-card-direccion" style="background:#FAFFFE;border:1px solid #e5e5e0;">
+    <!-- DIRECCIÓN -->
+    <div class="card" id="eval-card-direccion">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:14px;">🏢</div>
-        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dirección</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dirección</div><div style="font-size:11px;color:#888;">Visto bueno ejecutivo</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Sus observaciones quedan registradas a título informativo. <strong>No bloquean el avance</strong> — decide el Dpto. Técnico.
+        Aprobación final de Dirección para que el proyecto entre en fase de análisis y presupuestación.
       </div>
       <div id="eval-estado-direccion" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-direccion">
-        <textarea id="eval-reason-direccion" placeholder="Observaciones de dirección (opcional)..."
-          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:70px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
-        <button class="btn btn-sm" style="width:100%;background:#EEF2FA;border:1px solid #BFDBFE;color:#1e40af;" onclick="registrarEvaluación('direccion','approved')">Añadir observación</button>
+        <textarea id="eval-reason-direccion" placeholder="Observaciones de dirección (obligatorio si rechaza)..."
+          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-danger btn-sm" style="flex:1;" onclick="registrarEvaluación('direccion','rejected')">Rechazar</button>
+          <button class="btn btn-success btn-sm" style="flex:1;" onclick="registrarEvaluación('direccion','approved')">Aprobar</button>
+        </div>
       </div>
     </div>
 
@@ -1526,19 +1533,11 @@
     <div class="card-header"><div class="card-title">Paso 3 - Archivos adjuntos</div></div>
     <div id="np-dropzone" ondrop="npHandleDrop(event)" ondragover="npDragOver(event)" ondragleave="npDragLeave(event)" onclick="document.getElementById('np-file-input').click()" style="border:2px dashed #ccc;border-radius:10px;padding:2rem;text-align:center;cursor:pointer;margin-bottom:1rem;">
       <div style="font-size:2rem;margin-bottom:8px;">&#128206;</div>
-      <div style="font-size:13px;font-weight:500;color:#444;margin-bottom:1rem;">Arrastra archivos aqui o haz clic para seleccionar</div>
+      <div style="font-size:13px;font-weight:500;color:#444;margin-bottom:4px;">Arrastra archivos aqui o haz clic para seleccionar</div>
+      <div style="font-size:11px;color:#aaa;margin-bottom:1rem;">PDF, Excel, Word, imágenes — o un <strong>ZIP</strong> con todos los documentos</div>
       <div style="display:inline-block;background:#185FA5;color:white;padding:7px 18px;border-radius:7px;font-size:12px;">Seleccionar archivos</div>
     </div>
-    <input type="file" id="np-file-input" multiple style="display:none;" onchange="npAgregarArchivos(this.files)">
-    <div style="display:flex;align-items:center;gap:10px;margin:12px 0;">
-      <div style="flex:1;height:1px;background:#e5e5e0;"></div>
-      <span style="font-size:11px;color:#aaa;white-space:nowrap;">o pega un enlace</span>
-      <div style="flex:1;height:1px;background:#e5e5e0;"></div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;">
-      <input type="text" id="np-link-input" placeholder="WeTransfer, Google Drive, Dropbox, OneDrive..." style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none;font-family:inherit;">
-      <button onclick="npAgregarEnlace()" style="background:#185FA5;color:white;border:none;padding:9px 14px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;">+ Añadir enlace</button>
-    </div>
+    <input type="file" id="np-file-input" multiple style="display:none;" accept=".pdf,.xlsx,.xls,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.zip" onchange="npAgregarArchivos(this.files)">
     <div id="np-archivos-lista"></div>
     <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(3)">Anterior</button><button class="btn btn-primary" onclick="npSiguiente(3)">Siguiente</button></div>
   </div></div>
@@ -3007,35 +3006,38 @@ function mostrarEstadoEval(dept, decision, reason, by) {
 }
 
 function resetAlertaEval() {
-  var alertEl = document.getElementById('eval-alert');
+  var depts = ['tecnico','comercial','direccion'];
+  var aprobados = depts.filter(function(d){return evalDecisiones[d] && evalDecisiones[d].decision==='approved';});
+  var rechazados = depts.filter(function(d){return evalDecisiones[d] && evalDecisiones[d].decision==='rejected';});
+  var alert = document.getElementById('eval-alert');
   var resultado = document.getElementById('eval-resultado');
-  var tecnicoDecision = evalDecisiones['tecnico'] ? evalDecisiones['tecnico'].decision : null;
 
-  if (tecnicoDecision === 'rejected') {
-    alertEl.className = 'alert-box';
-    alertEl.style.display = 'block';
-    alertEl.innerHTML = '<div class="alert-box-title">❌ Proyecto rechazado por Dpto. Técnico</div>' +
-      '<div class="alert-box-desc">El proyecto queda cancelado. Comercial y Dirección han sido notificados.</div>';
+  if (rechazados.length > 0) {
+    alert.className = 'alert-box';
+    alert.style.display = 'block';
+    alert.innerHTML = '<div class="alert-box-title">Proyecto rechazado por '+rechazados.join(', ')+'</div>' +
+      '<div class="alert-box-desc">Se ha notificado al resto de departamentos. El proyecto quedará cancelado.</div>';
     resultado.style.display = 'block';
     resultado.innerHTML = '<div style="background:#FCEBEB;border:1px solid #F7C1C1;border-radius:10px;padding:1.5rem;text-align:center;">' +
-      '<div style="font-size:28px;margin-bottom:8px;">✗</div>' +
+      '<div style="font-size:28px;margin-bottom:8px;">X</div>' +
       '<div style="font-size:15px;font-weight:600;color:#A32D2D;margin-bottom:6px;">Proyecto no aceptado</div>' +
-      '<div style="font-size:12px;color:#A32D2D;">El Dpto. Técnico ha rechazado el proyecto. Se notifica automáticamente al equipo.</div></div>';
-  } else if (tecnicoDecision === 'approved') {
-    alertEl.className = 'alert-box alert-box-success';
-    alertEl.style.display = 'block';
-    alertEl.innerHTML = '<div class="alert-box-title">✓ Dpto. Técnico ha aprobado — proyecto avanzado a En Análisis</div>' +
-      '<div class="alert-box-desc">Comercial y Dirección han sido notificados y pueden añadir observaciones informativas.</div>';
+      '<div style="font-size:12px;color:#A32D2D;">Al menos un departamento ha rechazado el proyecto. Se notifica automáticamente al equipo.</div></div>';
+  } else if (aprobados.length === 3) {
+    alert.className = 'alert-box alert-box-success';
+    alert.style.display = 'block';
+    alert.innerHTML = '<div class="alert-box-title">Los tres departamentos han aprobado el proyecto</div>' +
+      '<div class="alert-box-desc">El proyecto pasará automáticamente a fase En Análisis.</div>';
     resultado.style.display = 'block';
     resultado.innerHTML = '<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:10px;padding:1.5rem;text-align:center;">' +
-      '<div style="font-size:28px;margin-bottom:8px;">✓</div>' +
-      '<div style="font-size:15px;font-weight:600;color:#3B6D11;margin-bottom:6px;">Proyecto en análisis</div>' +
-      '<div style="font-size:12px;color:#3B6D11;">Aprobado por Dpto. Técnico. Comercial y Dirección revisarán a título informativo.</div></div>';
+      '<div style="font-size:28px;margin-bottom:8px;">OK</div>' +
+      '<div style="font-size:15px;font-weight:600;color:#3B6D11;margin-bottom:6px;">Proyecto aceptado</div>' +
+      '<div style="font-size:12px;color:#3B6D11;margin-bottom:1rem;">Los tres departamentos han aprobado. El proyecto avanza a fase En Análisis.</div>' +
+      '<button class="btn btn-success" onclick="avanzarAAnálisis()">Confirmar y avanzar a En Análisis</button></div>';
   } else {
-    alertEl.className = 'alert-box';
-    alertEl.style.display = 'block';
-    alertEl.innerHTML = '<div class="alert-box-title">⚙️ Pendiente de decisión del Dpto. Técnico</div>' +
-      '<div class="alert-box-desc">El Dpto. Técnico aprueba o rechaza el proyecto. Comercial y Dirección pueden añadir observaciones informativas mientras tanto.</div>';
+    alert.className = 'alert-box';
+    alert.style.display = 'block';
+    alert.innerHTML = '<div class="alert-box-title">Evaluación en curso - '+aprobados.length+' de 3 departamentos han respondido</div>' +
+      '<div class="alert-box-desc">Pendiente de respuesta de los departamentos restantes.</div>';
     resultado.style.display = 'none';
   }
 }
@@ -3043,67 +3045,33 @@ function resetAlertaEval() {
 async function registrarEvaluación(dept, decision) {
   if (!evalProyecto) return;
   var reason = document.getElementById('eval-reason-'+dept) ? document.getElementById('eval-reason-'+dept).value.trim() : '';
-  // Solo técnico necesita razón obligatoria al rechazar
-  if (dept === 'tecnico' && decision === 'rejected' && !reason) {
+  if (decision === 'rejected' && !reason) {
     document.getElementById('eval-reason-'+dept).style.borderColor = '#A32D2D';
     document.getElementById('eval-reason-'+dept).focus();
-    alert('El motivo es obligatorio al rechazar.');
+    alert('El campo de observaciones es obligatorio al rechazar.');
     return;
   }
   var deptNames = {tecnico:'Dept. Técnico', comercial:'Dept. Comercial', direccion:'Dirección'};
   var evalData = {
-    project_id:   evalProyecto.id,
-    department:   dept,
-    decision:     decision,
+    project_id:       evalProyecto.id,
+    department:       dept,
+    decision:         decision,
     rejection_reason: reason || null,
-    evaluated_by: deptNames[dept],
-    evaluated_at: new Date().toISOString()
+    evaluated_by:     deptNames[dept],
+    evaluated_at:     new Date().toISOString()
   };
   try {
     await db.from('project_evaluations').upsert(evalData, {onConflict:'project_id,department'});
     evalDecisiones[dept] = evalData;
-    // Para comercial y dirección mostrar como "observación registrada"
-    if (dept !== 'tecnico') {
-      var el = document.getElementById('eval-estado-'+dept);
-      var form = document.getElementById('eval-form-'+dept);
-      if (el) el.innerHTML = '<div style="padding:8px 10px;background:#EAF3DE;border-radius:6px;font-size:12px;color:#3B6D11;">✓ Observación registrada' + (reason ? ': ' + reason : '') + '</div>';
-      if (form) form.style.display = 'none';
-    } else {
-      mostrarEstadoEval(dept, decision, reason, deptNames[dept]);
-    }
+    mostrarEstadoEval(dept, decision, reason, deptNames[dept]);
 
-    // Si técnico aprueba → avanzar a En Análisis y notificar
-    if (dept === 'tecnico' && decision === 'approved') {
-      var stRes = await db.from('project_statuses').select('id').eq('code','en_analisis').single();
-      if (stRes.data) {
-        await db.from('projects').update({project_status_id:stRes.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
+    // Si rechazado, actualizar estado proyecto a cancelado
+    if (decision === 'rejected') {
+      var cancelId = await db.from('project_statuses').select('id').eq('code','cancelled').single();
+      if (cancelId.data) {
+        await db.from('projects').update({project_status_id:cancelId.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
       }
-      var notifMsg = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido aprobado por el Dpto. Técnico y pasa a En Análisis. Podéis añadir vuestras observaciones a título informativo.';
-      try {
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'comercial', error_message:notifMsg, created_at:new Date().toISOString()});
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message:notifMsg, created_at:new Date().toISOString()});
-      } catch(ne) { console.error('Error notif:', ne); }
-      resetAlertaEval();
-      setTimeout(function() {
-        evalProyecto = null; evalDecisiones = {};
-        showProyectosFase('solicitado'); loadDashboard();
-      }, 2500);
-      return;
     }
-
-    // Si técnico rechaza → cancelar y notificar
-    if (dept === 'tecnico' && decision === 'rejected') {
-      var cancelRes = await db.from('project_statuses').select('id').eq('code','cancelled').single();
-      if (cancelRes.data) {
-        await db.from('projects').update({project_status_id:cancelRes.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
-      }
-      try {
-        var notifRej = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido rechazado por el Dpto. Técnico y queda cancelado.';
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'comercial', error_message:notifRej, created_at:new Date().toISOString()});
-        await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message:notifRej, created_at:new Date().toISOString()});
-      } catch(ne) { console.error('Error notif:', ne); }
-    }
-
     resetAlertaEval();
   } catch(e) { alert('Error al registrar: '+e.message); }
 }
@@ -3212,8 +3180,7 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
         row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':'white')+';border:1px solid '+(esMed?'#C0DD97':'#e5e5e0')+';border-radius:8px;';
         var ic=document.createElement('div');
         ic.style.cssText='width:32px;height:32px;border-radius:6px;background:'+(a.file_type==='excel'?'#217346':a.file_type==='pdf'?'#E02020':'#185FA5')+';color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
-        ic.textContent=a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':a.file_type==='enlace'?'URL':'FILE';
-        if(a.file_type==='enlace') ic.style.background='#6B7280';
+        ic.textContent=a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':'FILE';
         var info=document.createElement('div'); info.style.cssText='flex:1;min-width:0;';
         info.innerHTML='<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.file_name+'</div><div style="font-size:11px;color:#888;">'+sz+(esMed?' <strong style="color:#3B6D11;">MEDICIONES</strong>':'')+'</div>';
         row.appendChild(ic); row.appendChild(info);
@@ -3222,18 +3189,7 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
         bm.style.cssText='background:'+(esMed?'#EAF3DE':'#f0f7ff')+';border:1px solid '+(esMed?'#C0DD97':'#B5D4F4')+';color:'+(esMed?'#3B6D11':'#185FA5')+';padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
         bm.onclick=(function(id,pid,marked){return function(){marked?anDesmarcarMediciones(id,pid):anMarcarMediciones(id,pid);};})(a.id,projectId,esMed);
         row.appendChild(bm);
-        var bd=document.createElement('button');
-        if(a.file_type==='enlace'){
-          bd.textContent='Abrir enlace';
-          bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
-          bd.dataset.url = a.file_path;
-          bd.onclick = function(){ mostrarAvisoEnlace(this); };
-        } else {
-          bd.textContent='Ver';
-          bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
-          bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);
-        }
-        row.appendChild(bd);
+        var bd=document.createElement('button');bd.textContent='Ver';bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);row.appendChild(bd);
         lista.appendChild(row);
       });
       el.appendChild(lista);
@@ -3244,13 +3200,15 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
     
     var inp=document.createElement('input');
     inp.type='file';inp.multiple=true;inp.id='an-file-input';inp.style.display='none';
+    inp.accept='.pdf,.xlsx,.xls,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.zip';
     inp.onchange=function(){anAgregarArchivos(this.files,projectId);};
     
     var dropzone=document.createElement('div');
     dropzone.id='an-dropzone';
     dropzone.style.cssText='border:2px dashed #ccc;border-radius:8px;padding:1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;';
     dropzone.innerHTML='<div style="font-size:1.5rem;margin-bottom:6px;">&#128206;</div>'+
-      '<div style="font-size:12px;color:#666;margin-bottom:8px;">Arrastra archivos aqui o haz clic para seleccionar</div>'+
+      '<div style="font-size:12px;color:#666;margin-bottom:4px;">Arrastra archivos aqui o haz clic para seleccionar</div>'+
+      '<div style="font-size:10px;color:#aaa;margin-bottom:8px;">PDF, Excel, Word, imágenes — o un <strong>ZIP</strong> con todos los documentos</div>'+
       '<div style="display:inline-block;background:#185FA5;color:white;padding:5px 14px;border-radius:6px;font-size:11px;">Seleccionar archivos</div>';
     
     dropzone.onclick=function(){ document.getElementById('an-file-input').click(); };
@@ -3270,24 +3228,8 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       if(e.dataTransfer.files.length) anAgregarArchivos(e.dataTransfer.files, projectId);
     };
     
-    // Separador + opción de pegar enlace externo
-    var sepDiv=document.createElement('div');
-    sepDiv.style.cssText='display:flex;align-items:center;gap:10px;margin:12px 0;';
-    sepDiv.innerHTML='<div style="flex:1;height:1px;background:#e5e5e0;"></div><span style="font-size:11px;color:#aaa;white-space:nowrap;">o pega un enlace</span><div style="flex:1;height:1px;background:#e5e5e0;"></div>';
-    var linkDiv=document.createElement('div');
-    linkDiv.style.cssText='display:flex;gap:8px;align-items:center;';
-    var linkInp=document.createElement('input');
-    linkInp.type='text'; linkInp.id='an-link-input'; linkInp.placeholder='WeTransfer, Drive, Dropbox, OneDrive...';
-    linkInp.style.cssText='flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none;font-family:inherit;';
-    var linkBtn=document.createElement('button');
-    linkBtn.textContent='+ Añadir enlace';
-    linkBtn.style.cssText='background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;';
-    linkBtn.onclick=function(){ anAgregarEnlace(projectId); };
-    linkDiv.appendChild(linkInp); linkDiv.appendChild(linkBtn);
     addDiv.appendChild(inp);
     addDiv.appendChild(dropzone);
-    addDiv.appendChild(sepDiv);
-    addDiv.appendChild(linkDiv);
     el.appendChild(addDiv);
     var archsMed=adj.filter(function(a){return a.is_measurements;});
     if(archsMed.length){
@@ -4500,15 +4442,11 @@ async function doLogin() {
     }
     currentUser = result.data.user;
     iniciarApp();
-    // Si iniciarApp falla, el catch interno ya resetea el botón
-    // Si tiene éxito, la app ya está corriendo
   } catch(e) {
-    console.error('doLogin error:', e);
     errorEl.style.display = 'block';
     errorEl.textContent = 'Error al conectar. Inténtalo de nuevo.';
     btn.textContent = 'Entrar';
     btn.disabled = false;
-    appIniciada = false;
   }
 }
 
@@ -4516,7 +4454,6 @@ var appIniciada = false;
 function iniciarApp() {
   if (appIniciada) return;  // evitar doble llamada
   appIniciada = true;
-  try {
   ocultarLogin();
   var email = currentUser.email;
   var dept = deptByEmail[email] || 'tecnico';
@@ -4559,15 +4496,6 @@ function iniciarApp() {
   if (navInfTA2) navInfTA2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
 
   loadDashboard();
-  } catch(err) {
-    console.error('iniciarApp error:', err);
-    appIniciada = false;
-    var btn = document.getElementById('login-btn');
-    if (btn) { btn.textContent = 'Entrar'; btn.disabled = false; }
-    var errEl = document.getElementById('login-error');
-    if (errEl) { errEl.textContent = 'Error al cargar la app: ' + err.message; errEl.style.display = 'block'; }
-    mostrarLogin();
-  }
 }
 
 async function doLogout() {
@@ -6528,7 +6456,7 @@ function npSiguiente(p) {
 
 function npDragOver(e) { e.preventDefault(); var dz=document.getElementById('np-dropzone'); if(dz){dz.style.borderColor='#185FA5';dz.style.background='#f0f7ff';} }
 function npDragLeave(e) { var dz=document.getElementById('np-dropzone'); if(dz){dz.style.borderColor='#ccc';dz.style.background='';} }
-function npHandleDrop(e) { e.preventDefault(); npDragLeave(e); if(e.dataTransfer.files.length) npAgregarArchivos(e.dataTransfer.files); }
+async function npHandleDrop(e) { e.preventDefault(); npDragLeave(e); if(e.dataTransfer.files.length) await npAgregarArchivos(e.dataTransfer.files); }
 
 function npDetectarTipo(file) {
   var n=file.name.toLowerCase();
@@ -6536,31 +6464,98 @@ function npDetectarTipo(file) {
   if(n.endsWith('.pdf')) return 'pdf';
   if(n.endsWith('.doc')||n.endsWith('.docx')) return 'word';
   if(n.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'imagen';
+  if(n.endsWith('.zip')) return 'zip';
   return 'otro';
 }
 
-function npAgregarEnlace() {
-  var inp = document.getElementById('np-link-input');
-  var url = inp ? inp.value.trim() : '';
-  if (!url) { alert('Pega un enlace antes de añadirlo.'); return; }
-  if (!url.startsWith('http')) { alert('El enlace debe empezar por http:// o https://'); return; }
-  var nombre = 'Enlace externo';
-  if (url.includes('wetransfer')) nombre = 'WeTransfer';
-  else if (url.includes('drive.google')) nombre = 'Google Drive';
-  else if (url.includes('dropbox')) nombre = 'Dropbox';
-  else if (url.includes('onedrive') || url.includes('sharepoint') || url.includes('1drv.ms')) nombre = 'OneDrive';
-  var nombreCustom = prompt('Nombre del documento (opcional):', nombre);
-  if (nombreCustom === null) return;
-  if (nombreCustom.trim()) nombre = nombreCustom.trim();
-  // Añadir como archivo especial de tipo enlace
-  npArchivos.push({ file: { name: nombre, size: 0, type: 'text/uri-list' }, nombre: nombre, tipo: 'enlace', esMediciones: false, url: url });
-  if (inp) inp.value = '';
-  npRenderArchivos();
+// ============================================================
+// DESCOMPRIMIR ZIP CON JSZIP
+// ============================================================
+
+async function descomprimirZip(zipFile) {
+  // Devuelve array de {file: File, nombre: string, tipo: string}
+  var archivos = [];
+  try {
+    if (typeof JSZip === 'undefined') {
+      alert('JSZip no está disponible. Sube los archivos individualmente.');
+      return archivos;
+    }
+    var zip = await JSZip.loadAsync(zipFile);
+    var entries = Object.keys(zip.files);
+    var total = entries.length;
+    var procesados = 0;
+
+    for (var i = 0; i < entries.length; i++) {
+      var entry = zip.files[entries[i]];
+      if (entry.dir) continue; // ignorar carpetas
+      var nombre = entries[i];
+      // Ignorar archivos ocultos del sistema (macOS __MACOSX, .DS_Store, Thumbs.db)
+      if (nombre.includes('__MACOSX') || nombre.split('/').pop().startsWith('.') ||
+          nombre.toLowerCase().endsWith('.ds_store') || nombre.toLowerCase().endsWith('thumbs.db')) continue;
+
+      try {
+        var blob = await entry.async('blob');
+        // Inferir mime type por extensión
+        var ext = nombre.split('.').pop().toLowerCase();
+        var mimeMap = {
+          pdf:'application/pdf', xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          xls:'application/vnd.ms-excel', docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          doc:'application/msword', jpg:'image/jpeg', jpeg:'image/jpeg',
+          png:'image/png', gif:'image/gif', webp:'image/webp', txt:'text/plain'
+        };
+        var mime = mimeMap[ext] || 'application/octet-stream';
+        var nombreCorto = nombre.split('/').pop(); // solo el nombre del archivo sin path
+        var file = new File([blob], nombreCorto, { type: mime });
+        archivos.push({ file: file, nombre: nombreCorto, tipo: npDetectarTipoNombre(nombreCorto, mime), esMediciones: false });
+        procesados++;
+      } catch(fe) { console.error('Error procesando archivo del ZIP:', nombre, fe); }
+    }
+    console.log('ZIP descomprimido: ' + procesados + ' archivos de ' + total + ' entradas');
+  } catch(e) {
+    console.error('Error descomprimiendo ZIP:', e);
+    alert('Error al descomprimir el ZIP: ' + e.message);
+  }
+  return archivos;
 }
 
-function npAgregarArchivos(files) {
+function npDetectarTipoNombre(nombre, mime) {
+  var n = nombre.toLowerCase();
+  if(n.endsWith('.xlsx')||n.endsWith('.xls')) return 'excel';
+  if(n.endsWith('.pdf')) return 'pdf';
+  if(n.endsWith('.doc')||n.endsWith('.docx')) return 'word';
+  if(n.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'imagen';
+  return 'otro';
+}
+
+async function npAgregarArchivos(files) {
   for (var i=0;i<files.length;i++) {
     var file=files[i];
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      // Descomprimir ZIP
+      var banner = document.getElementById('np-archivos-lista');
+      var loadMsg = document.createElement('div');
+      loadMsg.style.cssText = 'padding:10px;background:#E6F1FB;border-radius:6px;font-size:12px;color:#185FA5;margin-bottom:6px;';
+      loadMsg.textContent = '📦 Descomprimiendo ' + file.name + '...';
+      if (banner) banner.insertBefore(loadMsg, banner.firstChild);
+      var archivosZip = await descomprimirZip(file);
+      if (loadMsg.parentNode) loadMsg.parentNode.removeChild(loadMsg);
+      if (archivosZip.length) {
+        archivosZip.forEach(function(a) {
+          if (!npArchivos.some(function(x){return x.file.name===a.file.name;})) {
+            npArchivos.push(a);
+          }
+        });
+        // Mostrar banner informativo
+        var infoMsg = document.createElement('div');
+        infoMsg.style.cssText = 'padding:8px 12px;background:#EAF3DE;border:1px solid #C0DD97;border-radius:6px;font-size:12px;color:#3B6D11;margin-bottom:6px;';
+        infoMsg.textContent = '✓ ZIP descomprimido: ' + archivosZip.length + ' archivos añadidos de "' + file.name + '"';
+        if (banner) banner.insertBefore(infoMsg, banner.firstChild);
+        setTimeout(function(){ if(infoMsg.parentNode) infoMsg.parentNode.removeChild(infoMsg); }, 4000);
+      } else {
+        alert('No se encontraron archivos válidos en el ZIP.');
+      }
+      continue;
+    }
     if (npArchivos.some(function(a){return a.file.name===file.name;})) continue;
     if (file.size>50*1024*1024) { alert(file.name+' supera 50MB.'); continue; }
     npArchivos.push({file:file, nombre:file.name, tipo:npDetectarTipo(file), esMediciones:false});
@@ -6577,21 +6572,20 @@ function npRenderArchivos() {
     el.innerHTML='<div style="text-align:center;padding:1rem;font-size:12px;color:#aaa;">No hay archivos añadidos aún</div>';
     return;
   }
-  var iconos={excel:'📊',pdf:'📄',word:'📝',imagen:'🖼️',enlace:'🔗',otro:'📎'};
+  var iconos={excel:'📊',pdf:'📄',word:'📝',imagen:'🖼️',otro:'📎'};
   npArchivos.forEach(function(a, idx) {
     var esMed=a.esMediciones;
     var row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':'white')+';border:1px solid '+(esMed?'#C0DD97':'#e5e5e0')+';border-radius:8px;margin-bottom:6px;';
-    var sz = a.tipo === 'enlace' ? (a.url ? a.url.substring(0,40)+'...' : 'Enlace externo') : (a.file.size>1048576?(a.file.size/1048576).toFixed(1)+' MB':Math.round(a.file.size/1024)+' KB');
-    var esEnlace = a.tipo === 'enlace';
+    var sz=a.file.size>1048576?(a.file.size/1048576).toFixed(1)+' MB':Math.round(a.file.size/1024)+' KB';
     row.innerHTML='<span style="font-size:20px;flex-shrink:0;">'+(iconos[a.tipo]||'📎')+'</span>'+
       '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+a.nombre+'</div>'+
       '<div style="font-size:11px;color:#888;">'+sz+(esMed?' &nbsp;<strong style="color:#3B6D11;">MEDICIONES</strong>':'')+'</div></div>'+
-      (esEnlace ? '' : '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;"><input type="checkbox" '+(esMed?'checked':'')+' style="width:14px;height:14px;"> Mediciones</label>')+
+      '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;">'+
+      '<input type="checkbox" '+(esMed?'checked':'')+' style="width:14px;height:14px;"> Mediciones</label>'+
       '<button style="background:none;border:none;cursor:pointer;font-size:16px;color:#aaa;flex-shrink:0;">✕</button>';
     // Eventos
-    var cb = row.querySelector('input[type=checkbox]');
-    if (cb) cb.onchange = (function(i){ return function(e){ npToggleMediciones(i,e.target.checked); }; })(idx);
+    row.querySelector('input[type=checkbox]').onchange = (function(i){ return function(e){ npToggleMediciones(i,e.target.checked); }; })(idx);
     row.querySelector('button').onclick = (function(i){ return function(){ npEliminarArchivo(i); }; })(idx);
     el.appendChild(row);
   });
@@ -6628,15 +6622,11 @@ function npGenerarResumen() {
       return meds.length?meds.map(function(a){return a.nombre;}).join(', '):'No marcado (se identificara en analisis)';
     })()}
   ];
-  var enlacesResumen = npArchivos.filter(function(a){ return a.tipo === 'enlace'; });
-  var enlacesHtml = enlacesResumen.length ? '<div style="display:flex;padding:9px 0;border-bottom:1px solid #f5f5f0;">' +
-    '<div style="width:180px;font-size:11px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;flex-shrink:0;">Enlaces</div>' +
-    '<div style="font-size:13px;color:#1a1a1a;">' + enlacesResumen.map(function(a){ return '🔗 ' + a.nombre; }).join('<br>') + '</div></div>' : '';
   el.innerHTML=campos.map(function(c){
     return '<div style="display:flex;padding:9px 0;border-bottom:1px solid #f5f5f0;">'+
       '<div style="width:180px;font-size:11px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;flex-shrink:0;">'+c.label+'</div>'+
       '<div style="font-size:13px;color:#1a1a1a;">'+(c.val||'-')+'</div></div>';
-  }).join('') + enlacesHtml;
+  }).join('');
 }
 
 async function npGuardar() {
@@ -6692,14 +6682,6 @@ async function npGuardar() {
     var proyectoId=projRes.data.id;
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
-      if (arch.tipo === 'enlace') {
-        // Guardar enlace externo directamente sin subir a Storage
-        var enlaceRes = await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:arch.url,
-          file_size:null,file_type:'enlace',mime_type:'text/uri-list',is_measurements:false,
-          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
-        console.log('Enlace guardado:', arch.nombre, enlaceRes.error || 'OK');
-        continue;
-      }
       var filePath='proyecto-'+proyectoId+'/'+Date.now()+'-'+arch.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
       var upRes=await db.storage.from('project-attachments').upload(filePath,arch.file,{cacheControl:'3600',upsert:false});
       if(upRes.error){console.error('Error subiendo '+arch.nombre+':',upRes.error);continue;}
@@ -6756,6 +6738,35 @@ async function anDescargarArchivo(filePath, fileName) {
 async function anAgregarArchivos(files, projectId) {
   for(var i=0;i<files.length;i++){
     var file=files[i];
+
+    // Soporte ZIP: descomprimir y subir cada archivo
+    if(file.name.toLowerCase().endsWith('.zip')){
+      var dz = document.getElementById('an-dropzone');
+      if(dz){ dz.innerHTML='<div style="font-size:13px;color:#185FA5;padding:0.5rem;">📦 Descomprimiendo '+file.name+'...</div>'; }
+      var archivosZip = await descomprimirZip(file);
+      if(dz){ dz.innerHTML='<div style="font-size:1.5rem;margin-bottom:6px;">📂</div><div style="font-size:12px;color:#666;margin-bottom:8px;">Arrastra archivos aqui o haz clic para seleccionar</div><div style="display:inline-block;background:#185FA5;color:white;padding:5px 14px;border-radius:6px;font-size:11px;">Seleccionar archivos</div>'; }
+      if(!archivosZip.length){ alert('No se encontraron archivos válidos en el ZIP.'); continue; }
+      var subidos=0;
+      for(var z=0;z<archivosZip.length;z++){
+        var a=archivosZip[z];
+        if(a.file.size>50*1024*1024){ console.warn('Archivo del ZIP supera 50MB, omitido: '+a.nombre); continue; }
+        var filePath='proyecto-'+projectId+'/zip-'+Date.now()+'-'+a.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+        var upRes=await db.storage.from('project-attachments').upload(filePath,a.file,{cacheControl:'3600',upsert:false});
+        if(upRes.error){ console.error('Error subiendo archivo del ZIP:', upRes.error); continue; }
+        await db.from('project_attachments').insert({project_id:projectId,file_name:a.nombre,file_path:filePath,
+          file_size:a.file.size,file_type:a.tipo,mime_type:a.file.type,is_measurements:false,
+          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'supabase'});
+        subidos++;
+      }
+      // Notificación
+      var notifDiv=document.createElement('div');
+      notifDiv.style.cssText='position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+      notifDiv.textContent='✓ ZIP descomprimido: '+subidos+' archivos subidos de "'+file.name+'"';
+      document.body.appendChild(notifDiv);
+      setTimeout(function(){if(notifDiv.parentNode)notifDiv.parentNode.removeChild(notifDiv);},4000);
+      continue;
+    }
+
     if(file.size>50*1024*1024){alert(file.name+' supera 50MB.');continue;}
     var tipo=npDetectarTipo(file);
     var filePath='proyecto-'+projectId+'/'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
@@ -6767,87 +6778,6 @@ async function anAgregarArchivos(files, projectId) {
   }
   document.getElementById('an-file-input').value='';
   cargarDocumentosAnálisis(projectId,null);
-}
-
-async function anAgregarEnlace(projectId) {
-  var inp = document.getElementById('an-link-input');
-  var url = inp ? inp.value.trim() : '';
-  if (!url) { alert('Pega un enlace antes de añadirlo.'); return; }
-  if (!url.startsWith('http')) { alert('El enlace debe empezar por http:// o https://'); return; }
-
-  // Mostrar estado de carga
-  var linkBtn = inp ? inp.nextElementSibling : null;
-  var btnOriginal = linkBtn ? linkBtn.textContent : '';
-  if (linkBtn) { linkBtn.textContent = '⏳ Descargando...'; linkBtn.disabled = true; }
-
-  try {
-    // Llamar al webhook de n8n para descargar y subir automáticamente
-    var n8nUrl = 'https://unspiring-jerry-extraterritorially.ngrok-free.dev/webhook/descargar-archivo';
-    var resp = await fetch(n8nUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: url,
-        project_id: projectId,
-        user_email: currentUser ? currentUser.email : 'manual'
-      })
-    });
-
-    if (!resp.ok) throw new Error('Error en el servidor: ' + resp.status);
-    var result = await resp.json();
-
-    if (result.ok) {
-      // Archivo ya subido a Supabase por n8n — solo recargar la lista
-      if (inp) inp.value = '';
-      cargarDocumentosAnálisis(projectId, null);
-      // Mostrar confirmación breve
-      if (linkBtn) { linkBtn.textContent = '✅ Añadido'; linkBtn.style.background = '#3B6D11'; }
-      setTimeout(function() {
-        if (linkBtn) { linkBtn.textContent = btnOriginal; linkBtn.disabled = false; linkBtn.style.background = '#185FA5'; }
-      }, 2000);
-    } else {
-      // n8n respondió pero con error — ejecutar fallback manualmente
-      await anFallbackEnlace(url, projectId, inp, linkBtn, btnOriginal);
-    }
-  } catch(e) {
-    console.error('Error descargando enlace:', e);
-    await anFallbackEnlace(url, projectId, inp, linkBtn, btnOriginal);
-  }
-}
-
-function mostrarAvisoEnlace(btn) {
-  var url = btn.dataset.url;
-  if (!url) return;
-  // Mostrar aviso nativo — el usuario lo cierra cuando quiera
-  alert('📂 Descarga automática no disponible\n\nSe abrirá el enlace en una nueva pestaña.\nDescarga los archivos y arrástralos al recuadro de carga del proyecto.\n\nPulsa Aceptar para abrir el enlace.');
-  window.open(url, '_blank');
-}
-
-async function anFallbackEnlace(url, projectId, inp, linkBtn, btnOriginal) {
-  if (linkBtn) { linkBtn.textContent = btnOriginal; linkBtn.disabled = false; }
-  // Guardar como referencia externa automáticamente
-  var nombre = 'Enlace externo';
-  if (url.includes('wetransfer')) nombre = 'WeTransfer';
-  else if (url.includes('drive.google')) nombre = 'Google Drive';
-  else if (url.includes('dropbox')) nombre = 'Dropbox';
-  else if (url.includes('onedrive') || url.includes('sharepoint')) nombre = 'OneDrive';
-  await db.from('project_attachments').insert({
-    project_id: projectId, file_name: nombre, file_path: url,
-    file_size: null, file_type: 'enlace', mime_type: 'text/uri-list',
-    is_measurements: false, uploaded_by: currentUser ? currentUser.email : 'manual',
-    uploaded_at: new Date().toISOString(), storage_provider: 'external'
-  });
-  if (inp) inp.value = '';
-  cargarDocumentosAnálisis(projectId, null);
-  // Mostrar aviso y abrir el enlace automáticamente
-  var aviso = document.createElement('div');
-  aviso.style.cssText = 'position:fixed;top:20px;right:20px;background:#1C1C1E;color:white;padding:16px 20px;border-radius:10px;font-size:13px;z-index:9999;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
-  aviso.innerHTML = '<div style="font-weight:600;margin-bottom:6px;">📂 Descarga automática no disponible</div>' +
-    '<div style="font-size:12px;color:#aaa;margin-bottom:12px;">Abriendo el enlace para que puedas cargar los archivos manualmente en el dropzone.</div>' +
-    '<div style="font-size:11px;color:#52B788;">↓ Arrastra los archivos al recuadro de arriba</div>';
-  document.body.appendChild(aviso);
-  setTimeout(function() { window.open(url, '_blank'); }, 500);
-  setTimeout(function() { if(aviso.parentNode) aviso.remove(); }, 5000);
 }
 
 // ============================================================
@@ -8009,9 +7939,9 @@ async function cargarSeccionAnalisisDocumental(projectId) {
   if (!el) return;
 
   try {
-    // Load attachments with their doc_type — excluir enlaces externos
+    // Load attachments with their doc_type
     var res = await db.from('project_attachments').select('*').eq('project_id', projectId).order('uploaded_at');
-    var adj = (res.data || []).filter(function(a){ return a.file_type !== 'enlace' && a.storage_provider !== 'external'; });
+    var adj = res.data || [];
 
     // Load existing AI report
     var repRes = await db.from('project_analysis').select('ai_report,ai_report_generated_at,ai_report_by,external_links').eq('project_id', projectId).maybeSingle();
@@ -8022,7 +7952,6 @@ async function cargarSeccionAnalisisDocumental(projectId) {
     html += '<div style="font-size:13px;font-weight:600;color:#1a1a1a;">🤖 Análisis documental con IA</div>';
 
     var hasAnalyzable = adj.some(function(a) {
-      if (a.file_type === 'enlace' || a.storage_provider === 'external') return false;
       var t = a.doc_type || clasificarDocumentoPorNombre(a.file_name, a.mime_type);
       return t !== 'DWG' && t !== 'MEDICIONES';
     });
@@ -8037,22 +7966,6 @@ async function cargarSeccionAnalisisDocumental(projectId) {
       html += '<div style="background:#FEF3C7;border:1px solid #FAC775;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#854F0B;">';
       html += '⚠️ <strong>Archivos en enlace externo detectado:</strong> ' + repData.external_links;
       html += ' — Descárgalos manualmente y súbelos al proyecto.</div>';
-    }
-
-    // Mostrar enlaces externos por separado
-    var enlaces = (res.data || []).filter(function(a){ return a.file_type === 'enlace' || a.storage_provider === 'external'; });
-    if (enlaces.length) {
-      html += '<div style="margin-bottom:1rem;">';
-      html += '<div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:6px;">🔗 Enlaces externos</div>';
-      enlaces.forEach(function(e) {
-        html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;margin-bottom:6px;">';
-        html += '<span style="font-size:14px;">🔗</span>';
-        html += '<div style="flex:1;font-size:12px;font-weight:500;">' + e.file_name + '</div>';
-        html += '<span style="font-size:10px;color:#888;background:#f0f0f0;padding:2px 7px;border-radius:5px;">No analizable con IA</span>';
-        html += '<button class="btn btn-sm" style="font-size:11px;" onclick="mostrarAvisoEnlace(this)" data-url="' + e.file_path.replace(/"/g, '&quot;') + '">Abrir enlace</button>';
-        html += '</div>';
-      });
-      html += '</div>';
     }
 
     if (!adj.length) {
@@ -8523,6 +8436,222 @@ async function compararCertificacionIA(certId, projectId) {
     btn.textContent = '🤖 Comparar con IA';
     btn.disabled = false;
   }
+}
+
+// ---- INFORMES: HISTÓRICO DE PROYECTOS ----
+var infProyData = [];
+
+async function cargarInformeProyectos() {
+  var el = document.getElementById('informes-proyectos-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    var res = await db.from('projects')
+      .select('id,name,code,project_code,contact_email,category,confidence,received_at,created_at,project_statuses(code,name),clients(commercial_name)')
+      .order('created_at', {ascending: false});
+    infProyData = res.data || [];
+    document.getElementById('inf-proy-desde').value = '';
+    document.getElementById('inf-proy-hasta').value = '';
+    document.getElementById('inf-proy-buscar').value = '';
+    document.getElementById('inf-proy-estado').value = '';
+    renderInformeProyectos(infProyData);
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+function filtrarInformeProyectos() {
+  var q = (document.getElementById('inf-proy-buscar').value || '').toLowerCase();
+  var estado = document.getElementById('inf-proy-estado').value;
+  var desde = document.getElementById('inf-proy-desde').value;
+  var hasta = document.getElementById('inf-proy-hasta').value;
+  var filtered = infProyData.filter(function(p) {
+    var stCode = p.project_statuses ? p.project_statuses.code : '';
+    var texto = ((p.name||'')+(p.code||'')+(p.project_code||'')+(p.contact_email||'')+(p.category||'')).toLowerCase();
+    if (q && !texto.includes(q)) return false;
+    if (estado && stCode !== estado) return false;
+    var fecha = p.received_at || p.created_at || '';
+    if (desde && fecha.substring(0,10) < desde) return false;
+    if (hasta && fecha.substring(0,10) > hasta) return false;
+    return true;
+  });
+  renderInformeProyectos(filtered);
+}
+
+function limpiarFiltrosProyectos() {
+  document.getElementById('inf-proy-buscar').value = '';
+  document.getElementById('inf-proy-estado').value = '';
+  document.getElementById('inf-proy-desde').value = '';
+  document.getElementById('inf-proy-hasta').value = '';
+  renderInformeProyectos(infProyData);
+}
+
+function renderInformeProyectos(data) {
+  var countEl = document.getElementById('inf-proy-count');
+  var el = document.getElementById('informes-proyectos-content');
+  if (countEl) countEl.textContent = data.length + ' proyecto(s)';
+  if (!data.length) { el.innerHTML = '<div class="empty">No hay proyectos con los filtros aplicados.</div>'; return; }
+  var badgeColors = {solicitado:'#F1EFE8',en_analisis:'#EEEDFE',oferta_en_curso:'#FAEEDA',oferta_enviada:'#E6F1FB',adjudicado:'#EAF3DE',en_ejecucion:'#E1F5EE',cancelled:'#FCEBEB'};
+  var rows = data.map(function(p) {
+    var st = p.project_statuses ? p.project_statuses : {code:'',name:'-'};
+    var bg = badgeColors[st.code] || '#f5f5f0';
+    var conf = p.confidence ? Math.round(p.confidence*100)+'%' : '-';
+    var fecha = p.received_at ? new Date(p.received_at).toLocaleDateString('es-ES') : (p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES') : '-');
+    return '<tr onclick="abrirProyectoById('+p.id+')" style="cursor:pointer;">' +
+      '<td><strong>'+(p.name||p.code||'#'+p.id)+'</strong>' +
+      (p.project_code ? '<br><span style="font-size:10px;color:#aaa;">'+p.project_code+'</span>' : '') + '</td>' +
+      '<td>'+(p.contact_email||'-')+'</td>' +
+      '<td>'+(p.category||'-')+'</td>' +
+      '<td style="text-align:center;">' + conf + '</td>' +
+      '<td><span style="font-size:10px;padding:2px 8px;border-radius:8px;background:'+bg+';">'+st.name+'</span></td>' +
+      '<td>'+fecha+'</td>' +
+      '</tr>';
+  }).join('');
+  el.innerHTML = '<div class="card"><table><thead><tr>' +
+    '<th>Proyecto</th><th>Cliente / Email</th><th>Gremio</th><th style="text-align:center;">Confianza IA</th><th>Estado</th><th>Fecha</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function imprimirInforme(contenidoId) {
+  var el = document.getElementById(contenidoId);
+  if (!el) return;
+  var w = window.open('','_blank');
+  w.document.write('<html><head><title>Informe EasyProject</title>' +
+    '<style>body{font-family:Arial,sans-serif;padding:2rem;font-size:12px;}' +
+    'table{width:100%;border-collapse:collapse;}' +
+    'th{background:#f5f5f0;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;border-bottom:2px solid #ccc;}' +
+    'td{padding:8px 10px;border-bottom:1px solid #eee;vertical-align:middle;}' +
+    'h1{font-size:16px;margin-bottom:0.5rem;}p{color:#888;font-size:11px;margin-bottom:1rem;}' +
+    '</style></head><body>' +
+    '<h1>EasyProject · BYG Soluciones</h1>' +
+    '<p>Generado el '+new Date().toLocaleDateString('es-ES')+' a las '+new Date().toLocaleTimeString('es-ES')+'</p>' +
+    el.innerHTML + '</body></html>');
+  w.document.close(); w.print();
+}
+
+// ---- INFORMES: GASTOS ----
+var infGasData = [];
+
+async function cargarInformeGastos() {
+  var el = document.getElementById('informes-gastos-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    var res = await db.from('project_expenses')
+      .select('*,projects(name,code,project_code)')
+      .order('expense_date', {ascending: false});
+    infGasData = res.data || [];
+    document.getElementById('inf-gas-buscar').value = '';
+    document.getElementById('inf-gas-aprobado').value = '';
+    document.getElementById('inf-gas-desde').value = '';
+    document.getElementById('inf-gas-hasta').value = '';
+    renderInformeGastos(infGasData);
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+function filtrarInformeGastos() {
+  var q = (document.getElementById('inf-gas-buscar').value || '').toLowerCase();
+  var aprobado = document.getElementById('inf-gas-aprobado').value;
+  var desde = document.getElementById('inf-gas-desde').value;
+  var hasta = document.getElementById('inf-gas-hasta').value;
+  var filtered = infGasData.filter(function(g) {
+    var pNombre = g.projects ? (g.projects.name||g.projects.code||'') : '';
+    var texto = (pNombre+(g.supplier_name||'')+(g.concept||'')).toLowerCase();
+    if (q && !texto.includes(q)) return false;
+    if (aprobado === '1' && !g.approved) return false;
+    if (aprobado === '0' && g.approved) return false;
+    var fecha = g.expense_date || '';
+    if (desde && fecha.substring(0,10) < desde) return false;
+    if (hasta && fecha.substring(0,10) > hasta) return false;
+    return true;
+  });
+  renderInformeGastos(filtered);
+}
+
+function renderInformeGastos(data) {
+  var el = document.getElementById('informes-gastos-content');
+  var totalEl = document.getElementById('inf-gas-total');
+  var total = data.reduce(function(acc,g){ return acc+(parseFloat(g.amount)||0); }, 0);
+  var totalApro = data.filter(function(g){return g.approved;}).reduce(function(acc,g){ return acc+(parseFloat(g.amount)||0); }, 0);
+  if (totalEl) totalEl.innerHTML = 'Total: <strong>'+total.toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</strong> · Aprobado: <strong style="color:#3B6D11;">'+totalApro.toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</strong> · Pendiente: <strong style="color:#A32D2D;">'+(total-totalApro).toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</strong>';
+  if (!data.length) { el.innerHTML = '<div class="empty">No hay gastos con los filtros aplicados.</div>'; return; }
+  var rows = data.map(function(g) {
+    var pNombre = g.projects ? (g.projects.name||g.projects.code||'#'+g.project_id) : '#'+g.project_id;
+    var fecha = g.expense_date ? new Date(g.expense_date).toLocaleDateString('es-ES') : '-';
+    return '<tr>' +
+      '<td>'+fecha+'</td>' +
+      '<td><strong>'+pNombre+'</strong></td>' +
+      '<td>'+(g.supplier_name||'-')+'</td>' +
+      '<td>'+(g.concept||'-')+'</td>' +
+      '<td><span class="badge '+(g.expense_type==='factura'?'b-oferta_enviada':'b-default')+'">'+(g.expense_type==='factura'?'Factura':'Albarán')+'</span></td>' +
+      '<td style="text-align:right;font-weight:500;">'+parseFloat(g.amount).toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</td>' +
+      '<td>'+(g.approved?'<span class="badge b-adjudicado">Aprobado</span>':'<span class="badge b-review">Pendiente</span>')+'</td>' +
+      '</tr>';
+  }).join('');
+  el.innerHTML = '<div class="card"><table><thead><tr>' +
+    '<th>Fecha</th><th>Proyecto</th><th>Proveedor</th><th>Concepto</th><th>Tipo</th><th style="text-align:right;">Importe</th><th>Estado</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ---- INFORMES: DESVIACIONES DE OBRA ----
+var infDesvData = [];
+
+async function cargarInformeDesviaciones() {
+  var el = document.getElementById('informes-desviaciones-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    // Hitos completados con desviación
+    var res = await db.from('project_milestones')
+      .select('*,projects(id,name,code,project_code,project_managers(full_name))')
+      .eq('completed', true)
+      .not('actual_date', 'is', null)
+      .not('planned_date', 'is', null)
+      .order('actual_date', {ascending: false});
+    infDesvData = res.data || [];
+    document.getElementById('inf-desv-buscar').value = '';
+    renderInformeDesviaciones(infDesvData);
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+function filtrarInformeDesviaciones() {
+  var q = (document.getElementById('inf-desv-buscar').value || '').toLowerCase();
+  var filtered = infDesvData.filter(function(h) {
+    var pNombre = h.projects ? (h.projects.name||h.projects.code||'') : '';
+    var mgr = h.projects && h.projects.project_managers ? h.projects.project_managers.full_name : '';
+    var texto = (pNombre+mgr+(h.milestone_name||'')).toLowerCase();
+    return !q || texto.includes(q);
+  });
+  renderInformeDesviaciones(filtered);
+}
+
+function renderInformeDesviaciones(data) {
+  var el = document.getElementById('informes-desviaciones-content');
+  if (!data.length) { el.innerHTML = '<div class="empty">No hay hitos completados con datos de desviación.</div>'; return; }
+  var totalDias = data.reduce(function(acc,h){ return acc+(parseInt(h.deviation_days)||0); }, 0);
+  var mediaDias = data.length > 0 ? Math.round(totalDias/data.length) : 0;
+  var retrasados = data.filter(function(h){ return (parseInt(h.deviation_days)||0) > 0; }).length;
+  var adelantados = data.filter(function(h){ return (parseInt(h.deviation_days)||0) < 0; }).length;
+  var resumen = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;">' +
+    '<div class="metric"><div class="metric-label">Hitos analizados</div><div class="metric-value">'+data.length+'</div></div>' +
+    '<div class="metric"><div class="metric-label">Retrasados</div><div class="metric-value" style="color:#A32D2D;">'+retrasados+'</div></div>' +
+    '<div class="metric"><div class="metric-label">Adelantados</div><div class="metric-value" style="color:#3B6D11;">'+adelantados+'</div></div>' +
+    '<div class="metric"><div class="metric-label">Desviación media</div><div class="metric-value" style="color:'+(mediaDias>0?'#A32D2D':'#3B6D11')+';">'+(mediaDias>0?'+':'')+mediaDias+'d</div></div>' +
+    '</div>';
+  var rows = data.map(function(h) {
+    var pNombre = h.projects ? (h.projects.name||h.projects.code||'#'+h.project_id) : '#'+h.project_id;
+    var mgr = h.projects && h.projects.project_managers ? h.projects.project_managers.full_name : '-';
+    var dias = parseInt(h.deviation_days)||0;
+    var col = dias > 5 ? '#A32D2D' : dias > 0 ? '#854F0B' : dias < 0 ? '#3B6D11' : '#888';
+    var planDate = h.planned_date ? new Date(h.planned_date).toLocaleDateString('es-ES') : '-';
+    var realDate = h.actual_date ? new Date(h.actual_date).toLocaleDateString('es-ES') : '-';
+    return '<tr>' +
+      '<td><strong>'+pNombre+'</strong></td>' +
+      '<td>'+mgr+'</td>' +
+      '<td>'+(h.milestone_name||'-')+'</td>' +
+      '<td>'+planDate+'</td>' +
+      '<td>'+realDate+'</td>' +
+      '<td style="text-align:center;font-weight:600;color:'+col+';">'+(dias>0?'+':'')+dias+' días</td>' +
+      '</tr>';
+  }).join('');
+  el.innerHTML = resumen + '<div class="card"><table><thead><tr>' +
+    '<th>Proyecto</th><th>Jefe de Obra</th><th>Hito</th><th>Fecha prevista</th><th>Fecha real</th><th style="text-align:center;">Desviación</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 // ---- INFORMES TÉCNICOS DE ANÁLISIS ----
