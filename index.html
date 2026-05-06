@@ -463,6 +463,7 @@
   <div class="nav-item sub" id="nav-proveedores" onclick="showPanel('proveedores')">Proveedores</div>
   <div class="nav-item sub" id="nav-jefes" onclick="showPanel('jefes')">Jefes de obra</div>
   <div class="nav-item sub" id="nav-gremios" onclick="showPanel('gremios')">Gremios</div>
+  <div class="nav-item sub" id="nav-categorias-prov" onclick="showPanel('categorias-prov')">Categorías proveedor</div>
 
   <div class="nav-section">Control</div>
   <div class="nav-item sub" id="nav-prl" onclick="showPanel('prl')">PRL / Documentación</div>
@@ -769,6 +770,38 @@
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn" onclick="cerrarModalGremio()">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarGremio()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL CATEGORÍAS PROVEEDOR -->
+<div id="panel-categorias-prov" class="panel">
+  <div class="topbar"><h1>Categorías de Proveedor</h1>
+    <button class="btn btn-primary" onclick="abrirModalCategoria()">+ Crear categoría</button>
+  </div>
+  <div class="card">
+    <table class="data-table">
+      <thead><tr><th>Nombre</th><th>Descripción</th><th></th></tr></thead>
+      <tbody id="categorias-prov-tbody"><tr><td colspan="3" class="loading">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL CATEGORÍA PROVEEDOR -->
+<div id="modal-categoria-prov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:1.5rem;width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:15px;font-weight:600;margin-bottom:1.25rem;" id="modal-cat-title">Nueva categoría</div>
+    <div class="form-field" style="margin-bottom:1rem;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nombre *</label>
+      <input type="text" id="mc-nombre" placeholder="Ej: Instaladora, Materiales de Obra..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+    </div>
+    <div class="form-field" style="margin-bottom:1.5rem;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Descripción (opcional)</label>
+      <input type="text" id="mc-descripcion" placeholder="Descripción breve..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" onclick="cerrarModalCategoria()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCategoriaProv()">Guardar</button>
     </div>
   </div>
 </div>
@@ -1837,6 +1870,7 @@ function showPanel(name) {
   if (name==='rrhh-prl') loadAlertasPRL();
   if (name==='jefes') loadJefes();
   if (name==='gremios') loadGremios();
+  if (name==='categorias-prov') loadCategoriasProv();
   if (name==='alertas') loadAlertas();
   if (name==='informes-proyectos') cargarInformeProyectos();
   if (name==='informes-gastos') cargarInformeGastos();
@@ -2587,6 +2621,10 @@ async function renderFichaProveedor(p, editable) {
   var mapaGremios = {};
   todosGremios.forEach(function(g){ mapaGremios[g.code] = g.name; });
 
+  // Cargar categorías para el select
+  var catRes = await db.from('supplier_categories').select('name').order('name');
+  var todasCategorias = catRes.data ? catRes.data.map(function(c){ return c.name; }) : ['Instaladora','Ingeniería','Materiales de Obra'];
+
   var campos = [
     {label:'Código interno',          key:'internal_code',     val:p.internal_code,        readonly:true},
     {label:'Nombre comercial',        key:'commercial_name',   val:p.commercial_name,       required:true},
@@ -2644,11 +2682,22 @@ async function renderFichaProveedor(p, editable) {
       var isReadonly = f.readonly || !editable;
       var inputStyle = isReadonly ? 'background:#f9f9f6;border:1px solid transparent;' : 'background:white;border:1px solid #ddd;';
       var labelHtml = f.label + (f.required && editable ? ' <span style=\"color:#A32D2D;font-size:10px;\">*</span>' : '');
+      var fieldHtml;
+      if (f.key === 'category' && editable) {
+        fieldHtml = '<select id="prov-field-category" style="flex:1;padding:5px 8px;border-radius:5px;font-size:13px;color:#1a1a1a;background:white;border:1px solid #ddd;">' +
+          '<option value="">-- Seleccionar --</option>' +
+          todasCategorias.map(function(cat) {
+            return '<option value="'+cat+'" '+(f.val===cat?'selected':'')+'>'+cat+'</option>';
+          }).join('') +
+          '</select>';
+      } else {
+        fieldHtml = '<input id="prov-field-'+f.key+'" value="'+(f.val||'')+'" '+(isReadonly?'readonly':'')+
+          (f.required && !isReadonly ? ' required' : '') +
+          ' style="flex:1;padding:5px 8px;border-radius:5px;font-size:13px;color:#1a1a1a;'+inputStyle+'">';
+      }
       return '<div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #f5f5f0;">' +
         '<div style="width:220px;font-size:11px;color:#888;font-weight:500;flex-shrink:0;text-transform:uppercase;letter-spacing:0.03em;">' + labelHtml + '</div>' +
-        '<input id="prov-field-'+f.key+'" value="'+(f.val||'')+'" '+(isReadonly?'readonly':'')+
-        (f.required && !isReadonly ? ' required' : '') +
-        ' style="flex:1;padding:5px 8px;border-radius:5px;font-size:13px;color:#1a1a1a;'+inputStyle+'"></div>';
+        fieldHtml + '</div>';
     }).join('') +
     (editable ? '<div style="font-size:11px;color:#888;margin-top:10px;"><span style=\"color:#A32D2D;\">*</span> Campos obligatorios</div>' : '') +
     '</div>';
@@ -3016,9 +3065,81 @@ function imprimirFichaJefe() {
   win.document.close(); win.print();
 }
 
-var gremioEditando = null;
+// ---- CATEGORÍAS DE PROVEEDOR ----
+var categoriaProvEditando = null;
 
-async function loadGremios() {
+async function loadCategoriasProv() {
+  var tbody = document.getElementById('categorias-prov-tbody');
+  tbody.innerHTML = '<tr><td colspan="3" class="loading">Cargando...</td></tr>';
+  try {
+    var res = await db.from('supplier_categories').select('*').order('name');
+    if (!res.data || !res.data.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="empty">No hay categorías. Crea la primera.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.data.map(function(c) {
+      return '<tr><td><strong>' + c.name + '</strong></td><td style="color:#888;font-size:12px;">' + (c.description||'-') + '</td>' +
+        '<td style="text-align:right;"><button class="btn btn-sm" onclick="editarCategoriaProv(\''+c.id+'\',\''+encodeURIComponent(c.name)+'\',\''+encodeURIComponent(c.description||'')+'\')">Editar</button></td></tr>';
+    }).join('');
+  } catch(e) {
+    // Si la tabla no existe, mostrar mensaje
+    tbody.innerHTML = '<tr><td colspan="3" class="empty">Tabla no configurada. Ejecuta el SQL de setup.</td></tr>';
+    console.error(e);
+  }
+}
+
+function abrirModalCategoria() {
+  categoriaProvEditando = null;
+  document.getElementById('modal-cat-title').textContent = 'Nueva categoría';
+  document.getElementById('mc-nombre').value = '';
+  document.getElementById('mc-descripcion').value = '';
+  document.getElementById('modal-categoria-prov').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mc-nombre').focus(); }, 100);
+}
+
+function editarCategoriaProv(id, nombreEnc, descEnc) {
+  categoriaProvEditando = id;
+  document.getElementById('modal-cat-title').textContent = 'Editar categoría';
+  document.getElementById('mc-nombre').value = decodeURIComponent(nombreEnc);
+  document.getElementById('mc-descripcion').value = decodeURIComponent(descEnc);
+  document.getElementById('modal-categoria-prov').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mc-nombre').focus(); }, 100);
+}
+
+function cerrarModalCategoria() {
+  document.getElementById('modal-categoria-prov').style.display = 'none';
+  categoriaProvEditando = null;
+}
+
+async function guardarCategoriaProv() {
+  var nombre = document.getElementById('mc-nombre').value.trim();
+  var descripcion = document.getElementById('mc-descripcion').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio.'); document.getElementById('mc-nombre').focus(); return; }
+  try {
+    var esEdicion = !!categoriaProvEditando;
+    if (esEdicion) {
+      var res = await db.from('supplier_categories').update({name: nombre, description: descripcion||null}).eq('id', parseInt(categoriaProvEditando));
+      if (res.error) throw res.error;
+    } else {
+      var check = await db.from('supplier_categories').select('id').ilike('name', nombre);
+      if (check.data && check.data.length) { alert('⚠️ Ya existe una categoría con ese nombre.'); return; }
+      var res = await db.from('supplier_categories').insert({name: nombre, description: descripcion||null});
+      if (res.error) throw res.error;
+    }
+    cerrarModalCategoria();
+    loadCategoriasProv();
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 20px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;';
+    notif.innerHTML = '<span style="font-size:18px;">✓</span><span>Categoría <strong>"' + nombre + '"</strong> ' + (esEdicion?'actualizada':'creada') + ' correctamente</span>';
+    document.body.appendChild(notif);
+    setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3500);
+  } catch(e) {
+    console.error(e);
+    alert('Error al guardar: ' + (e.message || JSON.stringify(e)));
+  }
+}
+
+// ---- GREMIOS ----
   var tbody=document.getElementById('gremios-tbody');
   tbody.innerHTML='<tr><td colspan="3" class="loading">Cargando...</td></tr>';
   try {
