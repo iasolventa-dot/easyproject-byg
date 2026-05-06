@@ -3204,23 +3204,32 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       var lista = document.createElement('div');
       lista.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;';
       adj.forEach(function(a) {
-        var tipos={excel:'S',pdf:'P',word:'W',imagen:'I',otro:'A'};
         var esMed=a.is_measurements;
-        var sz=a.file_size?(a.file_size>1048576?(a.file_size/1048576).toFixed(1)+' MB':Math.round(a.file_size/1024)+' KB'):'';
+        var esEnlace = a.file_type === 'enlace' || a.storage_provider === 'external';
+        var sz=a.file_size?(a.file_size>1048576?(a.file_size/1048576).toFixed(1)+' MB':Math.round(a.file_size/1024)+' KB'):esEnlace?'Enlace externo':'';
         var row=document.createElement('div');
-        row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':'white')+';border:1px solid '+(esMed?'#C0DD97':'#e5e5e0')+';border-radius:8px;';
+        row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':esEnlace?'#F5F0FF':'white')+';border:1px solid '+(esMed?'#C0DD97':esEnlace?'#C9B8F0':'#e5e5e0')+';border-radius:8px;';
         var ic=document.createElement('div');
-        ic.style.cssText='width:32px;height:32px;border-radius:6px;background:'+(a.file_type==='excel'?'#217346':a.file_type==='pdf'?'#E02020':'#185FA5')+';color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
-        ic.textContent=a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':'FILE';
+        ic.style.cssText='width:32px;height:32px;border-radius:6px;background:'+(esEnlace?'#6C3FC5':a.file_type==='excel'?'#217346':a.file_type==='pdf'?'#E02020':'#185FA5')+';color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+        ic.textContent=esEnlace?'🔗':a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':'FILE';
         var info=document.createElement('div'); info.style.cssText='flex:1;min-width:0;';
         info.innerHTML='<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.file_name+'</div><div style="font-size:11px;color:#888;">'+sz+(esMed?' <strong style="color:#3B6D11;">MEDICIONES</strong>':'')+'</div>';
         row.appendChild(ic); row.appendChild(info);
-        var bm=document.createElement('button');
-        bm.textContent=esMed?'Desmarcar':'Marcar mediciones';
-        bm.style.cssText='background:'+(esMed?'#EAF3DE':'#f0f7ff')+';border:1px solid '+(esMed?'#C0DD97':'#B5D4F4')+';color:'+(esMed?'#3B6D11':'#185FA5')+';padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
-        bm.onclick=(function(id,pid,marked){return function(){marked?anDesmarcarMediciones(id,pid):anMarcarMediciones(id,pid);};})(a.id,projectId,esMed);
-        row.appendChild(bm);
-        var bd=document.createElement('button');bd.textContent='Ver';bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);row.appendChild(bd);
+        if (esEnlace) {
+          var bo=document.createElement('button');bo.textContent='Abrir ↗';bo.style.cssText='background:#6C3FC5;color:white;border:none;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bo.onclick=(function(url){return function(){window.open(url,'_blank');};})(a.file_path);
+          row.appendChild(bo);
+          var bel=document.createElement('button');bel.textContent='Eliminar';bel.style.cssText='background:white;border:1px solid #ddd;color:#A32D2D;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bel.onclick=(function(id,pid){return function(){if(confirm('¿Eliminar este enlace?')){db.from('project_attachments').delete().eq('id',id).then(function(){cargarDocumentosAnálisis(pid,null);});}};})(a.id,projectId);
+          row.appendChild(bel);
+        } else {
+          var bm=document.createElement('button');
+          bm.textContent=esMed?'Desmarcar':'Marcar mediciones';
+          bm.style.cssText='background:'+(esMed?'#EAF3DE':'#f0f7ff')+';border:1px solid '+(esMed?'#C0DD97':'#B5D4F4')+';color:'+(esMed?'#3B6D11':'#185FA5')+';padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bm.onclick=(function(id,pid,marked){return function(){marked?anDesmarcarMediciones(id,pid):anMarcarMediciones(id,pid);};})(a.id,projectId,esMed);
+          row.appendChild(bm);
+          var bd=document.createElement('button');bd.textContent='Ver';bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);row.appendChild(bd);
+        }
         lista.appendChild(row);
       });
       el.appendChild(lista);
@@ -3259,8 +3268,32 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       if(e.dataTransfer.files.length) anAgregarArchivos(e.dataTransfer.files, projectId);
     };
     
+    // ---- Sección enlace externo (WeTransfer, Drive, Dropbox, OneDrive) ----
+    var linkSection = document.createElement('div');
+    linkSection.style.cssText = 'margin-top:0.75rem;';
+    linkSection.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        '<div style="flex:1;height:1px;background:#e5e5e0;"></div>' +
+        '<span style="font-size:11px;color:#aaa;white-space:nowrap;">o añadir enlace externo</span>' +
+        '<div style="flex:1;height:1px;background:#e5e5e0;"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;">' +
+        '<input id="an-link-url" type="url" placeholder="https://wetransfer.com/... · drive.google.com · dropbox.com · onedrive..." ' +
+          'style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px;outline:none;" />' +
+        '<button onclick="anAgregarEnlace(' + projectId + ')" ' +
+          'style="background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;">+ Enlace</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">WeTransfer</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">Google Drive</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">Dropbox</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">OneDrive</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">SharePoint</span>' +
+      '</div>';
+
     addDiv.appendChild(inp);
     addDiv.appendChild(dropzone);
+    addDiv.appendChild(linkSection);
     el.appendChild(addDiv);
     var archsMed=adj.filter(function(a){return a.is_measurements;});
     if(archsMed.length){
@@ -6764,6 +6797,48 @@ async function anDescargarArchivo(filePath, fileName) {
     if(res.data&&res.data.signedUrl) window.open(res.data.signedUrl,'_blank');
     else alert('No se pudo generar el enlace.');
   } catch(e) { alert('Error: '+e.message); }
+}
+
+async function anAgregarEnlace(projectId) {
+  var input = document.getElementById('an-link-url');
+  if (!input) return;
+  var url = input.value.trim();
+  if (!url) { input.focus(); return; }
+  if (!url.startsWith('http://') && !url.startsWith('https://')) { alert('Introduce una URL válida (debe empezar por https://)'); input.focus(); return; }
+
+  // Detectar proveedor
+  var proveedor = 'externo';
+  if (url.includes('wetransfer')) proveedor = 'WeTransfer';
+  else if (url.includes('drive.google')) proveedor = 'Google Drive';
+  else if (url.includes('dropbox')) proveedor = 'Dropbox';
+  else if (url.includes('onedrive') || url.includes('1drv.ms')) proveedor = 'OneDrive';
+  else if (url.includes('sharepoint')) proveedor = 'SharePoint';
+  else if (url.includes('transfernow')) proveedor = 'TransferNow';
+
+  var displayName = proveedor + ' — ' + url.substring(0, 60) + (url.length > 60 ? '…' : '');
+
+  try {
+    await db.from('project_attachments').insert({
+      project_id:       projectId,
+      file_name:        displayName,
+      file_path:        url,
+      file_size:        0,
+      file_type:        'enlace',
+      mime_type:        'text/uri-list',
+      is_measurements:  false,
+      uploaded_by:      currentUser ? currentUser.email : 'manual',
+      uploaded_at:      new Date().toISOString(),
+      storage_provider: 'external'
+    });
+    input.value = '';
+    // Notificación verde
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+    notif.textContent = '✓ Enlace ' + proveedor + ' añadido correctamente';
+    document.body.appendChild(notif);
+    setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3000);
+    cargarDocumentosAnálisis(projectId, null);
+  } catch(e) { alert('Error al guardar enlace: ' + e.message); }
 }
 
 async function anAgregarArchivos(files, projectId) {
