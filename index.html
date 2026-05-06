@@ -2581,11 +2581,11 @@ async function renderFichaProveedor(p, editable) {
     gremiosActuales = p.supplier_specialty_rel.map(function(r){ return r.specialty_code; });
   } else if (p.specialty_code) { gremiosActuales = [p.specialty_code]; }
 
-  var todosGremios = [];
-  if (editable) {
-    var grRes = await db.from('supplier_specialties').select('code,name').order('name');
-    todosGremios = grRes.data || [];
-  }
+  // Cargar todos los gremios siempre (para mostrar nombres en vista y checkboxes en edición)
+  var grRes = await db.from('supplier_specialties').select('code,name').order('name');
+  var todosGremios = grRes.data || [];
+  var mapaGremios = {};
+  todosGremios.forEach(function(g){ mapaGremios[g.code] = g.name; });
 
   var campos = [
     {label:'Código interno',          key:'internal_code',     val:p.internal_code,        readonly:true},
@@ -2623,8 +2623,15 @@ async function renderFichaProveedor(p, editable) {
       }).join('') + '</div>' +
       '<div style="font-size:10px;color:#aaa;margin-top:4px;">Marca todos los gremios en los que trabaja este proveedor.</div>';
   } else {
-    gremiosHtml = '<div style="padding:5px 8px;font-size:13px;color:#1a1a1a;">' +
-      (gremiosActuales.length ? gremiosActuales.join(', ') : '-') + '</div>';
+    // Modo vista: mostrar nombres de gremios con badges
+    var nombresGremios = gremiosActuales.map(function(code, idx) {
+      var nombre = mapaGremios[code] || code;
+      var esPrimary = idx === 0;
+      return '<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:'+(esPrimary?'#185FA5':'#f0f0ea')+';color:'+(esPrimary?'white':'#555')+';font-weight:'+(esPrimary?'600':'400')+';">'+nombre+(esPrimary?' ★':'')+'</span>';
+    });
+    gremiosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:5px 0;">' +
+      (nombresGremios.length ? nombresGremios.join('') : '<span style="color:#aaa;font-size:13px;">-</span>') +
+      '</div>';
   }
 
   document.getElementById('prov-ficha-content').innerHTML =
