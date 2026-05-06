@@ -8375,9 +8375,6 @@ async function ejecutarAnalisisIA(projectId) {
 
     // Reload section to show updated state with download button
     cargarSeccionAnalisisDocumental(projectId);
-    
-    // Auto-generate PDF
-    setTimeout(function() { generarPdfInforme(projectId, informeFinal); }, 500);
 
   } catch(e) {
     if (reportEl) reportEl.innerHTML = '<div style="color:#E02020;font-size:12px;padding:1rem;">Error al analizar: ' + e.message + '</div>';
