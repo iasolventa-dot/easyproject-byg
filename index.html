@@ -3013,8 +3013,9 @@ async function guardarGremio() {
     .trim().replace(/\s+/g,'_');
 
   try {
-    if (gremioEditando) {
-      var res = await db.from('supplier_specialties').update({name: nombre}).eq('id', gremioEditando);
+    var esEdicion = !!gremioEditando;
+    if (esEdicion) {
+      var res = await db.from('supplier_specialties').update({name: nombre}).eq('id', parseInt(gremioEditando));
       if (res.error) throw res.error;
     } else {
       // Comprobar si ya existe por nombre
@@ -3035,7 +3036,7 @@ async function guardarGremio() {
     // Notificación verde
     var notif = document.createElement('div');
     notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 20px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;';
-    notif.innerHTML = '<span style="font-size:18px;">✓</span><span>' + (gremioEditando ? 'Gremio actualizado' : 'Gremio <strong>"' + nombre + '"</strong> creado correctamente') + '</span>';
+    notif.innerHTML = '<span style="font-size:18px;">✓</span><span>' + (esEdicion ? 'Gremio actualizado correctamente' : 'Gremio <strong>"' + nombre + '"</strong> creado correctamente') + '</span>';
     document.body.appendChild(notif);
     setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3500);
   } catch(e) {
