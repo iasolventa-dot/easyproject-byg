@@ -659,6 +659,7 @@
     <h1 id="cliente-det-title">Ficha de cliente</h1>
     <div style="display:flex;gap:8px;">
       <button class="btn" onclick="imprimirFichaCliente()">Imprimir ficha</button>
+      <button class="btn btn-success" id="btn-confirmar-cli" onclick="confirmarClienteLead()" style="display:none;">✓ Confirmar como cliente</button>
       <button class="btn" id="btn-editar-cli" onclick="toggleEditarCliente()" style="display:none;">Editar</button>
       <button class="btn btn-success" id="btn-guardar-cli" onclick="guardarCliente()" style="display:none;">Guardar</button>
       <button class="btn btn-back" onclick="showPanel('clientes')">Volver al listado</button>
@@ -5848,6 +5849,7 @@ function abrirFichaClienteEditar(id) {
   modoEdicionCli = false;
   document.getElementById('btn-editar-cli').style.display = 'none';
   document.getElementById('btn-guardar-cli').style.display = 'none';
+  document.getElementById('btn-confirmar-cli').style.display = 'none';
   if (!id) {
     clienteActual = {};
     document.getElementById('cliente-det-title').textContent = 'Nuevo cliente';
@@ -5858,12 +5860,32 @@ function abrirFichaClienteEditar(id) {
   clienteActual = clientesData.find(function(x){return x.id===id;}) || {};
   document.getElementById('cliente-det-title').textContent = clienteActual.commercial_name || 'Ficha de cliente';
   document.getElementById('btn-editar-cli').style.display = 'inline-block';
+  // Mostrar botón confirmar solo si es lead
+  if (!clienteActual.client_confirmed) {
+    document.getElementById('btn-confirmar-cli').style.display = 'inline-block';
+  }
   renderFichaClienteEditable(clienteActual, false);
+}
+
+async function confirmarClienteLead() {
+  if (!clienteActual.id) return;
+  var nombre = clienteActual.commercial_name || 'este cliente';
+  if (!confirm('¿Confirmar a "' + nombre + '" como cliente?\n\nSe le pedirán los datos fiscales (razón social, CIF, domicilio) necesarios para facturación.')) return;
+  // Pasar a edición con cliente_confirmed = true
+  clienteActual.client_confirmed = true;
+  document.getElementById('btn-confirmar-cli').style.display = 'none';
+  document.getElementById('btn-editar-cli').style.display = 'none';
+  document.getElementById('btn-guardar-cli').style.display = 'inline-block';
+  renderFichaClienteEditable(clienteActual, true);
+  // Marcar el checkbox automáticamente
+  var cb = document.getElementById('cli-confirmado');
+  if (cb) cb.checked = true;
 }
 
 function toggleEditarCliente() {
   modoEdicionCli = true;
   document.getElementById('btn-editar-cli').style.display = 'none';
+  document.getElementById('btn-confirmar-cli').style.display = 'none';
   document.getElementById('btn-guardar-cli').style.display = 'inline-block';
   renderFichaClienteEditable(clienteActual, true);
 }
@@ -5999,7 +6021,12 @@ async function guardarCliente() {
     document.getElementById('btn-guardar-cli').style.display = 'none';
     await loadClientes();
     var updated = clientesData.find(function(x){return x.commercial_name===data.commercial_name;});
-    if (updated) { clienteActual = updated; renderFichaClienteEditable(updated, false); }
+    if (updated) {
+      clienteActual = updated;
+      // Mostrar botón confirmar si sigue siendo lead
+      document.getElementById('btn-confirmar-cli').style.display = updated.client_confirmed ? 'none' : 'inline-block';
+      renderFichaClienteEditable(updated, false);
+    }
   } catch(e) { alert('Error al guardar: ' + e.message); }
 }
 
