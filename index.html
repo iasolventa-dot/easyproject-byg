@@ -549,8 +549,8 @@
   </div>
   <div class="card">
     <table class="data-table" id="proyectos-table">
-      <thead><tr><th>Proyecto</th><th>Cliente</th><th>Gremio</th><th>Confianza IA</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
-      <tbody id="proyectos-tbody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+      <thead><tr><th>ID BYG</th><th>ID Cliente</th><th>Proyecto</th><th>Cliente</th><th>Confianza IA</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+      <tbody id="proyectos-tbody"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -746,12 +746,33 @@
 
 <!-- GREMIOS -->
 <div id="panel-gremios" class="panel">
-  <div class="topbar"><h1>Gremios / Especialidades</h1></div>
+  <div class="topbar"><h1>Gremios / Especialidades</h1>
+    <button class="btn btn-primary" onclick="abrirModalGremio()">+ Crear gremio</button>
+  </div>
   <div class="card">
     <table class="data-table">
-      <thead><tr><th>Código</th><th>Nombre</th></tr></thead>
-      <tbody id="gremios-tbody"><tr><td colspan="2" class="loading">Cargando...</td></tr></tbody>
+      <thead><tr><th>Código</th><th>Nombre</th><th></th></tr></thead>
+      <tbody id="gremios-tbody"><tr><td colspan="3" class="loading">Cargando...</td></tr></tbody>
     </table>
+  </div>
+</div>
+
+<!-- MODAL GREMIO -->
+<div id="modal-gremio" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:1.5rem;width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:15px;font-weight:600;margin-bottom:1.25rem;" id="modal-gremio-title">Nuevo gremio</div>
+    <div class="form-field" style="margin-bottom:1rem;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Código (ej: SOLDADURA)</label>
+      <input type="text" id="mg-codigo" placeholder="CODIGO" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase().replace(/\s/g,'_')">
+    </div>
+    <div class="form-field" style="margin-bottom:1.5rem;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nombre *</label>
+      <input type="text" id="mg-nombre" placeholder="Nombre del gremio" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" onclick="cerrarModalGremio()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarGremio()">Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -1521,6 +1542,7 @@
     <div class="card-header"><div class="card-title">Paso 2 - Datos del proyecto</div></div>
     <div style="display:flex;flex-direction:column;gap:1rem;">
       <div class="form-field"><label>Nombre del proyecto *</label><input type="text" id="np-proj-nombre" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+      <div class="form-field"><label>ID proyecto del cliente <span style="font-size:10px;color:#aaa;">(referencia del cliente para este proyecto)</span></label><input type="text" id="np-proj-client-id" placeholder="Ej: HM-2026-0042 · OC-REF-001..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
       <div class="form-field"><label>Fecha de recepcion *</label><input type="date" id="np-proj-fecha" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
       <div class="form-field"><label>Texto de la peticion</label><textarea id="np-proj-texto" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:140px;resize:vertical;font-family:inherit;"></textarea></div>
       <div class="form-field"><label>Observaciones internas</label><textarea id="np-proj-notas" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:80px;resize:vertical;font-family:inherit;"></textarea></div>
@@ -2212,24 +2234,29 @@ async function showProyectosFase(fase) {
   };
   document.getElementById('proyectos-title').textContent = labels[fase]||'Proyectos';
   var tbody = document.getElementById('proyectos-tbody');
-  tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando...</td></tr>';
   try {
-    var q = db.from('projects').select('id,name,code,contact_email,category,confidence,received_at,project_statuses(code,name)').order('created_at',{ascending:false});
+    var q = db.from('projects').select('id,name,code,project_code,client_project_id,contact_email,category,confidence,received_at,project_statuses(code,name)').order('created_at',{ascending:false});
     if (fase !== 'all') {
       var stRes = await db.from('project_statuses').select('id').eq('code',fase);
       if (stRes.data && stRes.data.length) q = q.eq('project_status_id', stRes.data[0].id);
     }
     var res = await q;
     if (!res.data || !res.data.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay proyectos en esta fase</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay proyectos en esta fase</td></tr>';
       return;
     }
     tbody.innerHTML = res.data.map(function(p){
       var st = p.project_statuses?p.project_statuses.code:'default';
       var badge = badgeMap[st]||'<span class="badge b-default">'+st+'</span>';
       var conf = p.confidence?Math.round(p.confidence*100)+'%':'-';
-      return '<tr onclick="abrirProyecto('+p.id+',\''+encodeURIComponent(p.name||'')+'\')"><td>'+(p.name||p.code||'#'+p.id)+'</td>' +
-        '<td>'+(p.contact_email||'-')+'</td><td>'+(p.category||'-')+'</td><td>'+conf+'</td>' +
+      var idByg = p.project_code||p.code||'#'+p.id;
+      var idCli = p.client_project_id||'-';
+      return '<tr onclick="abrirProyecto('+p.id+',\''+encodeURIComponent(p.name||'')+'\')">'+
+        '<td><span style="font-size:11px;font-family:monospace;background:#f5f5f0;padding:2px 6px;border-radius:4px;">'+idByg+'</span></td>'+
+        '<td><span style="font-size:11px;color:'+(idCli!=='-'?'#185FA5':'#bbb')+';">'+idCli+'</span></td>'+
+        '<td><strong>'+(p.name||p.code||'#'+p.id)+'</strong></td>'+
+        '<td>'+(p.contact_email||'-')+'</td><td>'+conf+'</td>'+
         '<td>'+badge+'</td><td>'+fmt(p.received_at)+'</td><td><span class="item-arr">Ver</span></td></tr>';
     }).join('');
   } catch(e) { console.error('Error proyectos:',e); }
@@ -2942,16 +2969,61 @@ function imprimirFichaJefe() {
   win.document.close(); win.print();
 }
 
+var gremioEditando = null;
+
 async function loadGremios() {
   var tbody=document.getElementById('gremios-tbody');
-  tbody.innerHTML='<tr><td colspan="2" class="loading">Cargando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="3" class="loading">Cargando...</td></tr>';
   try {
-    var res=await db.from('supplier_specialties').select('*').order('code');
-    if (!res.data||!res.data.length){tbody.innerHTML='<tr><td colspan="2" class="empty">No hay gremios</td></tr>';return;}
+    var res=await db.from('supplier_specialties').select('*').order('name');
+    if (!res.data||!res.data.length){tbody.innerHTML='<tr><td colspan="3" class="empty">No hay gremios</td></tr>';return;}
     tbody.innerHTML=res.data.map(function(g){
-      return '<tr><td><span class="badge b-default">'+g.code+'</span></td><td>'+g.name+'</td></tr>';
+      return '<tr><td><span class="badge b-default">'+g.code+'</span></td><td>'+g.name+'</td>' +
+        '<td style="text-align:right;"><button class="btn btn-sm" onclick="editarGremio(\''+g.id+'\',\''+g.code+'\',\''+encodeURIComponent(g.name)+'\')">Editar</button></td></tr>';
     }).join('');
   } catch(e){console.error(e);}
+}
+
+function abrirModalGremio() {
+  gremioEditando = null;
+  document.getElementById('modal-gremio-title').textContent = 'Nuevo gremio';
+  document.getElementById('mg-codigo').value = '';
+  document.getElementById('mg-nombre').value = '';
+  document.getElementById('mg-codigo').readOnly = false;
+  document.getElementById('modal-gremio').style.display = 'flex';
+}
+
+function editarGremio(id, codigo, nombreEnc) {
+  gremioEditando = id;
+  document.getElementById('modal-gremio-title').textContent = 'Editar gremio';
+  document.getElementById('mg-codigo').value = codigo;
+  document.getElementById('mg-nombre').value = decodeURIComponent(nombreEnc);
+  document.getElementById('mg-codigo').readOnly = true;
+  document.getElementById('modal-gremio').style.display = 'flex';
+}
+
+function cerrarModalGremio() {
+  document.getElementById('modal-gremio').style.display = 'none';
+  gremioEditando = null;
+}
+
+async function guardarGremio() {
+  var codigo = document.getElementById('mg-codigo').value.trim().toUpperCase().replace(/\s/g,'_');
+  var nombre = document.getElementById('mg-nombre').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio.'); return; }
+  if (!codigo) { alert('El código es obligatorio.'); return; }
+  try {
+    if (gremioEditando) {
+      await db.from('supplier_specialties').update({name: nombre, updated_at: new Date().toISOString()}).eq('id', gremioEditando);
+    } else {
+      // Comprobar si ya existe
+      var check = await db.from('supplier_specialties').select('id').eq('code', codigo);
+      if (check.data && check.data.length) { alert('Ya existe un gremio con ese código.'); return; }
+      await db.from('supplier_specialties').insert({code: codigo, name: nombre, created_at: new Date().toISOString()});
+    }
+    cerrarModalGremio();
+    loadGremios();
+  } catch(e) { alert('Error al guardar: ' + e.message); }
 }
 
 async function loadAlertas() {
@@ -5690,7 +5762,29 @@ async function guardarCliente() {
   var todos = Object.assign({}, obligBase, obligFiscal);
   var errores = [];
   Object.keys(todos).forEach(function(k){ if (!data[k]||!data[k].trim()) errores.push(todos[k]); });
-  if (errores.length > 0) { alert('Campos obligatorios:\n\n\u2022 ' + errores.join('\n\u2022 ')); return; }
+  if (errores.length > 0) { alert('Campos obligatorios:\n\n• ' + errores.join('\n• ')); return; }
+
+  // Validar acrónimo exactamente 3 letras
+  if (!data.client_code || data.client_code.trim().length !== 3) {
+    alert('El acrónimo del cliente debe tener exactamente 3 letras.');
+    var el = document.getElementById('cli-field-client_code');
+    if (el) { el.style.borderColor='#A32D2D'; el.focus(); }
+    return;
+  }
+
+  // Validar duplicado por nombre (solo en creación)
+  if (!clienteActual.id) {
+    var dupNombre = await db.from('clients').select('id,commercial_name').ilike('commercial_name', data.commercial_name.trim());
+    if (dupNombre.data && dupNombre.data.length) {
+      alert('⚠️ Ya existe un cliente con ese nombre:\n"' + dupNombre.data[0].commercial_name + '"');
+      return;
+    }
+    var dupCodigo = await db.from('clients').select('id,client_code').eq('client_code', data.client_code.trim().toUpperCase());
+    if (dupCodigo.data && dupCodigo.data.length) {
+      alert('⚠️ Ya existe un cliente con el acrónimo "' + data.client_code + '".\nElige un acrónimo diferente.');
+      return;
+    }
+  }
 
   try {
     if (clienteActual.id) {
@@ -6759,6 +6853,17 @@ async function npGuardar() {
       clienteId=npClienteSeleccionado.id;
       acronimo=npClienteSeleccionado.client_code||npClienteSeleccionado.internal_code||'XXX';
     }
+    // Validar cliente nuevo: no duplicar por nombre
+    if (npClienteTipo === 'nuevo') {
+      var nombreNuevo = document.getElementById('np-new-nombre').value.trim().toLowerCase();
+      var dupCheck = await db.from('clients').select('id,commercial_name').ilike('commercial_name', nombreNuevo);
+      if (dupCheck.data && dupCheck.data.length) {
+        alert('⚠️ Ya existe un cliente con ese nombre:\n"' + dupCheck.data[0].commercial_name + '"\n\nBúscalo en la lista de clientes registrados.');
+        btn.disabled=false; loading.style.display='none';
+        return;
+      }
+    }
+
     var anyo=new Date().getFullYear();
     var lastProj=await db.from('projects').select('project_code').order('id',{ascending:false}).limit(1);
     var nProj=1;
@@ -6770,6 +6875,7 @@ async function npGuardar() {
       name:document.getElementById('np-proj-nombre').value.trim(),
       code:projCode,
       project_code:projCode,
+      client_project_id:document.getElementById('np-proj-client-id').value.trim()||null,
       message_id:'MANUAL-'+Date.now(),
       client_id:clienteId,
       contact_email:npClienteTipo==='nuevo'?document.getElementById('np-new-email').value.trim():(npClienteSeleccionado.commercial_email||''),
@@ -7415,9 +7521,11 @@ async function cargarProveedoresGremio(nombreGremio, idx) {
   // Map gremio name to specialty_code
   var mapaEspecialidades = {
     'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
-    'Climatización': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
+    'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
     'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
-    'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS', 'Seguridad y Salud': 'SEGURIDAD_SALUD'
+    'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS', 'Seguridad y Salud': 'SEGURIDAD_SALUD',
+    'Soldadura': 'SOLDADURA', 'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
+    'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
   };
   var specialtyCode = mapaEspecialidades[nombreGremio];
 
@@ -7563,9 +7671,11 @@ function confirmarGremio(nombre, idx) {
   // Save selected suppliers for this gremio
   var mapaCodigosGremio3 = {
     'Demoliciones':'DEMOLICION','Albañilería':'ALBANILERIA','Pladur':'PLADUR',
-    'Climatización':'CLIMATIZACION','Electricidad':'ELECTRICIDAD',
+    'Climatización y ventilación':'CLIMATIZACION','Electricidad':'ELECTRICIDAD',
     'Contraincendios':'CONTRAINCENDIOS','Fontanería':'FONTANERIA',
-    'Varios':'VARIOS','Gestión de Residuos':'GESTION_RESIDUOS','Seguridad y Salud':'SEGURIDAD_SALUD'
+    'Varios':'VARIOS','Gestión de Residuos':'GESTION_RESIDUOS','Seguridad y Salud':'SEGURIDAD_SALUD',
+    'Soldadura':'SOLDADURA','Falso techo':'FALSO_TECHO','Ferretería':'FERRETERIA',
+    'CCTV y Datos':'CCTV_DATOS','Gestión y Limpieza':'GESTION_LIMPIEZA'
   };
   var gremioCode = mapaCodigosGremio3[nombre] || nombre.toUpperCase().replace(/\s/g,'_');
   var checkboxes = document.querySelectorAll('[id^="prov-check-"]:checked');
@@ -7617,10 +7727,12 @@ async function confirmarMediciones() {
       // Normalize gremio name to specialty_code
       var mapaCodigosGremio = {
         'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
-        'Climatización': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
+        'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
         'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
         'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS',
-        'Seguridad y Salud': 'SEGURIDAD_SALUD'
+        'Seguridad y Salud': 'SEGURIDAD_SALUD', 'Soldadura': 'SOLDADURA',
+        'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
+        'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
       };
       var specialtyCode = mapaCodigosGremio[gremioNombre] || gremioNombre.toUpperCase().replace(/\s/g,'_').replace(/[ÁÉÍÓÚ]/g, function(c){ return {Á:'A',É:'E',Í:'I',Ó:'O',Ú:'U'}[c]||c; });
       await db.from('project_specialties').insert({
