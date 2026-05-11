@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; transition: background 0.3s; }
@@ -462,9 +463,11 @@
   <div class="nav-item sub" id="nav-proveedores" onclick="showPanel('proveedores')">Proveedores</div>
   <div class="nav-item sub" id="nav-jefes" onclick="showPanel('jefes')">Jefes de obra</div>
   <div class="nav-item sub" id="nav-gremios" onclick="showPanel('gremios')">Gremios</div>
+  <div class="nav-item sub" id="nav-categorias-prov" onclick="showPanel('categorias-prov')">Categorías proveedor</div>
 
   <div class="nav-section">Control</div>
   <div class="nav-item sub" id="nav-prl" onclick="showPanel('prl')">PRL / Documentación</div>
+  <div class="nav-item sub" id="nav-prl-requisitos" onclick="showPanel('prl-requisitos')" style="display:none;">⚙️ Requisitos PRL</div>
   <div class="nav-item sub" id="nav-alertas" onclick="showPanel('alertas')">Alertas</div>
 
   <div class="nav-section" id="nav-section-rrhh" style="display:none;">Recursos Humanos</div>
@@ -548,8 +551,8 @@
   </div>
   <div class="card">
     <table class="data-table" id="proyectos-table">
-      <thead><tr><th>Proyecto</th><th>Cliente</th><th>Gremio</th><th>Confianza IA</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
-      <tbody id="proyectos-tbody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+      <thead><tr><th>ID BYG</th><th>ID Cliente</th><th>Proyecto</th><th>Cliente</th><th>Confianza IA</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+      <tbody id="proyectos-tbody"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -657,6 +660,7 @@
     <h1 id="cliente-det-title">Ficha de cliente</h1>
     <div style="display:flex;gap:8px;">
       <button class="btn" onclick="imprimirFichaCliente()">Imprimir ficha</button>
+      <button class="btn btn-success" id="btn-confirmar-cli" onclick="confirmarClienteLead()" style="display:none;">✓ Confirmar como cliente</button>
       <button class="btn" id="btn-editar-cli" onclick="toggleEditarCliente()" style="display:none;">Editar</button>
       <button class="btn btn-success" id="btn-guardar-cli" onclick="guardarCliente()" style="display:none;">Guardar</button>
       <button class="btn btn-back" onclick="showPanel('clientes')">Volver al listado</button>
@@ -745,12 +749,62 @@
 
 <!-- GREMIOS -->
 <div id="panel-gremios" class="panel">
-  <div class="topbar"><h1>Gremios / Especialidades</h1></div>
+  <div class="topbar"><h1>Gremios / Especialidades</h1>
+    <button class="btn btn-primary" onclick="abrirModalGremio()">+ Crear gremio</button>
+  </div>
   <div class="card">
     <table class="data-table">
-      <thead><tr><th>Código</th><th>Nombre</th></tr></thead>
-      <tbody id="gremios-tbody"><tr><td colspan="2" class="loading">Cargando...</td></tr></tbody>
+      <thead><tr><th>Código</th><th>Nombre</th><th></th></tr></thead>
+      <tbody id="gremios-tbody"><tr><td colspan="3" class="loading">Cargando...</td></tr></tbody>
     </table>
+  </div>
+</div>
+
+<!-- MODAL GREMIO -->
+<div id="modal-gremio" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:1.5rem;width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:15px;font-weight:600;margin-bottom:1.25rem;" id="modal-gremio-title">Nuevo gremio</div>
+    <div class="form-field" style="margin-bottom:1.5rem;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nombre del gremio *</label>
+      <input type="text" id="mg-nombre" placeholder="Ej: Pintura, Soldadura..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+      <div style="font-size:10px;color:#aaa;margin-top:4px;">El código se genera automáticamente a partir del nombre.</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" onclick="cerrarModalGremio()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarGremio()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL CATEGORÍAS PROVEEDOR -->
+<div id="panel-categorias-prov" class="panel">
+  <div class="topbar"><h1>Categorías de Proveedor</h1>
+    <button class="btn btn-primary" onclick="abrirModalCategoria()">+ Crear categoría</button>
+  </div>
+  <div class="card">
+    <table class="data-table">
+      <thead><tr><th>Nombre</th><th>Descripción</th><th></th></tr></thead>
+      <tbody id="categorias-prov-tbody"><tr><td colspan="3" class="loading">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL CATEGORÍA PROVEEDOR -->
+<div id="modal-categoria-prov" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:1.5rem;width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:15px;font-weight:600;margin-bottom:1.25rem;" id="modal-cat-title">Nueva categoría</div>
+    <div class="form-field" style="margin-bottom:1rem;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nombre *</label>
+      <input type="text" id="mc-nombre" placeholder="Ej: Instaladora, Materiales de Obra..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+    </div>
+    <div class="form-field" style="margin-bottom:1.5rem;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Descripción (opcional)</label>
+      <input type="text" id="mc-descripcion" placeholder="Descripción breve..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" onclick="cerrarModalCategoria()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCategoriaProv()">Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -806,9 +860,223 @@
   <div id="rrhh-prl-content"><div class="loading">Cargando...</div></div>
 </div>
 
+<!-- ============================================================ -->
+<!-- MÓDULO PRL — DOCUMENTACIÓN SUBCONTRATAS                     -->
+<!-- ============================================================ -->
+
+<!-- PANEL PRINCIPAL: lista de proyectos en ejecución con semáforo PRL -->
 <div id="panel-prl" class="panel">
-  <div class="topbar"><h1>PRL / Documentación subcontratas</h1></div>
-  <div class="card"><div class="empty">Módulo PRL - próximamente disponible</div></div>
+  <div class="topbar">
+    <h1>PRL / Documentación subcontratas</h1>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="showPanel('prl-alertas')">⚠️ Ver alertas</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
+    <input id="prl-search" type="text" placeholder="Buscar proyecto o subcontrata..." style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;" oninput="filtrarPrlProyectos(this.value)">
+    <select id="prl-estado-filter" onchange="filtrarPrlProyectos(document.getElementById('prl-search').value)" style="padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;">
+      <option value="">Todos los estados PRL</option>
+      <option value="pendiente">⚪ Pendiente</option>
+      <option value="incompleto">🔴 Incompleto</option>
+      <option value="completo">🟢 Completo</option>
+    </select>
+  </div>
+  <div id="prl-proyectos-content"><div class="loading">Cargando proyectos...</div></div>
+</div>
+
+<!-- PANEL: Subcontratas de un proyecto concreto -->
+<div id="panel-prl-proyecto" class="panel">
+  <div class="topbar">
+    <h1 id="prl-proyecto-title">Proyecto — PRL</h1>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="abrirModalAsignarSubcontrata()">+ Añadir subcontrata</button>
+      <button class="btn btn-back" onclick="showPanel('prl')">← Volver</button>
+    </div>
+  </div>
+  <div id="prl-proyecto-content"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- PANEL: Ficha PRL de una subcontrata en un proyecto -->
+<div id="panel-prl-ficha" class="panel">
+  <div class="topbar">
+    <h1 id="prl-ficha-title">Subcontrata — Documentación PRL</h1>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="abrirModalTrabajador(null)">+ Añadir trabajador</button>
+      <button class="btn btn-back" onclick="volverprlProyecto()">← Volver al proyecto</button>
+    </div>
+  </div>
+  <div id="prl-ficha-content"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- PANEL: Alertas globales PRL subcontratas -->
+<div id="panel-prl-alertas" class="panel">
+  <div class="topbar">
+    <h1>Alertas PRL — Vencimientos subcontratas</h1>
+    <button class="btn btn-back" onclick="showPanel('prl')">← Volver</button>
+  </div>
+  <div id="prl-alertas-content"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- MODAL: Asignar subcontrata a proyecto -->
+<div id="modal-prl-subcontrata" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:28px;width:480px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <h2 style="margin:0 0 18px;font-size:16px;">Añadir subcontrata a este proyecto</h2>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Subcontrata *</label>
+      <select id="prl-modal-supplier" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Inicio en obra</label>
+        <input type="date" id="prl-modal-inicio" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Fin previsto</label>
+        <input type="date" id="prl-modal-fin" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+    </div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Notas</label>
+      <textarea id="prl-modal-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" onclick="cerrarModalSubcontrata()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAsignacionSubcontrata()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Trabajador de subcontrata -->
+<div id="modal-prl-trabajador" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <h2 id="modal-trabajador-title" style="margin:0 0 18px;font-size:16px;">Añadir trabajador</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Nombre *</label>
+        <input type="text" id="tw-nombre" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Apellidos *</label>
+        <input type="text" id="tw-apellidos" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">DNI / NIE</label>
+        <input type="text" id="tw-dni" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Teléfono</label>
+        <input type="text" id="tw-telefono" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Cargo</label>
+        <input type="text" id="tw-cargo" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Estado</label>
+        <select id="tw-estado" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+          <option value="baja">Baja</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Notas</label>
+      <textarea id="tw-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" onclick="cerrarModalTrabajador()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarTrabajador()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: Configuración de requisitos PRL -->
+<div id="panel-prl-requisitos" class="panel">
+  <div class="topbar">
+    <h1>⚙️ Requisitos PRL — Configuración</h1>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="abrirModalRequisito(null)">+ Nuevo requisito</button>
+      <button class="btn btn-back" onclick="showPanel('prl')">← Volver</button>
+    </div>
+  </div>
+  <div style="background:#FEF9EC;border:1px solid #F9D56E;border-radius:8px;padding:10px 16px;margin-bottom:1rem;font-size:13px;color:#7A5C00;">
+    <strong>ℹ️ Cómo funciona:</strong> Define qué documentos debe entregar cada subcontrata según el cliente y/o gremio. 
+    Los requisitos sin cliente ni gremio aplican a <strong>todos los proyectos</strong>. 
+    Los específicos de cliente o gremio añaden documentos adicionales.
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+    <select id="req-filter-tipo" onchange="filtrarRequisitos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;">
+      <option value="">Empresa y trabajador</option>
+      <option value="empresa">Solo empresa</option>
+      <option value="trabajador">Solo trabajador</option>
+    </select>
+    <select id="req-filter-cliente" onchange="filtrarRequisitos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;">
+      <option value="">Todos los clientes</option>
+    </select>
+    <select id="req-filter-gremio" onchange="filtrarRequisitos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;">
+      <option value="">Todos los gremios</option>
+    </select>
+  </div>
+  <div id="prl-requisitos-content"><div class="loading">Cargando requisitos...</div></div>
+</div>
+
+<!-- MODAL: Crear/editar requisito PRL -->
+<div id="modal-prl-requisito" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <h2 id="modal-req-title" style="margin:0 0 18px;font-size:16px;">Nuevo requisito PRL</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Aplica a</label>
+        <select id="req-applies-to" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;">
+          <option value="empresa">Empresa subcontratista</option>
+          <option value="trabajador">Trabajador</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Obligatorio</label>
+        <select id="req-obligatorio" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;">
+          <option value="true">Sí — obligatorio</option>
+          <option value="false">No — recomendado</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Cliente (vacío = todos)</label>
+        <select id="req-client-id" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;">
+          <option value="">— Todos los clientes —</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Gremio (vacío = todos)</label>
+        <select id="req-specialty" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;">
+          <option value="">— Todos los gremios —</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Nombre del documento *</label>
+      <input type="text" id="req-label" placeholder="ej: Curso trabajo en altura" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Clave interna</label>
+        <input type="text" id="req-tipo-doc" placeholder="ej: curso_altura" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Validez (días, vacío = sin caducidad)</label>
+        <input type="number" id="req-vencimiento" placeholder="ej: 365" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+      </div>
+    </div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Notas internas</label>
+      <textarea id="req-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" id="btn-eliminar-req" style="display:none;color:#A32D2D;border-color:#A32D2D;" onclick="eliminarRequisito()">Eliminar</button>
+      <button class="btn" onclick="cerrarModalRequisito()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarRequisito()">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ALERTAS -->
@@ -1414,7 +1682,7 @@
   <!-- ALERTA ESTADO -->
   <div id="eval-alert" class="alert-box" style="margin-bottom:1.5rem;">
     <div class="alert-box-title">Evaluación simultánea requerida</div>
-    <div class="alert-box-desc">Los tres departamentos deben evaluar este proyecto de forma independiente. Si cualquier departamento lo rechaza, el proyecto queda cancelado y se notifica al resto.</div>
+    <div class="alert-box-desc">El Dpto. Técnico aprueba o rechaza el proyecto. Comercial y Dirección pueden añadir observaciones informativas.</div>
   </div>
 
   <!-- GRID 3 DEPARTAMENTOS -->
@@ -1440,37 +1708,41 @@
       </div>
     </div>
 
-    <!-- COMERCIAL — solo informativo -->
-    <div class="card" id="eval-card-comercial" style="background:#FAFFFE;border:1px solid #e5e5e0;">
+    <!-- COMERCIAL -->
+    <div class="card" id="eval-card-comercial">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DCFCE7;display:flex;align-items:center;justify-content:center;font-size:14px;">💼</div>
         <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dpto. Comercial</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Sus observaciones quedan registradas a título informativo. <strong>No bloquean el avance</strong> — decide el Dpto. Técnico.
+        Puede añadir observaciones sobre el interés estratégico o margen comercial. No bloquea ni aprueba el proyecto.
       </div>
       <div id="eval-estado-comercial" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-comercial">
-        <textarea id="eval-reason-comercial" placeholder="Observaciones comerciales (opcional)..."
-          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:70px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
-        <button class="btn btn-sm" style="width:100%;background:#f0f7ff;border:1px solid #B5D4F4;color:#185FA5;" onclick="registrarEvaluación('comercial','approved')">Añadir observación</button>
+        <textarea id="eval-reason-comercial" placeholder="Observaciones comerciales (informativo)..."
+          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('comercial','approved')">Guardar observaciones</button>
+        </div>
       </div>
     </div>
 
-    <!-- DIRECCIÓN — solo informativa -->
-    <div class="card" id="eval-card-direccion" style="background:#FAFFFE;border:1px solid #e5e5e0;">
+    <!-- DIRECCIÓN -->
+    <div class="card" id="eval-card-direccion">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">
         <div style="width:32px;height:32px;border-radius:8px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:14px;">🏢</div>
         <div><div style="font-size:13px;font-weight:600;color:#1a1a1a;">Dirección</div><div style="font-size:11px;color:#888;">Observaciones informativas</div></div>
       </div>
       <div style="font-size:11px;color:#666;margin-bottom:0.75rem;line-height:1.5;">
-        Sus observaciones quedan registradas a título informativo. <strong>No bloquean el avance</strong> — decide el Dpto. Técnico.
+        Puede añadir observaciones ejecutivas. La decisión final corresponde al Dpto. Técnico.
       </div>
       <div id="eval-estado-direccion" style="margin-bottom:0.75rem;"></div>
       <div id="eval-form-direccion">
-        <textarea id="eval-reason-direccion" placeholder="Observaciones de dirección (opcional)..."
-          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:70px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
-        <button class="btn btn-sm" style="width:100%;background:#EEF2FA;border:1px solid #BFDBFE;color:#1e40af;" onclick="registrarEvaluación('direccion','approved')">Añadir observación</button>
+        <textarea id="eval-reason-direccion" placeholder="Observaciones de dirección (informativo)..."
+          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('direccion','approved')">Guardar observaciones</button>
+        </div>
       </div>
     </div>
 
@@ -1516,6 +1788,7 @@
     <div class="card-header"><div class="card-title">Paso 2 - Datos del proyecto</div></div>
     <div style="display:flex;flex-direction:column;gap:1rem;">
       <div class="form-field"><label>Nombre del proyecto *</label><input type="text" id="np-proj-nombre" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+      <div class="form-field"><label>ID proyecto del cliente <span style="font-size:10px;color:#aaa;">(referencia del cliente para este proyecto)</span></label><input type="text" id="np-proj-client-id" placeholder="Ej: HM-2026-0042 · OC-REF-001..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
       <div class="form-field"><label>Fecha de recepcion *</label><input type="date" id="np-proj-fecha" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
       <div class="form-field"><label>Texto de la peticion</label><textarea id="np-proj-texto" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:140px;resize:vertical;font-family:inherit;"></textarea></div>
       <div class="form-field"><label>Observaciones internas</label><textarea id="np-proj-notas" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:80px;resize:vertical;font-family:inherit;"></textarea></div>
@@ -1526,18 +1799,27 @@
     <div class="card-header"><div class="card-title">Paso 3 - Archivos adjuntos</div></div>
     <div id="np-dropzone" ondrop="npHandleDrop(event)" ondragover="npDragOver(event)" ondragleave="npDragLeave(event)" onclick="document.getElementById('np-file-input').click()" style="border:2px dashed #ccc;border-radius:10px;padding:2rem;text-align:center;cursor:pointer;margin-bottom:1rem;">
       <div style="font-size:2rem;margin-bottom:8px;">&#128206;</div>
-      <div style="font-size:13px;font-weight:500;color:#444;margin-bottom:1rem;">Arrastra archivos aqui o haz clic para seleccionar</div>
+      <div style="font-size:13px;font-weight:500;color:#444;margin-bottom:4px;">Arrastra archivos aqui o haz clic para seleccionar</div>
+      <div style="font-size:11px;color:#aaa;margin-bottom:1rem;">PDF, Excel, Word, imágenes — o un <strong>ZIP</strong> con todos los documentos</div>
       <div style="display:inline-block;background:#185FA5;color:white;padding:7px 18px;border-radius:7px;font-size:12px;">Seleccionar archivos</div>
     </div>
-    <input type="file" id="np-file-input" multiple style="display:none;" onchange="npAgregarArchivos(this.files)">
-    <div style="display:flex;align-items:center;gap:10px;margin:12px 0;">
+    <input type="file" id="np-file-input" multiple style="display:none;" accept=".pdf,.xlsx,.xls,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.zip" onchange="npAgregarArchivos(this.files)">
+    <div style="display:flex;align-items:center;gap:8px;margin:0.75rem 0 0.5rem;">
       <div style="flex:1;height:1px;background:#e5e5e0;"></div>
-      <span style="font-size:11px;color:#aaa;white-space:nowrap;">o pega un enlace</span>
+      <span style="font-size:11px;color:#aaa;white-space:nowrap;">o añadir enlace externo</span>
       <div style="flex:1;height:1px;background:#e5e5e0;"></div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;">
-      <input type="text" id="np-link-input" placeholder="WeTransfer, Google Drive, Dropbox, OneDrive..." style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none;font-family:inherit;">
-      <button onclick="npAgregarEnlace()" style="background:#185FA5;color:white;border:none;padding:9px 14px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;">+ Añadir enlace</button>
+    <div style="display:flex;gap:6px;margin-bottom:4px;">
+      <input id="np-link-url" type="url" placeholder="https://wetransfer.com/... · drive.google.com · dropbox.com · onedrive..."
+        style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px;outline:none;" />
+      <button onclick="npAgregarEnlace()" style="background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;">+ Enlace</button>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:1rem;">
+      <span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">WeTransfer</span>
+      <span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">Google Drive</span>
+      <span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">Dropbox</span>
+      <span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">OneDrive</span>
+      <span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">SharePoint</span>
     </div>
     <div id="np-archivos-lista"></div>
     <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(3)">Anterior</button><button class="btn btn-primary" onclick="npSiguiente(3)">Siguiente</button></div>
@@ -1802,8 +2084,12 @@ function showPanel(name) {
   if (name==='proveedores') loadProveedores();
   if (name==='rrhh') loadEmpleados();
   if (name==='rrhh-prl') loadAlertasPRL();
+  if (name==='prl') loadPRL();
+  if (name==='prl-alertas') loadAlertasPRLSubcontratas();
+  if (name==='prl-requisitos') loadPrlRequisitos();
   if (name==='jefes') loadJefes();
   if (name==='gremios') loadGremios();
+  if (name==='categorias-prov') loadCategoriasProv();
   if (name==='alertas') loadAlertas();
   if (name==='informes-proyectos') cargarInformeProyectos();
   if (name==='informes-gastos') cargarInformeGastos();
@@ -2005,22 +2291,22 @@ async function cargarMetricasDept(dept) {
   } else if (dept === 'prl') {
     if (labels[2]) labels[2].textContent = 'Obras en ejecución';
     try {
-      var stEj = await db.from('project_statuses').select('id').eq('code','en_ejecucion').single();
-      var ejCount = 0;
-      if (stEj.data) {
-        var ejRes = await db.from('projects').select('id',{count:'exact'}).eq('project_status_id',stEj.data.id);
-        ejCount = ejRes.count||0;
-      }
+      var ejRes2 = await db.from('projects').select('id',{count:'exact'}).in('status',['execution','planning','awarded']);
+      var ejCount = ejRes2.count||0;
       mReview.textContent = ejCount;
+      var hoy30 = new Date(); hoy30.setDate(hoy30.getDate()+30);
+      var alertDE2 = await db.from('supplier_prl_docs').select('id',{count:'exact'}).neq('estado','no_aplica').not('fecha_vencimiento','is',null).lte('fecha_vencimiento', hoy30.toISOString().split('T')[0]);
+      var alertDW2 = await db.from('supplier_worker_docs').select('id',{count:'exact'}).neq('estado','no_aplica').not('fecha_vencimiento','is',null).lte('fecha_vencimiento', hoy30.toISOString().split('T')[0]);
+      var totalAlertas = (alertDE2.count||0) + (alertDW2.count||0);
       if (banner) {
-        if (ejCount > 0) {
+        if (totalAlertas > 0) {
           banner.style.display = 'block';
-          banner.innerHTML = '<div style="background:#FEF6EE;border:1px solid #FAC775;border-radius:8px;padding:10px 16px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="irAFaseEjecucion()">' +
+          banner.innerHTML = '<div style="background:#FEF6EE;border:1px solid #FAC775;border-radius:8px;padding:10px 16px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="showPanel(\'prl-alertas\')">' +
             '<div style="display:flex;align-items:center;gap:12px;">' +
             '<div class="notif-bell orange"><span style="font-size:14px;color:white;font-weight:bold;">!</span></div>' +
-            '<div><div style="font-size:13px;font-weight:600;color:#854F0B;">' + ejCount + ' obra(s) en ejecución requieren documentación PRL</div>' +
-            '<div style="font-size:11px;color:#854F0B;opacity:0.8;">Revisa la documentación de seguridad de las obras activas</div></div></div>' +
-            '<span style="font-size:12px;color:#854F0B;font-weight:500;">Ver obras</span></div>';
+            '<div><div style="font-size:13px;font-weight:600;color:#854F0B;">' + totalAlertas + ' documento(s) con vencimiento próximo (30 días)</div>' +
+            '<div style="font-size:11px;color:#854F0B;opacity:0.8;">Revisa la documentación PRL de subcontratas</div></div></div>' +
+            '<span style="font-size:12px;color:#854F0B;font-weight:500;">Ver alertas →</span></div>';
         } else {
           banner.style.display = 'none';
         }
@@ -2089,6 +2375,9 @@ function resetDashboardUI() {
     var el = document.getElementById(id);
     if (el) el.style.display = (currentDept === 'direccion') ? '' : 'none';
   });
+  // Mostrar configuración de requisitos PRL solo para rol PRL
+  var navReqPrl = document.getElementById('nav-prl-requisitos');
+  if (navReqPrl) navReqPrl.style.display = (currentDept === 'prl') ? '' : 'none';
 
   ['projects-list','emails-list','errors-list'].forEach(function(id){
     var el = document.getElementById(id);
@@ -2198,24 +2487,29 @@ async function showProyectosFase(fase) {
   };
   document.getElementById('proyectos-title').textContent = labels[fase]||'Proyectos';
   var tbody = document.getElementById('proyectos-tbody');
-  tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="loading">Cargando...</td></tr>';
   try {
-    var q = db.from('projects').select('id,name,code,contact_email,category,confidence,received_at,project_statuses(code,name)').order('created_at',{ascending:false});
+    var q = db.from('projects').select('id,name,code,project_code,client_project_id,contact_email,category,confidence,received_at,project_statuses(code,name)').order('created_at',{ascending:false});
     if (fase !== 'all') {
       var stRes = await db.from('project_statuses').select('id').eq('code',fase);
       if (stRes.data && stRes.data.length) q = q.eq('project_status_id', stRes.data[0].id);
     }
     var res = await q;
     if (!res.data || !res.data.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay proyectos en esta fase</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay proyectos en esta fase</td></tr>';
       return;
     }
     tbody.innerHTML = res.data.map(function(p){
       var st = p.project_statuses?p.project_statuses.code:'default';
       var badge = badgeMap[st]||'<span class="badge b-default">'+st+'</span>';
       var conf = p.confidence?Math.round(p.confidence*100)+'%':'-';
-      return '<tr onclick="abrirProyecto('+p.id+',\''+encodeURIComponent(p.name||'')+'\')"><td>'+(p.name||p.code||'#'+p.id)+'</td>' +
-        '<td>'+(p.contact_email||'-')+'</td><td>'+(p.category||'-')+'</td><td>'+conf+'</td>' +
+      var idByg = p.project_code||p.code||'#'+p.id;
+      var idCli = p.client_project_id||'-';
+      return '<tr onclick="abrirProyecto('+p.id+',\''+encodeURIComponent(p.name||'')+'\')">'+
+        '<td><span style="font-size:11px;font-family:monospace;background:#f5f5f0;padding:2px 6px;border-radius:4px;">'+idByg+'</span></td>'+
+        '<td><span style="font-size:11px;color:'+(idCli!=='-'?'#185FA5':'#bbb')+';">'+idCli+'</span></td>'+
+        '<td><strong>'+(p.name||p.code||'#'+p.id)+'</strong></td>'+
+        '<td>'+(p.contact_email||'-')+'</td><td>'+conf+'</td>'+
         '<td>'+badge+'</td><td>'+fmt(p.received_at)+'</td><td><span class="item-arr">Ver</span></td></tr>';
     }).join('');
   } catch(e) { console.error('Error proyectos:',e); }
@@ -2537,19 +2831,28 @@ function abrirFichaProveedor(id) {
   renderFichaProveedor(proveedorActual, false);
 }
 
-function renderFichaProveedor(p, editable) {
-  var gremios = [];
+async function renderFichaProveedor(p, editable) {
+  var gremiosActuales = [];
   if (p.supplier_specialty_rel && p.supplier_specialty_rel.length) {
-    gremios = p.supplier_specialty_rel.map(function(r){ return r.specialty_code + (r.primary_specialty?' (principal)':''); });
-  } else if (p.specialty_code) { gremios = [p.specialty_code]; }
+    gremiosActuales = p.supplier_specialty_rel.map(function(r){ return r.specialty_code; });
+  } else if (p.specialty_code) { gremiosActuales = [p.specialty_code]; }
 
-  var camposObligatoriosProv = ['commercial_name','legal_name','cif','commercial_email','phone','address'];
+  // Cargar todos los gremios siempre (para mostrar nombres en vista y checkboxes en edición)
+  var grRes = await db.from('supplier_specialties').select('code,name').order('name');
+  var todosGremios = grRes.data || [];
+  var mapaGremios = {};
+  todosGremios.forEach(function(g){ mapaGremios[g.code] = g.name; });
+
+  // Cargar categorías para el select
+  var catRes = await db.from('supplier_categories').select('name').order('name');
+  console.log('categorias:', catRes.data, catRes.error);
+  var todasCategorias = (catRes.data && catRes.data.length) ? catRes.data.map(function(c){ return c.name; }) : ['Instaladora','Ingeniería','Materiales de Obra'];
+
   var campos = [
     {label:'Código interno',          key:'internal_code',     val:p.internal_code,        readonly:true},
     {label:'Nombre comercial',        key:'commercial_name',   val:p.commercial_name,       required:true},
     {label:'Razón social',            key:'legal_name',        val:p.legal_name,            required:true},
     {label:'CIF / NIF',              key:'cif',               val:p.cif,                   required:true},
-    {label:'Gremios / Especialidades',key:'_gremios',          val:gremios.join(', '),      readonly:true},
     {label:'Categoría',              key:'category',          val:p.category},
     {label:'Estado',                 key:'status',            val:p.status},
     {label:'Valoración histórica',   key:'rating',            val:p.rating?p.rating+'/5':''},
@@ -2570,29 +2873,65 @@ function renderFichaProveedor(p, editable) {
     {label:'Última actualización',   key:'_updated',          val:p.updated_at?new Date(p.updated_at).toLocaleDateString('es-ES'):'-', readonly:true}
   ];
 
+  var gremiosHtml;
+  if (editable && todosGremios.length) {
+    gremiosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;">' +
+      todosGremios.map(function(g) {
+        var checked = gremiosActuales.indexOf(g.code) !== -1;
+        return '<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1px solid '+(checked?'#185FA5':'#ddd')+';border-radius:6px;background:'+(checked?'#EEF5FC':'white')+';user-select:none;">' +
+          '<input type="checkbox" class="prov-gremio-cb" value="'+g.code+'" '+(checked?'checked':'')+' style="width:13px;height:13px;">' +
+          g.name + '</label>';
+      }).join('') + '</div>' +
+      '<div style="font-size:10px;color:#aaa;margin-top:4px;">Marca todos los gremios en los que trabaja este proveedor.</div>';
+  } else {
+    // Modo vista: mostrar nombres de gremios con badges
+    var nombresGremios = gremiosActuales.map(function(code, idx) {
+      var nombre = mapaGremios[code] || code;
+      var esPrimary = idx === 0;
+      return '<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:'+(esPrimary?'#185FA5':'#f0f0ea')+';color:'+(esPrimary?'white':'#555')+';font-weight:'+(esPrimary?'600':'400')+';">'+nombre+(esPrimary?' ★':'')+'</span>';
+    });
+    gremiosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:5px 0;">' +
+      (nombresGremios.length ? nombresGremios.join('') : '<span style="color:#aaa;font-size:13px;">-</span>') +
+      '</div>';
+  }
+
   document.getElementById('prov-ficha-content').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:0;">' +
+    '<div style="display:flex;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f5f5f0;">' +
+      '<div style="width:220px;font-size:11px;color:#888;font-weight:500;flex-shrink:0;text-transform:uppercase;letter-spacing:0.03em;padding-top:6px;">Gremios / Especialidades</div>' +
+      '<div style="flex:1;">' + gremiosHtml + '</div>' +
+    '</div>' +
     campos.map(function(f) {
       var isReadonly = f.readonly || !editable;
-      var inputStyle = isReadonly ?
-        'background:#f9f9f6;border:1px solid transparent;' :
-        (f.required ? 'background:white;border:1px solid #ddd;' : 'background:white;border:1px solid #ddd;');
-      var labelHtml = f.label + (f.required && editable ? ' <span style="color:#A32D2D;font-size:10px;">*</span>' : '');
+      var inputStyle = isReadonly ? 'background:#f9f9f6;border:1px solid transparent;' : 'background:white;border:1px solid #ddd;';
+      var labelHtml = f.label + (f.required && editable ? ' <span style=\"color:#A32D2D;font-size:10px;\">*</span>' : '');
+      var fieldHtml;
+      if (f.key === 'category' && editable) {
+        fieldHtml = '<select id="prov-field-category" style="flex:1;padding:5px 8px;border-radius:5px;font-size:13px;color:#1a1a1a;background:white;border:1px solid #ddd;">' +
+          '<option value="">-- Seleccionar --</option>' +
+          todasCategorias.map(function(cat) {
+            return '<option value="'+cat+'" '+(f.val===cat?'selected':'')+'>'+cat+'</option>';
+          }).join('') +
+          '</select>';
+      } else {
+        fieldHtml = '<input id="prov-field-'+f.key+'" value="'+(f.val||'')+'" '+(isReadonly?'readonly':'')+
+          (f.required && !isReadonly ? ' required' : '') +
+          ' style="flex:1;padding:5px 8px;border-radius:5px;font-size:13px;color:#1a1a1a;'+inputStyle+'">';
+      }
       return '<div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #f5f5f0;">' +
         '<div style="width:220px;font-size:11px;color:#888;font-weight:500;flex-shrink:0;text-transform:uppercase;letter-spacing:0.03em;">' + labelHtml + '</div>' +
-        '<input id="prov-field-'+f.key+'" value="'+(f.val||'')+'" '+(isReadonly?'readonly':'')+
-        (f.required && !isReadonly ? ' required' : '') +
-        ' style="flex:1;padding:5px 8px;border-radius:5px;font-size:13px;color:#1a1a1a;'+inputStyle+'"></div>';
+        fieldHtml + '</div>';
     }).join('') +
-    (editable ? '<div style="font-size:11px;color:#888;margin-top:10px;"><span style="color:#A32D2D;">*</span> Campos obligatorios</div>' : '') +
+    (editable ? '<div style="font-size:11px;color:#888;margin-top:10px;"><span style=\"color:#A32D2D;\">*</span> Campos obligatorios</div>' : '') +
     '</div>';
 }
 
-function toggleEditarProveedor() {
+
+async function toggleEditarProveedor() {
   modoEdicion = true;
   document.getElementById('btn-editar-prov').style.display = 'none';
   document.getElementById('btn-guardar-prov').style.display = 'inline-block';
-  renderFichaProveedor(proveedorActual, true);
+  await renderFichaProveedor(proveedorActual, true);
 }
 
 async function guardarProveedor() {
@@ -2622,10 +2961,11 @@ async function guardarProveedor() {
     return;
   }
   try {
+    var provId;
     if (proveedorActual.id) {
       await db.from('suppliers').update(data).eq('id', proveedorActual.id);
+      provId = proveedorActual.id;
     } else {
-      // Generar código interno automático: PRV-XXX
       var lastProv = await db.from('suppliers').select('internal_code').order('id', {ascending:false}).limit(1);
       var lastNum = 0;
       if (lastProv.data && lastProv.data.length && lastProv.data[0].internal_code) {
@@ -2633,15 +2973,35 @@ async function guardarProveedor() {
         if (match) lastNum = parseInt(match[0]);
       }
       data.internal_code = 'PRV-' + String(lastNum + 1).padStart(3, '0');
-      await db.from('suppliers').insert(data);
+      var insRes = await db.from('suppliers').insert(data).select().single();
+      provId = insRes.data.id;
     }
+
+    // Guardar gremios seleccionados en supplier_specialty_rel
+    var checkboxes = document.querySelectorAll('.prov-gremio-cb');
+    if (checkboxes.length > 0) {
+      var seleccionados = [];
+      checkboxes.forEach(function(cb, idx) { if (cb.checked) seleccionados.push(cb.value); });
+      // Borrar relaciones anteriores
+      await db.from('supplier_specialty_rel').delete().eq('supplier_id', provId);
+      // Insertar nuevas
+      if (seleccionados.length > 0) {
+        var rels = seleccionados.map(function(code, idx) {
+          return {supplier_id: provId, specialty_code: code, primary_specialty: idx === 0};
+        });
+        await db.from('supplier_specialty_rel').insert(rels);
+        // Actualizar también el campo legacy specialty_code con el principal
+        await db.from('suppliers').update({specialty_code: seleccionados[0]}).eq('id', provId);
+      }
+    }
+
     alert('Proveedor guardado correctamente.');
     modoEdicion = false;
     document.getElementById('btn-editar-prov').style.display = 'inline-block';
     document.getElementById('btn-guardar-prov').style.display = 'none';
     await loadProveedores();
     var updated = proveedoresData.find(function(x){return x.commercial_name===data.commercial_name;});
-    if (updated) { proveedorActual = updated; renderFichaProveedor(updated, false); }
+    if (updated) { proveedorActual = updated; await renderFichaProveedor(updated, false); }
   } catch(e) { alert('Error al guardar: '+e.message); }
 }
 
@@ -2928,16 +3288,158 @@ function imprimirFichaJefe() {
   win.document.close(); win.print();
 }
 
+// ---- CATEGORÍAS DE PROVEEDOR ----
+var categoriaProvEditando = null;
+
+async function loadCategoriasProv() {
+  var tbody = document.getElementById('categorias-prov-tbody');
+  tbody.innerHTML = '<tr><td colspan="3" class="loading">Cargando...</td></tr>';
+  try {
+    var res = await db.from('supplier_categories').select('*').order('name');
+    if (!res.data || !res.data.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="empty">No hay categorías. Crea la primera.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.data.map(function(c) {
+      return '<tr><td><strong>' + c.name + '</strong></td><td style="color:#888;font-size:12px;">' + (c.description||'-') + '</td>' +
+        '<td style="text-align:right;"><button class="btn btn-sm" onclick="editarCategoriaProv(\''+c.id+'\',\''+encodeURIComponent(c.name)+'\',\''+encodeURIComponent(c.description||'')+'\')">Editar</button></td></tr>';
+    }).join('');
+  } catch(e) {
+    // Si la tabla no existe, mostrar mensaje
+    tbody.innerHTML = '<tr><td colspan="3" class="empty">Tabla no configurada. Ejecuta el SQL de setup.</td></tr>';
+    console.error(e);
+  }
+}
+
+function abrirModalCategoria() {
+  categoriaProvEditando = null;
+  document.getElementById('modal-cat-title').textContent = 'Nueva categoría';
+  document.getElementById('mc-nombre').value = '';
+  document.getElementById('mc-descripcion').value = '';
+  document.getElementById('modal-categoria-prov').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mc-nombre').focus(); }, 100);
+}
+
+function editarCategoriaProv(id, nombreEnc, descEnc) {
+  categoriaProvEditando = id;
+  document.getElementById('modal-cat-title').textContent = 'Editar categoría';
+  document.getElementById('mc-nombre').value = decodeURIComponent(nombreEnc);
+  document.getElementById('mc-descripcion').value = decodeURIComponent(descEnc);
+  document.getElementById('modal-categoria-prov').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mc-nombre').focus(); }, 100);
+}
+
+function cerrarModalCategoria() {
+  document.getElementById('modal-categoria-prov').style.display = 'none';
+  categoriaProvEditando = null;
+}
+
+async function guardarCategoriaProv() {
+  var nombre = document.getElementById('mc-nombre').value.trim();
+  var descripcion = document.getElementById('mc-descripcion').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio.'); document.getElementById('mc-nombre').focus(); return; }
+  try {
+    var esEdicion = !!categoriaProvEditando;
+    if (esEdicion) {
+      var res = await db.from('supplier_categories').update({name: nombre, description: descripcion||null}).eq('id', parseInt(categoriaProvEditando));
+      if (res.error) throw res.error;
+    } else {
+      var check = await db.from('supplier_categories').select('id').ilike('name', nombre);
+      if (check.data && check.data.length) { alert('⚠️ Ya existe una categoría con ese nombre.'); return; }
+      var res = await db.from('supplier_categories').insert({name: nombre, description: descripcion||null});
+      if (res.error) throw res.error;
+    }
+    cerrarModalCategoria();
+    loadCategoriasProv();
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 20px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;';
+    notif.innerHTML = '<span style="font-size:18px;">✓</span><span>Categoría <strong>"' + nombre + '"</strong> ' + (esEdicion?'actualizada':'creada') + ' correctamente</span>';
+    document.body.appendChild(notif);
+    setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3500);
+  } catch(e) {
+    console.error(e);
+    alert('Error al guardar: ' + (e.message || JSON.stringify(e)));
+  }
+}
+
+// ---- GREMIOS ----
+var gremioEditando = null;
+
 async function loadGremios() {
   var tbody=document.getElementById('gremios-tbody');
-  tbody.innerHTML='<tr><td colspan="2" class="loading">Cargando...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="3" class="loading">Cargando...</td></tr>';
   try {
-    var res=await db.from('supplier_specialties').select('*').order('code');
-    if (!res.data||!res.data.length){tbody.innerHTML='<tr><td colspan="2" class="empty">No hay gremios</td></tr>';return;}
+    var res=await db.from('supplier_specialties').select('*').order('name');
+    if (!res.data||!res.data.length){tbody.innerHTML='<tr><td colspan="3" class="empty">No hay gremios</td></tr>';return;}
     tbody.innerHTML=res.data.map(function(g){
-      return '<tr><td><span class="badge b-default">'+g.code+'</span></td><td>'+g.name+'</td></tr>';
+      return '<tr><td><span class="badge b-default">'+g.code+'</span></td><td>'+g.name+'</td>' +
+        '<td style="text-align:right;"><button class="btn btn-sm" onclick="editarGremio(\''+g.id+'\',\''+g.code+'\',\''+encodeURIComponent(g.name)+'\')">Editar</button></td></tr>';
     }).join('');
   } catch(e){console.error(e);}
+}
+
+function abrirModalGremio() {
+  gremioEditando = null;
+  document.getElementById('modal-gremio-title').textContent = 'Nuevo gremio';
+  document.getElementById('mg-nombre').value = '';
+  document.getElementById('modal-gremio').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mg-nombre').focus(); }, 100);
+}
+
+function editarGremio(id, codigo, nombreEnc) {
+  gremioEditando = id;
+  document.getElementById('modal-gremio-title').textContent = 'Editar nombre del gremio';
+  document.getElementById('mg-nombre').value = decodeURIComponent(nombreEnc);
+  document.getElementById('modal-gremio').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('mg-nombre').focus(); }, 100);
+}
+
+function cerrarModalGremio() {
+  document.getElementById('modal-gremio').style.display = 'none';
+  gremioEditando = null;
+}
+
+async function guardarGremio() {
+  var nombre = document.getElementById('mg-nombre').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio.'); document.getElementById('mg-nombre').focus(); return; }
+
+  // Generar código a partir del nombre: mayúsculas, sin tildes, espacios → _
+  var codigo = nombre.toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Z0-9\s]/g,'')
+    .trim().replace(/\s+/g,'_');
+
+  try {
+    var esEdicion = !!gremioEditando;
+    if (esEdicion) {
+      var res = await db.from('supplier_specialties').update({name: nombre}).eq('id', parseInt(gremioEditando));
+      if (res.error) throw res.error;
+    } else {
+      // Comprobar si ya existe por nombre
+      var checkNombre = await db.from('supplier_specialties').select('id,name').ilike('name', nombre);
+      if (checkNombre.data && checkNombre.data.length) {
+        alert('⚠️ Ya existe un gremio con ese nombre:\n"' + checkNombre.data[0].name + '"');
+        return;
+      }
+      // Comprobar código y añadir sufijo si colisiona
+      var checkCodigo = await db.from('supplier_specialties').select('id').eq('code', codigo);
+      if (checkCodigo.data && checkCodigo.data.length) codigo = codigo + '_2';
+
+      var res = await db.from('supplier_specialties').insert({code: codigo, name: nombre});
+      if (res.error) throw res.error;
+    }
+    cerrarModalGremio();
+    loadGremios();
+    // Notificación verde
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 20px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;';
+    notif.innerHTML = '<span style="font-size:18px;">✓</span><span>' + (esEdicion ? 'Gremio actualizado correctamente' : 'Gremio <strong>"' + nombre + '"</strong> creado correctamente') + '</span>';
+    document.body.appendChild(notif);
+    setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3500);
+  } catch(e) {
+    console.error('Error guardarGremio:', e);
+    alert('Error al guardar el gremio:\n' + (e.message || JSON.stringify(e)));
+  }
 }
 
 async function loadAlertas() {
@@ -3078,7 +3580,7 @@ async function registrarEvaluación(dept, decision) {
       if (stRes.data) {
         await db.from('projects').update({project_status_id:stRes.data.id, updated_at:new Date().toISOString()}).eq('id',evalProyecto.id);
       }
-      var notifMsg = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido aprobado por el Dpto. Técnico y pasa a En Análisis. Podéis añadir vuestras observaciones a título informativo.';
+      var notifMsg = 'El proyecto ' + (evalProyecto.code||evalProyecto.name) + ' ha sido aprobado por el Dpto. Técnico y pasa a En Análisis.';
       try {
         await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'comercial', error_message:notifMsg, created_at:new Date().toISOString()});
         await db.from('automation_errors').insert({flow_name:'NOTIFICACION', node_name:'direccion', error_message:notifMsg, created_at:new Date().toISOString()});
@@ -3205,35 +3707,32 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       var lista = document.createElement('div');
       lista.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;';
       adj.forEach(function(a) {
-        var tipos={excel:'S',pdf:'P',word:'W',imagen:'I',otro:'A'};
         var esMed=a.is_measurements;
-        var sz=a.file_size?(a.file_size>1048576?(a.file_size/1048576).toFixed(1)+' MB':Math.round(a.file_size/1024)+' KB'):'';
+        var esEnlace = a.file_type === 'enlace' || a.storage_provider === 'external';
+        var sz=a.file_size?(a.file_size>1048576?(a.file_size/1048576).toFixed(1)+' MB':Math.round(a.file_size/1024)+' KB'):esEnlace?'Enlace externo':'';
         var row=document.createElement('div');
-        row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':'white')+';border:1px solid '+(esMed?'#C0DD97':'#e5e5e0')+';border-radius:8px;';
+        row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':esEnlace?'#F5F0FF':'white')+';border:1px solid '+(esMed?'#C0DD97':esEnlace?'#C9B8F0':'#e5e5e0')+';border-radius:8px;';
         var ic=document.createElement('div');
-        ic.style.cssText='width:32px;height:32px;border-radius:6px;background:'+(a.file_type==='excel'?'#217346':a.file_type==='pdf'?'#E02020':'#185FA5')+';color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
-        ic.textContent=a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':a.file_type==='enlace'?'URL':'FILE';
-        if(a.file_type==='enlace') ic.style.background='#6B7280';
+        ic.style.cssText='width:32px;height:32px;border-radius:6px;background:'+(esEnlace?'#6C3FC5':a.file_type==='excel'?'#217346':a.file_type==='pdf'?'#E02020':'#185FA5')+';color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+        ic.textContent=esEnlace?'🔗':a.file_type==='excel'?'XLS':a.file_type==='pdf'?'PDF':a.file_type==='word'?'DOC':'FILE';
         var info=document.createElement('div'); info.style.cssText='flex:1;min-width:0;';
         info.innerHTML='<div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.file_name+'</div><div style="font-size:11px;color:#888;">'+sz+(esMed?' <strong style="color:#3B6D11;">MEDICIONES</strong>':'')+'</div>';
         row.appendChild(ic); row.appendChild(info);
-        var bm=document.createElement('button');
-        bm.textContent=esMed?'Desmarcar':'Marcar mediciones';
-        bm.style.cssText='background:'+(esMed?'#EAF3DE':'#f0f7ff')+';border:1px solid '+(esMed?'#C0DD97':'#B5D4F4')+';color:'+(esMed?'#3B6D11':'#185FA5')+';padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
-        bm.onclick=(function(id,pid,marked){return function(){marked?anDesmarcarMediciones(id,pid):anMarcarMediciones(id,pid);};})(a.id,projectId,esMed);
-        row.appendChild(bm);
-        var bd=document.createElement('button');
-        if(a.file_type==='enlace'){
-          bd.textContent='Abrir enlace';
-          bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
-          bd.dataset.url = a.file_path;
-          bd.onclick = function(){ mostrarAvisoEnlace(this); };
+        if (esEnlace) {
+          var bo=document.createElement('button');bo.textContent='Abrir ↗';bo.style.cssText='background:#6C3FC5;color:white;border:none;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bo.onclick=(function(url){return function(){window.open(url,'_blank');};})(a.file_path);
+          row.appendChild(bo);
+          var bel=document.createElement('button');bel.textContent='Eliminar';bel.style.cssText='background:white;border:1px solid #ddd;color:#A32D2D;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bel.onclick=(function(id,pid){return function(){if(confirm('¿Eliminar este enlace?')){db.from('project_attachments').delete().eq('id',id).then(function(){cargarDocumentosAnálisis(pid,null);});}};})(a.id,projectId);
+          row.appendChild(bel);
         } else {
-          bd.textContent='Ver';
-          bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
-          bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);
+          var bm=document.createElement('button');
+          bm.textContent=esMed?'Desmarcar':'Marcar mediciones';
+          bm.style.cssText='background:'+(esMed?'#EAF3DE':'#f0f7ff')+';border:1px solid '+(esMed?'#C0DD97':'#B5D4F4')+';color:'+(esMed?'#3B6D11':'#185FA5')+';padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
+          bm.onclick=(function(id,pid,marked){return function(){marked?anDesmarcarMediciones(id,pid):anMarcarMediciones(id,pid);};})(a.id,projectId,esMed);
+          row.appendChild(bm);
+          var bd=document.createElement('button');bd.textContent='Ver';bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);row.appendChild(bd);
         }
-        row.appendChild(bd);
         lista.appendChild(row);
       });
       el.appendChild(lista);
@@ -3244,13 +3743,15 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
     
     var inp=document.createElement('input');
     inp.type='file';inp.multiple=true;inp.id='an-file-input';inp.style.display='none';
+    inp.accept='.pdf,.xlsx,.xls,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.zip';
     inp.onchange=function(){anAgregarArchivos(this.files,projectId);};
     
     var dropzone=document.createElement('div');
     dropzone.id='an-dropzone';
     dropzone.style.cssText='border:2px dashed #ccc;border-radius:8px;padding:1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;';
     dropzone.innerHTML='<div style="font-size:1.5rem;margin-bottom:6px;">&#128206;</div>'+
-      '<div style="font-size:12px;color:#666;margin-bottom:8px;">Arrastra archivos aqui o haz clic para seleccionar</div>'+
+      '<div style="font-size:12px;color:#666;margin-bottom:4px;">Arrastra archivos aqui o haz clic para seleccionar</div>'+
+      '<div style="font-size:10px;color:#aaa;margin-bottom:8px;">PDF, Excel, Word, imágenes — o un <strong>ZIP</strong> con todos los documentos</div>'+
       '<div style="display:inline-block;background:#185FA5;color:white;padding:5px 14px;border-radius:6px;font-size:11px;">Seleccionar archivos</div>';
     
     dropzone.onclick=function(){ document.getElementById('an-file-input').click(); };
@@ -3270,24 +3771,32 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       if(e.dataTransfer.files.length) anAgregarArchivos(e.dataTransfer.files, projectId);
     };
     
-    // Separador + opción de pegar enlace externo
-    var sepDiv=document.createElement('div');
-    sepDiv.style.cssText='display:flex;align-items:center;gap:10px;margin:12px 0;';
-    sepDiv.innerHTML='<div style="flex:1;height:1px;background:#e5e5e0;"></div><span style="font-size:11px;color:#aaa;white-space:nowrap;">o pega un enlace</span><div style="flex:1;height:1px;background:#e5e5e0;"></div>';
-    var linkDiv=document.createElement('div');
-    linkDiv.style.cssText='display:flex;gap:8px;align-items:center;';
-    var linkInp=document.createElement('input');
-    linkInp.type='text'; linkInp.id='an-link-input'; linkInp.placeholder='WeTransfer, Drive, Dropbox, OneDrive...';
-    linkInp.style.cssText='flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none;font-family:inherit;';
-    var linkBtn=document.createElement('button');
-    linkBtn.textContent='+ Añadir enlace';
-    linkBtn.style.cssText='background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;';
-    linkBtn.onclick=function(){ anAgregarEnlace(projectId); };
-    linkDiv.appendChild(linkInp); linkDiv.appendChild(linkBtn);
+    // ---- Sección enlace externo (WeTransfer, Drive, Dropbox, OneDrive) ----
+    var linkSection = document.createElement('div');
+    linkSection.style.cssText = 'margin-top:0.75rem;';
+    linkSection.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        '<div style="flex:1;height:1px;background:#e5e5e0;"></div>' +
+        '<span style="font-size:11px;color:#aaa;white-space:nowrap;">o añadir enlace externo</span>' +
+        '<div style="flex:1;height:1px;background:#e5e5e0;"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;">' +
+        '<input id="an-link-url" type="url" placeholder="https://wetransfer.com/... · drive.google.com · dropbox.com · onedrive..." ' +
+          'style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px;outline:none;" />' +
+        '<button onclick="anAgregarEnlace(' + projectId + ')" ' +
+          'style="background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;">+ Enlace</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">WeTransfer</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">Google Drive</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">Dropbox</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">OneDrive</span>' +
+        '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">SharePoint</span>' +
+      '</div>';
+
     addDiv.appendChild(inp);
     addDiv.appendChild(dropzone);
-    addDiv.appendChild(sepDiv);
-    addDiv.appendChild(linkDiv);
+    addDiv.appendChild(linkSection);
     el.appendChild(addDiv);
     var archsMed=adj.filter(function(a){return a.is_measurements;});
     if(archsMed.length){
@@ -4500,15 +5009,11 @@ async function doLogin() {
     }
     currentUser = result.data.user;
     iniciarApp();
-    // Si iniciarApp falla, el catch interno ya resetea el botón
-    // Si tiene éxito, la app ya está corriendo
   } catch(e) {
-    console.error('doLogin error:', e);
     errorEl.style.display = 'block';
     errorEl.textContent = 'Error al conectar. Inténtalo de nuevo.';
     btn.textContent = 'Entrar';
     btn.disabled = false;
-    appIniciada = false;
   }
 }
 
@@ -4516,7 +5021,6 @@ var appIniciada = false;
 function iniciarApp() {
   if (appIniciada) return;  // evitar doble llamada
   appIniciada = true;
-  try {
   ocultarLogin();
   var email = currentUser.email;
   var dept = deptByEmail[email] || 'tecnico';
@@ -4559,15 +5063,6 @@ function iniciarApp() {
   if (navInfTA2) navInfTA2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
 
   loadDashboard();
-  } catch(err) {
-    console.error('iniciarApp error:', err);
-    appIniciada = false;
-    var btn = document.getElementById('login-btn');
-    if (btn) { btn.textContent = 'Entrar'; btn.disabled = false; }
-    var errEl = document.getElementById('login-error');
-    if (errEl) { errEl.textContent = 'Error al cargar la app: ' + err.message; errEl.style.display = 'block'; }
-    mostrarLogin();
-  }
 }
 
 async function doLogout() {
@@ -5575,6 +6070,7 @@ function abrirFichaClienteEditar(id) {
   modoEdicionCli = false;
   document.getElementById('btn-editar-cli').style.display = 'none';
   document.getElementById('btn-guardar-cli').style.display = 'none';
+  document.getElementById('btn-confirmar-cli').style.display = 'none';
   if (!id) {
     clienteActual = {};
     document.getElementById('cliente-det-title').textContent = 'Nuevo cliente';
@@ -5585,12 +6081,32 @@ function abrirFichaClienteEditar(id) {
   clienteActual = clientesData.find(function(x){return x.id===id;}) || {};
   document.getElementById('cliente-det-title').textContent = clienteActual.commercial_name || 'Ficha de cliente';
   document.getElementById('btn-editar-cli').style.display = 'inline-block';
+  // Mostrar botón confirmar solo si es lead
+  if (!clienteActual.client_confirmed) {
+    document.getElementById('btn-confirmar-cli').style.display = 'inline-block';
+  }
   renderFichaClienteEditable(clienteActual, false);
+}
+
+async function confirmarClienteLead() {
+  if (!clienteActual.id) return;
+  var nombre = clienteActual.commercial_name || 'este cliente';
+  if (!confirm('¿Confirmar a "' + nombre + '" como cliente?\n\nSe le pedirán los datos fiscales (razón social, CIF, domicilio) necesarios para facturación.')) return;
+  // Pasar a edición con cliente_confirmed = true
+  clienteActual.client_confirmed = true;
+  document.getElementById('btn-confirmar-cli').style.display = 'none';
+  document.getElementById('btn-editar-cli').style.display = 'none';
+  document.getElementById('btn-guardar-cli').style.display = 'inline-block';
+  renderFichaClienteEditable(clienteActual, true);
+  // Marcar el checkbox automáticamente
+  var cb = document.getElementById('cli-confirmado');
+  if (cb) cb.checked = true;
 }
 
 function toggleEditarCliente() {
   modoEdicionCli = true;
   document.getElementById('btn-editar-cli').style.display = 'none';
+  document.getElementById('btn-confirmar-cli').style.display = 'none';
   document.getElementById('btn-guardar-cli').style.display = 'inline-block';
   renderFichaClienteEditable(clienteActual, true);
 }
@@ -5683,7 +6199,29 @@ async function guardarCliente() {
   var todos = Object.assign({}, obligBase, obligFiscal);
   var errores = [];
   Object.keys(todos).forEach(function(k){ if (!data[k]||!data[k].trim()) errores.push(todos[k]); });
-  if (errores.length > 0) { alert('Campos obligatorios:\n\n\u2022 ' + errores.join('\n\u2022 ')); return; }
+  if (errores.length > 0) { alert('Campos obligatorios:\n\n• ' + errores.join('\n• ')); return; }
+
+  // Validar acrónimo exactamente 3 letras
+  if (!data.client_code || data.client_code.trim().length !== 3) {
+    alert('El acrónimo del cliente debe tener exactamente 3 letras.');
+    var el = document.getElementById('cli-field-client_code');
+    if (el) { el.style.borderColor='#A32D2D'; el.focus(); }
+    return;
+  }
+
+  // Validar duplicado por nombre (solo en creación)
+  if (!clienteActual.id) {
+    var dupNombre = await db.from('clients').select('id,commercial_name').ilike('commercial_name', data.commercial_name.trim());
+    if (dupNombre.data && dupNombre.data.length) {
+      alert('⚠️ Ya existe un cliente con ese nombre:\n"' + dupNombre.data[0].commercial_name + '"');
+      return;
+    }
+    var dupCodigo = await db.from('clients').select('id,client_code').eq('client_code', data.client_code.trim().toUpperCase());
+    if (dupCodigo.data && dupCodigo.data.length) {
+      alert('⚠️ Ya existe un cliente con el acrónimo "' + data.client_code + '".\nElige un acrónimo diferente.');
+      return;
+    }
+  }
 
   try {
     if (clienteActual.id) {
@@ -5704,7 +6242,12 @@ async function guardarCliente() {
     document.getElementById('btn-guardar-cli').style.display = 'none';
     await loadClientes();
     var updated = clientesData.find(function(x){return x.commercial_name===data.commercial_name;});
-    if (updated) { clienteActual = updated; renderFichaClienteEditable(updated, false); }
+    if (updated) {
+      clienteActual = updated;
+      // Mostrar botón confirmar si sigue siendo lead
+      document.getElementById('btn-confirmar-cli').style.display = updated.client_confirmed ? 'none' : 'inline-block';
+      renderFichaClienteEditable(updated, false);
+    }
   } catch(e) { alert('Error al guardar: ' + e.message); }
 }
 
@@ -6218,6 +6761,1409 @@ async function loadAlertasPRL() {
   } catch(e) { console.error(e); el.innerHTML = '<div class="empty">Error cargando alertas PRL</div>'; }
 }
 
+// ================================================================
+// MÓDULO PRL — DOCUMENTACIÓN SUBCONTRATAS
+// ================================================================
+
+var PRL_DOCS_EMPRESA = [
+  { key: 'seguro_accidentes',  label: 'Seguro de accidentes / convenio', vencimiento_dias: 365 },
+  { key: 'tc2_cotizaciones',   label: 'TC2 / Cotizaciones SS',           vencimiento_dias: 90  },
+  { key: 'evaluacion_riesgos', label: 'Evaluación de riesgos',           vencimiento_dias: 1825 },
+  { key: 'plan_prevencion',    label: 'Plan de prevención propio',        vencimiento_dias: 1825 },
+  { key: 'cert_hacienda_ss',   label: 'Cert. corriente Hacienda y SS',   vencimiento_dias: 180 }
+];
+
+var PRL_DOCS_TRABAJADOR = [
+  { key: 'dni_nie',        label: 'DNI / NIE',                    vencimiento_dias: null },
+  { key: 'apto_medico',    label: 'Apto médico vigente',           vencimiento_dias: 365  },
+  { key: 'formacion_prl',  label: 'Formación PRL (tarjeta/diploma)',vencimiento_dias: 1825 },
+  { key: 'tc2_individual', label: 'Alta SS (TC2 individual)',       vencimiento_dias: 90   },
+  { key: 'epis_entregados',label: 'EPIs entregados (acuse)',        vencimiento_dias: null }
+];
+
+var prlProyectoActual = null;   // { id, project_code, project_name }
+var prlAssignActual   = null;   // row de project_prl
+var prlSupplierActual = null;   // { id, name }
+var prlTrabajadorActual = null; // row de supplier_workers
+var prlProyectosData  = [];
+var prlSuppliersAll   = [];
+
+// ---- Helpers ----
+function prlSemaforoBadge(estado) {
+  if (estado === 'completo')   return '<span style="background:#E8F5E9;color:#2E7D32;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">🟢 Completo</span>';
+  if (estado === 'incompleto') return '<span style="background:#FFEBEE;color:#B71C1C;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">🔴 Incompleto</span>';
+  return '<span style="background:#F5F5F5;color:#888;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">⚪ Pendiente</span>';
+}
+
+function prlDocEstadoBadge(estado) {
+  if (estado === 'entregado')  return '<span style="color:#2E7D32;font-weight:600;font-size:12px;">✓ Entregado</span>';
+  if (estado === 'vencido')    return '<span style="color:#B71C1C;font-weight:600;font-size:12px;">✗ Vencido</span>';
+  if (estado === 'no_aplica')  return '<span style="color:#888;font-size:12px;">— N/A</span>';
+  return '<span style="color:#E65100;font-weight:600;font-size:12px;">⏳ Pendiente</span>';
+}
+
+function prlDiasAlerta(fecha) {
+  if (!fecha) return null;
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var f = new Date(fecha); f.setHours(0,0,0,0);
+  return Math.round((f - hoy) / 86400000);
+}
+
+function prlVencimientoLabel(fecha) {
+  if (!fecha) return '-';
+  var dias = prlDiasAlerta(fecha);
+  var str = new Date(fecha).toLocaleDateString('es-ES');
+  if (dias < 0)   return '<span style="color:#B71C1C;font-size:11px;">VENCIDO · ' + str + '</span>';
+  if (dias <= 30) return '<span style="color:#E65100;font-size:11px;">⚠ ' + dias + 'd · ' + str + '</span>';
+  if (dias <= 90) return '<span style="color:#F9A825;font-size:11px;">' + dias + 'd · ' + str + '</span>';
+  return '<span style="color:#888;font-size:11px;">' + str + '</span>';
+}
+
+function calcularVencimiento(tipo_key, docs_list, fecha_emision) {
+  if (!fecha_emision) return null;
+  var def = docs_list.find(function(d){ return d.key === tipo_key; });
+  if (!def || !def.vencimiento_dias) return null;
+  var f = new Date(fecha_emision);
+  f.setDate(f.getDate() + def.vencimiento_dias);
+  return f.toISOString().split('T')[0];
+}
+
+// ---- Carga panel principal ----
+async function loadPRL() {
+  var el = document.getElementById('prl-proyectos-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Cargando proyectos...</div>';
+  try {
+    // Proyectos en ejecución o planificación
+    var resP = await db.from('projects')
+      .select('id,project_code,project_name,status')
+      .in('status', ['execution','planning','awarded'])
+      .order('project_code');
+    prlProyectosData = resP.data || [];
+
+    // Para cada proyecto, contar subcontratas y calcular estado PRL
+    var resAssign = await db.from('project_prl').select('project_id,estado_prl');
+    var assignMap = {};
+    (resAssign.data || []).forEach(function(a) {
+      if (!assignMap[a.project_id]) assignMap[a.project_id] = [];
+      assignMap[a.project_id].push(a.estado_prl);
+    });
+
+    renderPrlProyectos(prlProyectosData, assignMap);
+  } catch(e) { console.error(e); el.innerHTML = '<div class="empty">Error cargando proyectos PRL</div>'; }
+}
+
+function renderPrlProyectos(data, assignMap) {
+  var el = document.getElementById('prl-proyectos-content');
+  if (!data.length) {
+    el.innerHTML = '<div class="card"><div class="empty">No hay proyectos en ejecución</div></div>';
+    return;
+  }
+  var statusLabel = { execution:'En ejecución', planning:'En planificación', awarded:'Adjudicado' };
+  el.innerHTML = '<div class="card"><table class="data-table"><thead><tr>' +
+    '<th>Código</th><th>Proyecto</th><th>Estado obra</th><th>Subcontratas</th><th>Estado PRL</th><th></th>' +
+    '</tr></thead><tbody>' +
+    data.map(function(p) {
+      var assigns = assignMap[p.id] || [];
+      var nSub = assigns.length;
+      var estadoPRL = 'pendiente';
+      if (nSub > 0) {
+        if (assigns.every(function(e){return e==='completo';})) estadoPRL = 'completo';
+        else if (assigns.some(function(e){return e==='incompleto'||e==='pendiente';})) estadoPRL = 'incompleto';
+      }
+      return '<tr onclick="abrirPrlProyecto(' + p.id + ')" style="cursor:pointer;">' +
+        '<td style="font-size:11px;color:#888;">' + (p.project_code||'-') + '</td>' +
+        '<td style="font-weight:500;">' + p.project_name + '</td>' +
+        '<td><span style="font-size:12px;color:#555;">' + (statusLabel[p.status]||p.status) + '</span></td>' +
+        '<td style="font-size:13px;text-align:center;">' + (nSub || '<span style="color:#ccc;">—</span>') + '</td>' +
+        '<td>' + prlSemaforoBadge(estadoPRL) + '</td>' +
+        '<td style="color:#185FA5;font-size:12px;">Gestionar →</td>' +
+        '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+function filtrarPrlProyectos(q) {
+  var estadoFiltro = document.getElementById('prl-estado-filter') ? document.getElementById('prl-estado-filter').value : '';
+  // Re-renderizar con filtro simple de texto (la lógica de estado PRL está en el mapa)
+  // Para simplificar, recargamos si hay filtro de estado; si no, filtramos en memoria
+  if (estadoFiltro) { loadPRL(); return; }
+  var lower = (q||'').toLowerCase();
+  var filtered = prlProyectosData.filter(function(p) {
+    return !lower || (p.project_name||'').toLowerCase().includes(lower) || (p.project_code||'').toLowerCase().includes(lower);
+  });
+  renderPrlProyectos(filtered, {});
+}
+
+// ---- Vista por proyecto ----
+async function abrirPrlProyecto(projectId) {
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-prl-proyecto').classList.add('active');
+  var proyecto = prlProyectosData.find(function(p){return p.id===projectId;}) || {id:projectId};
+  prlProyectoActual = proyecto;
+  document.getElementById('prl-proyecto-title').textContent = (proyecto.project_code||'') + ' — ' + (proyecto.project_name||'Proyecto');
+  await renderPrlProyectoContent(projectId);
+}
+
+async function renderPrlProyectoContent(projectId) {
+  var el = document.getElementById('prl-proyecto-content');
+  el.innerHTML = '<div class="loading">Cargando subcontratas...</div>';
+  try {
+    var res = await db.from('project_prl')
+      .select('id,supplier_id,estado_prl,fecha_inicio_obra,fecha_fin_prevista,notas,worker_ids')
+      .eq('project_id', projectId);
+    var assigns = res.data || [];
+
+    if (!assigns.length) {
+      el.innerHTML = '<div class="card"><div class="empty">No hay subcontratas asignadas a este proyecto.<br><span style="font-size:12px;color:#aaa;">Pulsa "+ Añadir subcontrata" para comenzar.</span></div></div>';
+      return;
+    }
+
+    // Cargar nombres de suppliers
+    var supIds = assigns.map(function(a){return a.supplier_id;});
+    var supRes = await db.from('suppliers').select('id,name').in('id', supIds);
+    var supMap = {};
+    (supRes.data||[]).forEach(function(s){supMap[s.id]=s.name;});
+
+    el.innerHTML = '<div class="card"><table class="data-table"><thead><tr>' +
+      '<th>Subcontrata</th><th>Estado PRL</th><th>Trabajadores</th><th>Inicio obra</th><th>Fin previsto</th><th></th>' +
+      '</tr></thead><tbody>' +
+      assigns.map(function(a) {
+        var nWorkers = (a.worker_ids||[]).length;
+        return '<tr onclick="abrirPrlFicha(' + a.id + ',' + a.supplier_id + ')" style="cursor:pointer;">' +
+          '<td style="font-weight:500;">' + (supMap[a.supplier_id]||'—') + '</td>' +
+          '<td>' + prlSemaforoBadge(a.estado_prl) + '</td>' +
+          '<td style="text-align:center;">' + (nWorkers || '<span style="color:#ccc;">0</span>') + '</td>' +
+          '<td style="font-size:12px;">' + (a.fecha_inicio_obra ? new Date(a.fecha_inicio_obra).toLocaleDateString('es-ES') : '—') + '</td>' +
+          '<td style="font-size:12px;">' + (a.fecha_fin_prevista ? new Date(a.fecha_fin_prevista).toLocaleDateString('es-ES') : '—') + '</td>' +
+          '<td style="color:#185FA5;font-size:12px;">Ver docs →</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody></table></div>';
+  } catch(e) { console.error(e); el.innerHTML = '<div class="empty">Error cargando datos PRL</div>'; }
+}
+
+// ---- Ficha PRL de una subcontrata en un proyecto ----
+async function abrirPrlFicha(assignId, supplierId) {
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-prl-ficha').classList.add('active');
+
+  // Cargar datos de asignación y supplier
+  var [resAssign, resSupplier] = await Promise.all([
+    db.from('project_prl').select('*').eq('id', assignId).single(),
+    db.from('suppliers').select('id,name').eq('id', supplierId).single()
+  ]);
+  prlAssignActual = resAssign.data;
+  prlSupplierActual = resSupplier.data;
+  document.getElementById('prl-ficha-title').textContent = (prlSupplierActual.name||'Subcontrata') + ' — Documentación PRL';
+
+  await renderPrlFichaContent();
+}
+
+async function renderPrlFichaContent() {
+  var el = document.getElementById('prl-ficha-content');
+  el.innerHTML = '<div class="loading">Cargando documentación...</div>';
+  try {
+    var supplierId = prlSupplierActual.id;
+    var workerIds  = prlAssignActual.worker_ids || [];
+
+    // Docs de empresa
+    var resDocsEmp = await db.from('supplier_prl_docs').select('*').eq('supplier_id', supplierId);
+    var docsEmpMap = {};
+    (resDocsEmp.data||[]).forEach(function(d){ docsEmpMap[d.tipo_doc] = d; });
+
+    // Trabajadores de esta subcontrata
+    var resWorkers = await db.from('supplier_workers').select('*').eq('supplier_id', supplierId).eq('estado','activo');
+    var todosWorkers = resWorkers.data || [];
+    // Filtrar solo los asignados a esta obra
+    var workers = workerIds.length
+      ? todosWorkers.filter(function(w){ return workerIds.includes(w.id); })
+      : [];
+
+    // Docs de trabajadores
+    var docsWorkerMap = {};
+    if (workers.length) {
+      var wIds = workers.map(function(w){return w.id;});
+      var resWDocs = await db.from('supplier_worker_docs').select('*').in('worker_id', wIds);
+      (resWDocs.data||[]).forEach(function(d){
+        if (!docsWorkerMap[d.worker_id]) docsWorkerMap[d.worker_id] = {};
+        docsWorkerMap[d.worker_id][d.tipo_doc] = d;
+      });
+    }
+
+    var html = '';
+
+    // — SECCIÓN 1: Documentos de empresa —
+    html += '<div class="card" style="margin-bottom:1.2rem;">';
+    html += '<div class="card-header"><div class="card-title">📋 Documentos de empresa</div></div>';
+    html += '<table class="data-table"><thead><tr><th>Documento</th><th>Estado</th><th>Fecha emisión</th><th>Vencimiento</th><th>Archivo</th><th></th></tr></thead><tbody>';
+    PRL_DOCS_EMPRESA.forEach(function(def) {
+      var doc = docsEmpMap[def.key] || {};
+      var docId = doc.id || null;
+      html += '<tr>' +
+        '<td style="font-size:13px;">' + def.label + '</td>' +
+        '<td>' + prlDocEstadoBadge(doc.estado||'pendiente') + '</td>' +
+        '<td style="font-size:12px;">' + (doc.fecha_emision ? new Date(doc.fecha_emision).toLocaleDateString('es-ES') : '—') + '</td>' +
+        '<td>' + prlVencimientoLabel(doc.fecha_vencimiento) + '</td>' +
+        '<td style="font-size:12px;">' + (doc.archivo_nombre ? '<span style="color:#185FA5;">📎 ' + doc.archivo_nombre + '</span>' : '<span style="color:#ccc;">—</span>') + '</td>' +
+        '<td><button class="btn" style="font-size:11px;padding:3px 10px;" onclick="abrirModalDocEmpresa(\'' + def.key + '\',' + (docId||'null') + ')">' + (docId ? 'Editar' : 'Registrar') + '</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    // — SECCIÓN 2: Trabajadores en esta obra —
+    html += '<div class="card">';
+    html += '<div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div class="card-title">👷 Trabajadores en esta obra</div>';
+    html += '<div style="display:flex;gap:8px;">';
+    html += '<button class="btn" style="font-size:12px;" onclick="abrirModalAsignarTrabajador()">+ Asignar trabajador existente</button>';
+    html += '<button class="btn btn-primary" style="font-size:12px;" onclick="abrirModalTrabajador(null)">+ Nuevo trabajador</button>';
+    html += '</div></div>';
+
+    if (!workers.length) {
+      html += '<div class="empty" style="padding:1.5rem;">No hay trabajadores asignados a esta obra.<br><span style="font-size:12px;color:#aaa;">Usa los botones para añadir.</span></div>';
+    } else {
+      html += '<table class="data-table"><thead><tr><th>Trabajador</th><th>DNI</th><th>Apto médico</th><th>Form. PRL</th><th>TC2</th><th>EPIs</th><th></th></tr></thead><tbody>';
+      workers.forEach(function(w) {
+        var wd = docsWorkerMap[w.id] || {};
+        function estadoCell(key) {
+          var d = wd[key] || {};
+          if (!d.id) return '<span style="color:#ccc;font-size:11px;">—</span>';
+          var icon = d.estado==='entregado' ? '✓' : d.estado==='vencido' ? '✗' : '⏳';
+          var col  = d.estado==='entregado' ? '#2E7D32' : d.estado==='vencido' ? '#B71C1C' : '#E65100';
+          return '<span style="color:' + col + ';font-size:13px;font-weight:600;">' + icon + '</span>' +
+            (d.fecha_vencimiento ? '<div style="font-size:10px;color:#aaa;">' + new Date(d.fecha_vencimiento).toLocaleDateString('es-ES') + '</div>' : '');
+        }
+        html += '<tr>' +
+          '<td><div style="font-weight:500;">' + w.nombre + ' ' + w.apellidos + '</div><div style="font-size:11px;color:#888;">' + (w.cargo||'') + '</div></td>' +
+          '<td style="font-size:12px;">' + (w.dni_nie||'—') + '</td>' +
+          '<td>' + estadoCell('apto_medico') + '</td>' +
+          '<td>' + estadoCell('formacion_prl') + '</td>' +
+          '<td>' + estadoCell('tc2_individual') + '</td>' +
+          '<td>' + estadoCell('epis_entregados') + '</td>' +
+          '<td><button class="btn" style="font-size:11px;padding:3px 10px;" onclick="abrirModalTrabajador(' + w.id + ')">Docs</button></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    el.innerHTML = html;
+
+    // Actualizar estado PRL general de la asignación
+    await recalcularEstadoPRL();
+
+  } catch(e) { console.error(e); el.innerHTML = '<div class="empty">Error cargando ficha PRL</div>'; }
+}
+
+async function recalcularEstadoPRL() {
+  if (!prlAssignActual) return;
+  try {
+    var supplierId = prlSupplierActual.id;
+    var workerIds  = prlAssignActual.worker_ids || [];
+
+    var resDocs = await db.from('supplier_prl_docs').select('estado').eq('supplier_id', supplierId);
+    var docsEmp = resDocs.data || [];
+    var todosEntregados = docsEmp.length === PRL_DOCS_EMPRESA.length &&
+      docsEmp.every(function(d){return d.estado==='entregado'||d.estado==='no_aplica';});
+
+    var workerOk = true;
+    if (workerIds.length) {
+      var resWD = await db.from('supplier_worker_docs').select('estado').in('worker_id', workerIds);
+      var docsW = resWD.data || [];
+      workerOk = docsW.length >= workerIds.length * 2 &&
+        docsW.every(function(d){return d.estado==='entregado'||d.estado==='no_aplica';});
+    }
+
+    var nuevoEstado = (!docsEmp.length && !workerIds.length) ? 'pendiente' :
+      (todosEntregados && workerOk) ? 'completo' : 'incompleto';
+
+    await db.from('project_prl').update({estado_prl: nuevoEstado, updated_at: new Date().toISOString()}).eq('id', prlAssignActual.id);
+  } catch(e) { console.error('Error recalculando estado PRL:', e); }
+}
+
+// ---- Modal: doc de empresa ----
+var prlDocEmpresaActual = { key: null, docId: null };
+
+function abrirModalDocEmpresa(tipoKey, docId) {
+  prlDocEmpresaActual = { key: tipoKey, docId: docId };
+  var def = PRL_DOCS_EMPRESA.find(function(d){return d.key===tipoKey;});
+
+  // Construir modal dinámico
+  var existing = document.getElementById('modal-prl-doc-empresa');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'modal-prl-doc-empresa';
+  modal.style = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;align-items:center;justify-content:center;';
+  modal.innerHTML = '<div style="background:white;border-radius:12px;padding:28px;width:480px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+    '<h2 style="margin:0 0 18px;font-size:16px;">' + (def?def.label:tipoKey) + '</h2>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
+    '<div><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Estado</label>' +
+    '<select id="de-estado" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;">' +
+    '<option value="pendiente">⏳ Pendiente</option><option value="entregado">✓ Entregado</option>' +
+    '<option value="vencido">✗ Vencido</option><option value="no_aplica">— No aplica</option>' +
+    '</select></div>' +
+    '<div><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Fecha emisión</label>' +
+    '<input type="date" id="de-emision" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;" oninput="autoVencimientoEmpresa()"></div>' +
+    '</div>' +
+    '<div style="margin-bottom:14px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Vencimiento (calculado automáticamente)</label>' +
+    '<input type="date" id="de-vencimiento" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;"></div>' +
+    '<div style="margin-bottom:14px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Nombre del archivo</label>' +
+    '<input type="text" id="de-archivo" placeholder="ej: seguro_accidentes_2026.pdf" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;"></div>' +
+    '<div style="margin-bottom:18px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Notas</label>' +
+    '<textarea id="de-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea></div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+    '<button class="btn" onclick="document.getElementById(\'modal-prl-doc-empresa\').remove()">Cancelar</button>' +
+    '<button class="btn btn-primary" onclick="guardarDocEmpresa()">Guardar</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+
+  // Pre-rellenar si existe
+  if (docId) {
+    db.from('supplier_prl_docs').select('*').eq('id', docId).single().then(function(r) {
+      if (!r.data) return;
+      var d = r.data;
+      var sel = document.getElementById('de-estado'); if (sel) sel.value = d.estado||'pendiente';
+      var em = document.getElementById('de-emision'); if (em) em.value = d.fecha_emision||'';
+      var ve = document.getElementById('de-vencimiento'); if (ve) ve.value = d.fecha_vencimiento||'';
+      var ar = document.getElementById('de-archivo'); if (ar) ar.value = d.archivo_nombre||'';
+      var no = document.getElementById('de-notas'); if (no) no.value = d.notas||'';
+    });
+  }
+}
+
+function autoVencimientoEmpresa() {
+  var emision = document.getElementById('de-emision') ? document.getElementById('de-emision').value : '';
+  if (!emision) return;
+  var calc = calcularVencimiento(prlDocEmpresaActual.key, PRL_DOCS_EMPRESA, emision);
+  if (calc) { var v = document.getElementById('de-vencimiento'); if (v) v.value = calc; }
+}
+
+async function guardarDocEmpresa() {
+  var estado    = document.getElementById('de-estado').value;
+  var emision   = document.getElementById('de-emision').value || null;
+  var vencim    = document.getElementById('de-vencimiento').value || null;
+  var archivo   = document.getElementById('de-archivo').value || null;
+  var notas     = document.getElementById('de-notas').value || null;
+
+  var payload = {
+    supplier_id: prlSupplierActual.id,
+    tipo_doc: prlDocEmpresaActual.key,
+    estado: estado,
+    fecha_emision: emision,
+    fecha_vencimiento: vencim,
+    archivo_nombre: archivo,
+    notas: notas,
+    revisado_por: currentUser ? currentUser.email : null,
+    revisado_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    if (prlDocEmpresaActual.docId) {
+      await db.from('supplier_prl_docs').update(payload).eq('id', prlDocEmpresaActual.docId);
+    } else {
+      payload.created_at = new Date().toISOString();
+      await db.from('supplier_prl_docs').insert(payload);
+    }
+    document.getElementById('modal-prl-doc-empresa').remove();
+    await renderPrlFichaContent();
+  } catch(e) { alert('Error guardando: ' + e.message); }
+}
+
+// ---- Modal: nuevo/editar trabajador ----
+function abrirModalTrabajador(workerId) {
+  prlTrabajadorActual = workerId ? (prlAssignActual ? null : null) : null;
+  document.getElementById('modal-trabajador-title').textContent = workerId ? 'Documentos del trabajador' : 'Nuevo trabajador';
+
+  if (workerId) {
+    // Abrir directo a docs del trabajador
+    abrirDocsWorker(workerId);
+    return;
+  }
+
+  // Limpiar y mostrar modal nuevo trabajador
+  ['tw-nombre','tw-apellidos','tw-dni','tw-telefono','tw-cargo','tw-notas'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var est = document.getElementById('tw-estado'); if (est) est.value = 'activo';
+  document.getElementById('modal-prl-trabajador').style.display = 'flex';
+}
+
+function cerrarModalTrabajador() {
+  document.getElementById('modal-prl-trabajador').style.display = 'none';
+}
+
+async function guardarTrabajador() {
+  var nombre    = document.getElementById('tw-nombre').value.trim();
+  var apellidos = document.getElementById('tw-apellidos').value.trim();
+  if (!nombre || !apellidos) { alert('Nombre y apellidos son obligatorios'); return; }
+
+  var payload = {
+    supplier_id: prlSupplierActual.id,
+    nombre: nombre,
+    apellidos: apellidos,
+    dni_nie:   document.getElementById('tw-dni').value || null,
+    telefono:  document.getElementById('tw-telefono').value || null,
+    cargo:     document.getElementById('tw-cargo').value || null,
+    estado:    document.getElementById('tw-estado').value || 'activo',
+    notas:     document.getElementById('tw-notas').value || null,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    var res = await db.from('supplier_workers').insert(payload).select().single();
+    var newId = res.data.id;
+
+    // Añadir a worker_ids de esta asignación
+    var ids = prlAssignActual.worker_ids || [];
+    if (!ids.includes(newId)) ids.push(newId);
+    await db.from('project_prl').update({worker_ids: ids, updated_at: new Date().toISOString()}).eq('id', prlAssignActual.id);
+    prlAssignActual.worker_ids = ids;
+
+    cerrarModalTrabajador();
+    await renderPrlFichaContent();
+  } catch(e) { alert('Error guardando trabajador: ' + e.message); }
+}
+
+// ---- Modal: asignar trabajador existente ----
+async function abrirModalAsignarTrabajador() {
+  // Cargar todos los trabajadores activos de esta subcontrata
+  var res = await db.from('supplier_workers').select('*').eq('supplier_id', prlSupplierActual.id).eq('estado','activo');
+  var todos = res.data || [];
+  var asignados = prlAssignActual.worker_ids || [];
+  var disponibles = todos.filter(function(w){return !asignados.includes(w.id);});
+
+  var existing = document.getElementById('modal-prl-asignar-worker');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'modal-prl-asignar-worker';
+  modal.style = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;align-items:center;justify-content:center;';
+
+  var lista = disponibles.length
+    ? disponibles.map(function(w){
+        return '<label style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid #eee;border-radius:6px;cursor:pointer;">' +
+          '<input type="checkbox" value="' + w.id + '" style="width:15px;height:15px;">' +
+          '<span>' + w.nombre + ' ' + w.apellidos + (w.cargo?'  <span style="color:#888;font-size:11px;">— '+w.cargo+'</span>':'') + '</span></label>';
+      }).join('')
+    : '<div style="color:#888;font-size:13px;">No hay trabajadores disponibles sin asignar a esta obra.</div>';
+
+  modal.innerHTML = '<div style="background:white;border-radius:12px;padding:28px;width:480px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+    '<h2 style="margin:0 0 18px;font-size:16px;">Asignar trabajador existente</h2>' +
+    '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">' + lista + '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+    '<button class="btn" onclick="document.getElementById(\'modal-prl-asignar-worker\').remove()">Cancelar</button>' +
+    (disponibles.length ? '<button class="btn btn-primary" onclick="confirmarAsignarWorkers()">Asignar</button>' : '') +
+    '</div></div>';
+  document.body.appendChild(modal);
+}
+
+async function confirmarAsignarWorkers() {
+  var checks = document.querySelectorAll('#modal-prl-asignar-worker input[type=checkbox]:checked');
+  var nuevosIds = Array.from(checks).map(function(c){return parseInt(c.value);});
+  if (!nuevosIds.length) { alert('Selecciona al menos un trabajador'); return; }
+
+  var ids = (prlAssignActual.worker_ids || []).concat(nuevosIds);
+  try {
+    await db.from('project_prl').update({worker_ids: ids, updated_at: new Date().toISOString()}).eq('id', prlAssignActual.id);
+    prlAssignActual.worker_ids = ids;
+    document.getElementById('modal-prl-asignar-worker').remove();
+    await renderPrlFichaContent();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ---- Docs de un trabajador concreto ----
+function abrirDocsWorker(workerId) {
+  db.from('supplier_workers').select('*').eq('id', workerId).single().then(async function(res) {
+    var worker = res.data;
+    if (!worker) return;
+    var docsRes = await db.from('supplier_worker_docs').select('*').eq('worker_id', workerId);
+    var docsMap = {};
+    (docsRes.data||[]).forEach(function(d){docsMap[d.tipo_doc]=d;});
+
+    var existing = document.getElementById('modal-prl-worker-docs');
+    if (existing) existing.remove();
+
+    var rows = PRL_DOCS_TRABAJADOR.map(function(def) {
+      var doc = docsMap[def.key] || {};
+      return '<tr>' +
+        '<td style="font-size:13px;">' + def.label + '</td>' +
+        '<td>' + prlDocEstadoBadge(doc.estado||'pendiente') + '</td>' +
+        '<td>' + prlVencimientoLabel(doc.fecha_vencimiento) + '</td>' +
+        '<td style="font-size:12px;">' + (doc.archivo_nombre ? '📎 ' + doc.archivo_nombre : '—') + '</td>' +
+        '<td><button class="btn" style="font-size:11px;padding:3px 10px;" onclick="abrirModalDocWorker(\'' + def.key + '\',' + (doc.id||'null') + ',' + workerId + ')">' + (doc.id?'Editar':'Registrar') + '</button></td>' +
+        '</tr>';
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.id = 'modal-prl-worker-docs';
+    modal.style = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;align-items:center;justify-content:center;';
+    modal.innerHTML = '<div style="background:white;border-radius:12px;padding:28px;width:620px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+      '<h2 style="margin:0 0 4px;font-size:16px;">👷 ' + worker.nombre + ' ' + worker.apellidos + '</h2>' +
+      '<div style="font-size:12px;color:#888;margin-bottom:16px;">' + (worker.cargo||'') + ' · ' + (worker.dni_nie||'Sin DNI registrado') + '</div>' +
+      '<table class="data-table"><thead><tr><th>Documento</th><th>Estado</th><th>Vencimiento</th><th>Archivo</th><th></th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div style="margin-top:16px;text-align:right;"><button class="btn" onclick="document.getElementById(\'modal-prl-worker-docs\').remove();renderPrlFichaContent();">Cerrar</button></div>' +
+      '</div>';
+    document.body.appendChild(modal);
+  });
+}
+
+var prlDocWorkerActual = { key: null, docId: null, workerId: null };
+
+function abrirModalDocWorker(tipoKey, docId, workerId) {
+  prlDocWorkerActual = { key: tipoKey, docId: docId, workerId: workerId };
+  var def = PRL_DOCS_TRABAJADOR.find(function(d){return d.key===tipoKey;});
+
+  var existing = document.getElementById('modal-prl-doc-worker');
+  if (existing) existing.remove();
+
+  var sinVenc = !def || !def.vencimiento_dias;
+  var modal = document.createElement('div');
+  modal.id = 'modal-prl-doc-worker';
+  modal.style = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9100;align-items:center;justify-content:center;';
+  modal.innerHTML = '<div style="background:white;border-radius:12px;padding:28px;width:460px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+    '<h2 style="margin:0 0 18px;font-size:16px;">' + (def?def.label:tipoKey) + '</h2>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
+    '<div><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Estado</label>' +
+    '<select id="dw-estado" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;">' +
+    '<option value="pendiente">⏳ Pendiente</option><option value="entregado">✓ Entregado</option>' +
+    '<option value="vencido">✗ Vencido</option><option value="no_aplica">— No aplica</option>' +
+    '</select></div>' +
+    '<div><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Fecha emisión</label>' +
+    '<input type="date" id="dw-emision" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;" ' + (sinVenc?'':'oninput="autoVencimientoWorker()"') + '></div>' +
+    '</div>' +
+    (!sinVenc ? '<div style="margin-bottom:14px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Vencimiento (calculado automáticamente)</label>' +
+    '<input type="date" id="dw-vencimiento" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;"></div>' : '') +
+    '<div style="margin-bottom:14px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Nombre del archivo</label>' +
+    '<input type="text" id="dw-archivo" placeholder="ej: apto_medico_juan_2026.pdf" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;box-sizing:border-box;"></div>' +
+    '<div style="margin-bottom:18px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Notas</label>' +
+    '<textarea id="dw-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea></div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+    '<button class="btn" onclick="document.getElementById(\'modal-prl-doc-worker\').remove()">Cancelar</button>' +
+    '<button class="btn btn-primary" onclick="guardarDocWorker()">Guardar</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+
+  if (docId) {
+    db.from('supplier_worker_docs').select('*').eq('id', docId).single().then(function(r) {
+      if (!r.data) return;
+      var d = r.data;
+      var s = document.getElementById('dw-estado'); if (s) s.value = d.estado||'pendiente';
+      var e = document.getElementById('dw-emision'); if (e) e.value = d.fecha_emision||'';
+      var v = document.getElementById('dw-vencimiento'); if (v) v.value = d.fecha_vencimiento||'';
+      var a = document.getElementById('dw-archivo'); if (a) a.value = d.archivo_nombre||'';
+      var n = document.getElementById('dw-notas'); if (n) n.value = d.notas||'';
+    });
+  }
+}
+
+function autoVencimientoWorker() {
+  var emision = document.getElementById('dw-emision') ? document.getElementById('dw-emision').value : '';
+  if (!emision) return;
+  var calc = calcularVencimiento(prlDocWorkerActual.key, PRL_DOCS_TRABAJADOR, emision);
+  if (calc) { var v = document.getElementById('dw-vencimiento'); if (v) v.value = calc; }
+}
+
+async function guardarDocWorker() {
+  var estado  = document.getElementById('dw-estado').value;
+  var emision = document.getElementById('dw-emision').value || null;
+  var vencEl  = document.getElementById('dw-vencimiento');
+  var vencim  = vencEl ? vencEl.value || null : null;
+  var archivo = document.getElementById('dw-archivo').value || null;
+  var notas   = document.getElementById('dw-notas').value || null;
+
+  var payload = {
+    worker_id: prlDocWorkerActual.workerId,
+    tipo_doc: prlDocWorkerActual.key,
+    estado: estado,
+    fecha_emision: emision,
+    fecha_vencimiento: vencim,
+    archivo_nombre: archivo,
+    notas: notas,
+    revisado_por: currentUser ? currentUser.email : null,
+    revisado_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    if (prlDocWorkerActual.docId) {
+      await db.from('supplier_worker_docs').update(payload).eq('id', prlDocWorkerActual.docId);
+    } else {
+      payload.created_at = new Date().toISOString();
+      await db.from('supplier_worker_docs').insert(payload);
+    }
+    document.getElementById('modal-prl-doc-worker').remove();
+    // Refrescar modal de trabajador
+    abrirDocsWorker(prlDocWorkerActual.workerId);
+    await recalcularEstadoPRL();
+  } catch(e) { alert('Error guardando: ' + e.message); }
+}
+
+// ---- Modal: asignar subcontrata a proyecto ----
+function abrirModalAsignarSubcontrata() {
+  // Cargar suppliers disponibles
+  db.from('suppliers').select('id,name').order('name').then(function(res) {
+    prlSuppliersAll = res.data || [];
+    var opts = prlSuppliersAll.map(function(s){
+      return '<option value="' + s.id + '">' + s.name + '</option>';
+    }).join('');
+    document.getElementById('prl-modal-supplier').innerHTML = opts;
+    document.getElementById('prl-modal-inicio').value = '';
+    document.getElementById('prl-modal-fin').value = '';
+    document.getElementById('prl-modal-notas').value = '';
+    document.getElementById('modal-prl-subcontrata').style.display = 'flex';
+  });
+}
+
+function cerrarModalSubcontrata() {
+  document.getElementById('modal-prl-subcontrata').style.display = 'none';
+}
+
+async function guardarAsignacionSubcontrata() {
+  var supplierId = parseInt(document.getElementById('prl-modal-supplier').value);
+  if (!supplierId || !prlProyectoActual) return;
+
+  var payload = {
+    project_id: prlProyectoActual.id,
+    supplier_id: supplierId,
+    fecha_inicio_obra: document.getElementById('prl-modal-inicio').value || null,
+    fecha_fin_prevista: document.getElementById('prl-modal-fin').value || null,
+    notas: document.getElementById('prl-modal-notas').value || null,
+    estado_prl: 'pendiente',
+    worker_ids: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    await db.from('project_prl').upsert(payload, {onConflict: 'project_id,supplier_id'});
+    cerrarModalSubcontrata();
+    await renderPrlProyectoContent(prlProyectoActual.id);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function volverprlProyecto() {
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-prl-proyecto').classList.add('active');
+  renderPrlProyectoContent(prlProyectoActual.id);
+}
+
+// ---- Alertas globales PRL subcontratas ----
+async function loadAlertasPRLSubcontratas() {
+  var el = document.getElementById('prl-alertas-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Cargando alertas...</div>';
+  try {
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var en90 = new Date(hoy.getTime() + 90*24*60*60*1000);
+
+    // Docs de empresa próximos a vencer
+    var resDE = await db.from('supplier_prl_docs')
+      .select('id,supplier_id,tipo_doc,fecha_vencimiento,estado')
+      .neq('estado','no_aplica')
+      .not('fecha_vencimiento','is',null)
+      .lte('fecha_vencimiento', en90.toISOString().split('T')[0])
+      .order('fecha_vencimiento');
+
+    // Docs de trabajadores próximos a vencer
+    var resDW = await db.from('supplier_worker_docs')
+      .select('id,worker_id,tipo_doc,fecha_vencimiento,estado')
+      .neq('estado','no_aplica')
+      .not('fecha_vencimiento','is',null)
+      .lte('fecha_vencimiento', en90.toISOString().split('T')[0])
+      .order('fecha_vencimiento');
+
+    var alertasEmp = resDE.data || [];
+    var alertasWork = resDW.data || [];
+
+    if (!alertasEmp.length && !alertasWork.length) {
+      el.innerHTML = '<div class="card"><div class="empty" style="color:#2E7D32;">✓ Sin alertas de vencimiento en los próximos 90 días</div></div>';
+      return;
+    }
+
+    // Enriquecer con nombres
+    var supIds = [...new Set(alertasEmp.map(function(d){return d.supplier_id;}))];
+    var wIds   = [...new Set(alertasWork.map(function(d){return d.worker_id;}))];
+
+    var supMap = {}, workerMap = {};
+    if (supIds.length) {
+      var sRes = await db.from('suppliers').select('id,name').in('id', supIds);
+      (sRes.data||[]).forEach(function(s){supMap[s.id]=s.name;});
+    }
+    if (wIds.length) {
+      var wRes = await db.from('supplier_workers').select('id,nombre,apellidos,supplier_id').in('id', wIds);
+      (wRes.data||[]).forEach(function(w){
+        workerMap[w.id] = w.nombre + ' ' + w.apellidos;
+        supIds.push(w.supplier_id);
+      });
+      // Cargar nombres de supplier de trabajadores si faltan
+      var missingIds = [...new Set(supIds)].filter(function(id){return !supMap[id];});
+      if (missingIds.length) {
+        var ms = await db.from('suppliers').select('id,name').in('id', missingIds);
+        (ms.data||[]).forEach(function(s){supMap[s.id]=s.name;});
+      }
+    }
+
+    var defEmpMap  = {}; PRL_DOCS_EMPRESA.forEach(function(d){defEmpMap[d.key]=d.label;});
+    var defWorkMap = {}; PRL_DOCS_TRABAJADOR.forEach(function(d){defWorkMap[d.key]=d.label;});
+
+    var html = '';
+
+    if (alertasEmp.length) {
+      html += '<div class="card" style="margin-bottom:1.2rem;">';
+      html += '<div class="card-header"><div class="card-title">🏢 Documentos de empresa</div></div>';
+      html += '<table class="data-table"><thead><tr><th>Subcontrata</th><th>Documento</th><th>Estado</th><th>Vencimiento</th></tr></thead><tbody>';
+      alertasEmp.forEach(function(d) {
+        html += '<tr>' +
+          '<td style="font-weight:500;">' + (supMap[d.supplier_id]||'—') + '</td>' +
+          '<td style="font-size:13px;">' + (defEmpMap[d.tipo_doc]||d.tipo_doc) + '</td>' +
+          '<td>' + prlDocEstadoBadge(d.estado) + '</td>' +
+          '<td>' + prlVencimientoLabel(d.fecha_vencimiento) + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    if (alertasWork.length) {
+      html += '<div class="card">';
+      html += '<div class="card-header"><div class="card-title">👷 Documentos de trabajadores</div></div>';
+      html += '<table class="data-table"><thead><tr><th>Trabajador</th><th>Documento</th><th>Estado</th><th>Vencimiento</th></tr></thead><tbody>';
+      alertasWork.forEach(function(d) {
+        html += '<tr>' +
+          '<td style="font-weight:500;">' + (workerMap[d.worker_id]||'—') + '</td>' +
+          '<td style="font-size:13px;">' + (defWorkMap[d.tipo_doc]||d.tipo_doc) + '</td>' +
+          '<td>' + prlDocEstadoBadge(d.estado) + '</td>' +
+          '<td>' + prlVencimientoLabel(d.fecha_vencimiento) + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    el.innerHTML = html;
+  } catch(e) { console.error(e); el.innerHTML = '<div class="empty">Error cargando alertas</div>'; }
+}
+
+
+// ================================================================
+// MÓDULO PRL v2 — REQUISITOS CONFIGURABLES + IA DOCUMENTAL
+// ================================================================
+
+var prlRequisitosData   = [];
+var prlClientesAll      = [];
+var prlGremiosAll       = [];
+var prlRequisitoActual  = null;  // fila completa al editar
+
+// ---- Mostrar nav de requisitos solo para PRL ----
+// (se llama desde setupNavForDept)
+
+// ---- Cargar datos maestros para selects ----
+async function loadPrlMaestros() {
+  try {
+    var [rc, rg] = await Promise.all([
+      db.from('clients').select('id,commercial_name').order('commercial_name'),
+      db.from('supplier_specialties').select('code,name').order('name')
+    ]);
+    prlClientesAll = rc.data || [];
+    prlGremiosAll  = rg.data || [];
+  } catch(e) { console.error('loadPrlMaestros:', e); }
+}
+
+// ---- PANEL REQUISITOS ----
+async function loadPrlRequisitos() {
+  var el = document.getElementById('prl-requisitos-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Cargando requisitos...</div>';
+
+  await loadPrlMaestros();
+  _poblarSelectsRequisitos();
+
+  try {
+    var res = await db.from('prl_requirements')
+      .select('*, clients(commercial_name)')
+      .eq('activo', true)
+      .order('applies_to').order('orden').order('id');
+    prlRequisitosData = res.data || [];
+    _renderRequisitos(prlRequisitosData);
+  } catch(e) {
+    console.error(e);
+    el.innerHTML = '<div class="empty">Error cargando requisitos</div>';
+  }
+}
+
+function _poblarSelectsRequisitos() {
+  // Filtros del panel
+  var selCliFiltro = document.getElementById('req-filter-cliente');
+  var selGreFiltro = document.getElementById('req-filter-gremio');
+  if (selCliFiltro) {
+    selCliFiltro.innerHTML = '<option value="">Todos los clientes</option>' +
+      prlClientesAll.map(function(c){return '<option value="'+c.id+'">'+c.commercial_name+'</option>';}).join('');
+  }
+  if (selGreFiltro) {
+    selGreFiltro.innerHTML = '<option value="">Todos los gremios</option>' +
+      prlGremiosAll.map(function(g){return '<option value="'+g.code+'">'+g.name+'</option>';}).join('');
+  }
+  // Selects del modal
+  var selCliModal = document.getElementById('req-client-id');
+  var selGreModal = document.getElementById('req-specialty');
+  if (selCliModal) {
+    selCliModal.innerHTML = '<option value="">— Todos los clientes —</option>' +
+      prlClientesAll.map(function(c){return '<option value="'+c.id+'">'+c.commercial_name+'</option>';}).join('');
+  }
+  if (selGreModal) {
+    selGreModal.innerHTML = '<option value="">— Todos los gremios —</option>' +
+      prlGremiosAll.map(function(g){return '<option value="'+g.code+'">'+g.name+'</option>';}).join('');
+  }
+}
+
+function _renderRequisitos(data) {
+  var el = document.getElementById('prl-requisitos-content');
+  if (!data.length) {
+    el.innerHTML = '<div class="card"><div class="empty">No hay requisitos configurados.<br><span style="font-size:12px;color:#aaa;">Pulsa "+ Nuevo requisito" para añadir.</span></div></div>';
+    return;
+  }
+
+  // Agrupar por applies_to
+  var porTipo = { empresa: data.filter(function(r){return r.applies_to==='empresa';}),
+                  trabajador: data.filter(function(r){return r.applies_to==='trabajador';}) };
+
+  var html = '';
+  ['empresa','trabajador'].forEach(function(tipo) {
+    var reqs = porTipo[tipo];
+    if (!reqs.length) return;
+    var titulo = tipo === 'empresa' ? '🏢 Documentos de empresa' : '👷 Documentos de trabajador';
+    html += '<div class="card" style="margin-bottom:1.2rem;">';
+    html += '<div class="card-header"><div class="card-title">' + titulo + '</div></div>';
+    html += '<table class="data-table"><thead><tr>';
+    html += '<th>Documento</th><th>Clave</th><th>Cliente</th><th>Gremio</th><th>Obligatorio</th><th>Validez</th><th></th>';
+    html += '</tr></thead><tbody>';
+    reqs.forEach(function(r) {
+      var cliente = r.clients ? r.clients.commercial_name : '<span style="color:#aaa;">Todos</span>';
+      var gremio  = r.specialty_code || '<span style="color:#aaa;">Todos</span>';
+      var oblig   = r.obligatorio
+        ? '<span style="color:#2E7D32;font-weight:600;font-size:12px;">✓ Sí</span>'
+        : '<span style="color:#888;font-size:12px;">No</span>';
+      var validez = r.vencimiento_dias
+        ? (r.vencimiento_dias >= 365 ? Math.round(r.vencimiento_dias/365) + ' año(s)' : r.vencimiento_dias + ' días')
+        : '<span style="color:#aaa;">Sin caducidad</span>';
+      html += '<tr>' +
+        '<td style="font-weight:500;">' + r.label + '</td>' +
+        '<td style="font-size:11px;color:#888;font-family:monospace;">' + r.tipo_doc + '</td>' +
+        '<td style="font-size:12px;">' + cliente + '</td>' +
+        '<td style="font-size:12px;">' + gremio + '</td>' +
+        '<td>' + oblig + '</td>' +
+        '<td style="font-size:12px;">' + validez + '</td>' +
+        '<td><button class="btn" style="font-size:11px;padding:3px 10px;" onclick="abrirModalRequisito(' + r.id + ')">Editar</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+  el.innerHTML = html;
+}
+
+function filtrarRequisitos() {
+  var tipo    = document.getElementById('req-filter-tipo').value;
+  var clientId = document.getElementById('req-filter-cliente').value;
+  var gremio  = document.getElementById('req-filter-gremio').value;
+  var filtered = prlRequisitosData.filter(function(r) {
+    if (tipo    && r.applies_to !== tipo) return false;
+    if (clientId && String(r.client_id) !== clientId) return false;
+    if (gremio  && r.specialty_code !== gremio) return false;
+    return true;
+  });
+  _renderRequisitos(filtered);
+}
+
+function abrirModalRequisito(id) {
+  prlRequisitoActual = id ? prlRequisitosData.find(function(r){return r.id===id;}) : null;
+  _poblarSelectsRequisitos();
+
+  document.getElementById('modal-req-title').textContent = id ? 'Editar requisito' : 'Nuevo requisito PRL';
+  document.getElementById('btn-eliminar-req').style.display = id ? 'inline-block' : 'none';
+
+  var r = prlRequisitoActual || {};
+  var setVal = function(elId, val) { var e = document.getElementById(elId); if (e) e.value = val||''; };
+  setVal('req-applies-to',  r.applies_to || 'empresa');
+  setVal('req-obligatorio', r.obligatorio === false ? 'false' : 'true');
+  setVal('req-client-id',   r.client_id || '');
+  setVal('req-specialty',   r.specialty_code || '');
+  setVal('req-label',       r.label || '');
+  setVal('req-tipo-doc',    r.tipo_doc || '');
+  setVal('req-vencimiento', r.vencimiento_dias || '');
+  setVal('req-notas',       r.notas || '');
+
+  document.getElementById('modal-prl-requisito').style.display = 'flex';
+}
+
+function cerrarModalRequisito() {
+  document.getElementById('modal-prl-requisito').style.display = 'none';
+}
+
+async function guardarRequisito() {
+  var label   = document.getElementById('req-label').value.trim();
+  var tipoDoc = document.getElementById('req-tipo-doc').value.trim();
+  if (!label || !tipoDoc) { alert('Nombre del documento y clave interna son obligatorios'); return; }
+
+  // Auto-generar clave si tiene espacios
+  tipoDoc = tipoDoc.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+
+  var clientId    = document.getElementById('req-client-id').value || null;
+  var specialty   = document.getElementById('req-specialty').value || null;
+  var venc        = document.getElementById('req-vencimiento').value;
+  var obligatorio = document.getElementById('req-obligatorio').value !== 'false';
+
+  var payload = {
+    applies_to:      document.getElementById('req-applies-to').value,
+    obligatorio:     obligatorio,
+    client_id:       clientId ? parseInt(clientId) : null,
+    specialty_code:  specialty,
+    label:           label,
+    tipo_doc:        tipoDoc,
+    vencimiento_dias: venc ? parseInt(venc) : null,
+    notas:           document.getElementById('req-notas').value || null,
+    activo:          true,
+    updated_at:      new Date().toISOString()
+  };
+
+  try {
+    if (prlRequisitoActual) {
+      await db.from('prl_requirements').update(payload).eq('id', prlRequisitoActual.id);
+    } else {
+      payload.created_at = new Date().toISOString();
+      payload.orden = prlRequisitosData.length + 1;
+      await db.from('prl_requirements').insert(payload);
+    }
+    cerrarModalRequisito();
+    await loadPrlRequisitos();
+  } catch(e) { alert('Error guardando: ' + e.message); }
+}
+
+async function eliminarRequisito() {
+  if (!prlRequisitoActual) return;
+  if (!confirm('¿Eliminar este requisito? Los documentos ya registrados no se borran.')) return;
+  try {
+    await db.from('prl_requirements').update({activo: false, updated_at: new Date().toISOString()}).eq('id', prlRequisitoActual.id);
+    cerrarModalRequisito();
+    await loadPrlRequisitos();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ================================================================
+// REQUISITOS DINÁMICOS — cargar los que aplican a un proyecto+gremio
+// ================================================================
+async function getRequisitosPorProyecto(projectId) {
+  // Obtener cliente del proyecto
+  var projRes = await db.from('projects').select('client_id').eq('id', projectId).single();
+  var clientId = projRes.data ? projRes.data.client_id : null;
+
+  // Obtener subcontratas del proyecto con sus gremios
+  var prlRes = await db.from('project_prl').select('supplier_id').eq('project_id', projectId);
+  var supIds = (prlRes.data||[]).map(function(r){return r.supplier_id;});
+
+  var gremios = [];
+  if (supIds.length) {
+    var grRes = await db.from('suppliers').select('id,specialty_code,supplier_specialty_rel(specialty_code)').in('id', supIds);
+    (grRes.data||[]).forEach(function(s) {
+      if (s.supplier_specialty_rel) s.supplier_specialty_rel.forEach(function(r){ if (r.specialty_code) gremios.push(r.specialty_code); });
+      else if (s.specialty_code) gremios.push(s.specialty_code);
+    });
+    gremios = [...new Set(gremios)];
+  }
+
+  // Cargar requisitos que aplican: globales + de este cliente + de estos gremios
+  var reqRes = await db.from('prl_requirements').select('*').eq('activo', true).order('applies_to').order('orden');
+  var todos = reqRes.data || [];
+
+  // Filtrar: aplica si (client_id es null O es este cliente) Y (specialty_code es null O está en los gremios)
+  return todos.filter(function(r) {
+    var clientOk  = !r.client_id || r.client_id === clientId;
+    var gremioOk  = !r.specialty_code || gremios.includes(r.specialty_code);
+    return clientOk && gremioOk;
+  });
+}
+
+// ================================================================
+// IA DOCUMENTAL — Extraer datos de PDF con GPT-4o vía n8n
+// ================================================================
+
+var N8N_PRL_WEBHOOK = 'https://n8n.solventaapi.com/webhook/prl-analiza-doc';
+
+async function analizarDocumentoIA(tipoDoc, tipoEntidad, entidadId, docId, labelDoc) {
+  // tipoEntidad: 'empresa' | 'trabajador'
+  // Construir modal de carga
+  var existing = document.getElementById('modal-prl-ia');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'modal-prl-ia';
+  modal.style = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9200;align-items:center;justify-content:center;';
+  modal.innerHTML = '<div style="background:white;border-radius:12px;padding:32px;width:500px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.2);text-align:center;">' +
+    '<div style="font-size:36px;margin-bottom:12px;">🤖</div>' +
+    '<h2 style="margin:0 0 8px;font-size:16px;">Analizando documento con IA</h2>' +
+    '<p style="color:#888;font-size:13px;margin:0 0 20px;">Extrayendo datos de <strong>' + labelDoc + '</strong>…</p>' +
+    '<div id="prl-ia-status" style="font-size:13px;color:#555;min-height:24px;">Conectando con el servicio de análisis…</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+
+  var statusEl = document.getElementById('prl-ia-status');
+
+  try {
+    // Obtener datos del documento actual si existe
+    var docData = null;
+    if (docId) {
+      var tabla = tipoEntidad === 'empresa' ? 'supplier_prl_docs' : 'supplier_worker_docs';
+      var dr = await db.from(tabla).select('*').eq('id', docId).single();
+      docData = dr.data;
+    }
+
+    if (!docData || !docData.archivo_url) {
+      // Sin archivo — pedir URL manualmente
+      modal.remove();
+      var url = prompt('No hay archivo adjunto. Pega la URL del documento PDF para que la IA lo analice:');
+      if (!url) return;
+      // Guardar URL primero
+      await _guardarUrlDoc(tipoEntidad, docId, entidadId, tipoDoc, url);
+      docData = { archivo_url: url };
+      // Volver a mostrar modal
+      document.body.appendChild(modal);
+      statusEl = document.getElementById('prl-ia-status');
+    }
+
+    if (statusEl) statusEl.textContent = 'Enviando documento a GPT-4o…';
+
+    var payload = {
+      tipo_entidad: tipoEntidad,
+      entidad_id:   entidadId,
+      doc_id:       docId,
+      tipo_doc:     tipoDoc,
+      label_doc:    labelDoc,
+      archivo_url:  docData.archivo_url,
+      supplier_id:  prlSupplierActual ? prlSupplierActual.id : null,
+      supplier_name: prlSupplierActual ? prlSupplierActual.name : null
+    };
+
+    var response = await fetch(N8N_PRL_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error('Error HTTP ' + response.status);
+    var resultado = await response.json();
+
+    if (statusEl) statusEl.textContent = 'Procesando resultado…';
+
+    // Resultado esperado de n8n:
+    // { nombre_empresa, cif, fecha_emision, fecha_caducidad, tipo_detectado, confianza, datos_extra, observaciones }
+    await _aplicarResultadoIA(tipoEntidad, docId, entidadId, tipoDoc, resultado);
+
+    modal.remove();
+    await renderPrlFichaContent();
+
+    // Mostrar resumen
+    _mostrarResumenIA(resultado, labelDoc);
+
+  } catch(e) {
+    console.error('Error IA PRL:', e);
+    if (modal.parentNode) modal.remove();
+    // Fallback: rellenar manualmente con lo que se pueda
+    alert('El servicio de IA no está disponible ahora mismo. Puedes rellenar los datos manualmente.');
+  }
+}
+
+async function _guardarUrlDoc(tipoEntidad, docId, entidadId, tipoDoc, url) {
+  var tabla = tipoEntidad === 'empresa' ? 'supplier_prl_docs' : 'supplier_worker_docs';
+  var fkCol = tipoEntidad === 'empresa' ? 'supplier_id' : 'worker_id';
+  var payload = { archivo_url: url, updated_at: new Date().toISOString() };
+  if (docId) {
+    await db.from(tabla).update(payload).eq('id', docId);
+  } else {
+    payload[fkCol] = entidadId;
+    payload.tipo_doc = tipoDoc;
+    payload.estado = 'pendiente';
+    payload.created_at = new Date().toISOString();
+    var ins = await db.from(tabla).insert(payload).select().single();
+    return ins.data ? ins.data.id : null;
+  }
+}
+
+async function _aplicarResultadoIA(tipoEntidad, docId, entidadId, tipoDoc, res) {
+  var tabla = tipoEntidad === 'empresa' ? 'supplier_prl_docs' : 'supplier_worker_docs';
+  var fkCol = tipoEntidad === 'empresa' ? 'supplier_id' : 'worker_id';
+
+  var estado = 'pendiente';
+  if (res.fecha_caducidad) {
+    var dias = prlDiasAlerta(res.fecha_caducidad);
+    if (dias < 0)  estado = 'vencido';
+    else           estado = 'entregado';
+  } else if (res.fecha_emision) {
+    estado = 'entregado';
+  }
+
+  var payload = {
+    fecha_emision:    res.fecha_emision    || null,
+    fecha_vencimiento: res.fecha_caducidad || null,
+    estado:           estado,
+    ai_extractado:    true,
+    ai_datos:         res,
+    ai_confianza:     res.confianza || 'media',
+    ai_revisado:      false,
+    updated_at:       new Date().toISOString()
+  };
+
+  if (docId) {
+    await db.from(tabla).update(payload).eq('id', docId);
+  } else {
+    payload[fkCol] = entidadId;
+    payload.tipo_doc = tipoDoc;
+    payload.created_at = new Date().toISOString();
+    await db.from(tabla).insert(payload);
+  }
+}
+
+function _mostrarResumenIA(res, labelDoc) {
+  var existing = document.getElementById('modal-prl-ia-result');
+  if (existing) existing.remove();
+
+  var confianzaColor = res.confianza === 'alta' ? '#2E7D32' : res.confianza === 'media' ? '#E65100' : '#B71C1C';
+  var confianzaIcon  = res.confianza === 'alta' ? '🟢' : res.confianza === 'media' ? '🟡' : '🔴';
+
+  var filas = [];
+  if (res.nombre_empresa) filas.push(['Empresa/persona', res.nombre_empresa]);
+  if (res.cif)            filas.push(['CIF / DNI', res.cif]);
+  if (res.fecha_emision)  filas.push(['Fecha emisión', new Date(res.fecha_emision).toLocaleDateString('es-ES')]);
+  if (res.fecha_caducidad) filas.push(['Fecha caducidad', new Date(res.fecha_caducidad).toLocaleDateString('es-ES')]);
+  if (res.tipo_detectado) filas.push(['Tipo detectado', res.tipo_detectado]);
+  if (res.observaciones)  filas.push(['Observaciones IA', res.observaciones]);
+
+  var tablaCampos = filas.map(function(f) {
+    return '<tr><td style="padding:6px 12px;font-size:12px;color:#888;font-weight:500;width:150px;">' + f[0] + '</td>' +
+           '<td style="padding:6px 12px;font-size:13px;font-weight:500;">' + f[1] + '</td></tr>';
+  }).join('');
+
+  var modal = document.createElement('div');
+  modal.id = 'modal-prl-ia-result';
+  modal.style = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9300;align-items:center;justify-content:center;';
+  modal.innerHTML = '<div style="background:white;border-radius:12px;padding:28px;width:500px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+    '<span style="font-size:28px;">🤖</span>' +
+    '<div><h2 style="margin:0;font-size:15px;">Análisis IA completado</h2>' +
+    '<div style="font-size:12px;color:#888;">' + labelDoc + '</div></div>' +
+    '<div style="margin-left:auto;font-size:13px;color:' + confianzaColor + ';font-weight:600;">' + confianzaIcon + ' Confianza ' + (res.confianza||'media') + '</div>' +
+    '</div>' +
+    (tablaCampos ? '<table style="width:100%;border-collapse:collapse;border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:16px;">' + tablaCampos + '</table>' : '') +
+    '<div style="background:#FFF9EC;border:1px solid #F9D56E;border-radius:6px;padding:10px 14px;font-size:12px;color:#7A5C00;margin-bottom:16px;">' +
+    '⚠️ Revisa los datos extraídos antes de dar por válido el documento. La IA puede cometer errores.' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+    '<button class="btn btn-primary" onclick="document.getElementById(\'modal-prl-ia-result\').remove()">Entendido</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+}
+
+// ================================================================
+// MODIFICAR renderPrlFichaContent para usar requisitos dinámicos
+// y añadir botón IA en cada documento
+// ================================================================
+
+// Override de renderPrlFichaContent para usar requisitos de BD
+var _prlRequisitosProyecto = { empresa: [], trabajador: [] };
+
+async function cargarRequisitosParaFicha(projectId) {
+  try {
+    var todos = await getRequisitosPorProyecto(projectId);
+    _prlRequisitosProyecto.empresa    = todos.filter(function(r){return r.applies_to==='empresa';});
+    _prlRequisitosProyecto.trabajador = todos.filter(function(r){return r.applies_to==='trabajador';});
+  } catch(e) {
+    console.error('cargarRequisitosParaFicha:', e);
+    // Fallback a listas estáticas
+    _prlRequisitosProyecto.empresa    = PRL_DOCS_EMPRESA.map(function(d){ return Object.assign({tipo_doc:d.key,label:d.label,vencimiento_dias:d.vencimiento_dias},d); });
+    _prlRequisitosProyecto.trabajador = PRL_DOCS_TRABAJADOR.map(function(d){ return Object.assign({tipo_doc:d.key,label:d.label,vencimiento_dias:d.vencimiento_dias},d); });
+  }
+}
+
+// Botón IA para documentos — se inyecta en la tabla de docs de empresa y trabajadores
+function _btnIA(tipoDoc, tipoEntidad, entidadId, docId, labelDoc) {
+  return '<button class="btn" style="font-size:10px;padding:2px 8px;background:#F3F0FF;color:#5B3BCC;border-color:#C4B5FD;" ' +
+    'onclick="analizarDocumentoIA(\'' + tipoDoc + '\',\'' + tipoEntidad + '\',' + entidadId + ',' + (docId||'null') + ',\'' + labelDoc.replace(/'/g,"\\'") + '\')" ' +
+    'title="Analizar con IA">🤖 IA</button>';
+}
+
+// Parche en abrirDocEmpresa para añadir btn IA
+var _origAbrirDocEmpresa = typeof abrirModalDocEmpresa !== 'undefined' ? abrirModalDocEmpresa : null;
+
+// Parche en abrirDocsWorker para añadir btn IA
+var _origAbrirDocsWorker = typeof abrirDocsWorker !== 'undefined' ? abrirDocsWorker : null;
+
+// Sobreescribir la función que renderiza docs de empresa para usar requisitos dinámicos + btn IA
+var _renderPrlFichaContentOriginal = renderPrlFichaContent;
+
+renderPrlFichaContent = async function() {
+  var el = document.getElementById('prl-ficha-content');
+  el.innerHTML = '<div class="loading">Cargando documentación...</div>';
+  try {
+    var supplierId = prlSupplierActual.id;
+    var workerIds  = prlAssignActual.worker_ids || [];
+
+    // Cargar requisitos dinámicos para este proyecto
+    if (prlProyectoActual) {
+      await cargarRequisitosParaFicha(prlProyectoActual.id);
+    }
+
+    var reqsEmpresa    = _prlRequisitosProyecto.empresa.length    ? _prlRequisitosProyecto.empresa    : PRL_DOCS_EMPRESA.map(function(d){return {tipo_doc:d.key,label:d.label,vencimiento_dias:d.vencimiento_dias};});
+    var reqsTrabajador = _prlRequisitosProyecto.trabajador.length ? _prlRequisitosProyecto.trabajador : PRL_DOCS_TRABAJADOR.map(function(d){return {tipo_doc:d.key,label:d.label,vencimiento_dias:d.vencimiento_dias};});
+
+    // Docs de empresa
+    var resDocsEmp = await db.from('supplier_prl_docs').select('*').eq('supplier_id', supplierId);
+    var docsEmpMap = {};
+    (resDocsEmp.data||[]).forEach(function(d){ docsEmpMap[d.tipo_doc] = d; });
+
+    // Trabajadores
+    var resWorkers = await db.from('supplier_workers').select('*').eq('supplier_id', supplierId).eq('estado','activo');
+    var todosWorkers = resWorkers.data || [];
+    var workers = workerIds.length
+      ? todosWorkers.filter(function(w){ return workerIds.includes(w.id); })
+      : [];
+
+    // Docs de trabajadores
+    var docsWorkerMap = {};
+    if (workers.length) {
+      var wIds = workers.map(function(w){return w.id;});
+      var resWDocs = await db.from('supplier_worker_docs').select('*').in('worker_id', wIds);
+      (resWDocs.data||[]).forEach(function(d){
+        if (!docsWorkerMap[d.worker_id]) docsWorkerMap[d.worker_id] = {};
+        docsWorkerMap[d.worker_id][d.tipo_doc] = d;
+      });
+    }
+
+    var html = '';
+
+    // — SECCIÓN 1: Documentos de empresa —
+    html += '<div class="card" style="margin-bottom:1.2rem;">';
+    html += '<div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div class="card-title">📋 Documentos de empresa</div>';
+    html += '<div style="font-size:11px;color:#888;">' + reqsEmpresa.length + ' documentos requeridos</div>';
+    html += '</div>';
+    html += '<table class="data-table"><thead><tr><th>Documento</th><th>Estado</th><th>Fecha emisión</th><th>Vencimiento</th><th>Archivo</th><th></th></tr></thead><tbody>';
+
+    reqsEmpresa.forEach(function(def) {
+      var doc = docsEmpMap[def.tipo_doc] || {};
+      var docId = doc.id || null;
+      var confianzaBadge = '';
+      if (doc.ai_extractado && !doc.ai_revisado) {
+        confianzaBadge = ' <span style="font-size:10px;background:#EDE9FE;color:#5B3BCC;padding:1px 6px;border-radius:10px;">🤖 Sin revisar</span>';
+      }
+      html += '<tr>' +
+        '<td style="font-size:13px;">' + def.label + (def.obligatorio === false ? ' <span style="color:#aaa;font-size:10px;">(rec.)</span>' : '') + confianzaBadge + '</td>' +
+        '<td>' + prlDocEstadoBadge(doc.estado||'pendiente') + '</td>' +
+        '<td style="font-size:12px;">' + (doc.fecha_emision ? new Date(doc.fecha_emision).toLocaleDateString('es-ES') : '—') + '</td>' +
+        '<td>' + prlVencimientoLabel(doc.fecha_vencimiento) + '</td>' +
+        '<td style="font-size:12px;">' + (doc.archivo_nombre || doc.archivo_url ? '<span style="color:#185FA5;">📎 ' + (doc.archivo_nombre||'Ver') + '</span>' : '<span style="color:#ccc;">—</span>') + '</td>' +
+        '<td style="display:flex;gap:4px;align-items:center;">' +
+          '<button class="btn" style="font-size:11px;padding:3px 8px;" onclick="abrirModalDocEmpresa(\'' + def.tipo_doc + '\',' + (docId||'null') + ')">' + (docId ? 'Editar' : 'Registrar') + '</button>' +
+          _btnIA(def.tipo_doc, 'empresa', supplierId, docId, def.label) +
+        '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    // — SECCIÓN 2: Trabajadores —
+    html += '<div class="card">';
+    html += '<div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div class="card-title">👷 Trabajadores en esta obra</div>';
+    html += '<div style="display:flex;gap:8px;">';
+    html += '<button class="btn" style="font-size:12px;" onclick="abrirModalAsignarTrabajador()">+ Asignar existente</button>';
+    html += '<button class="btn btn-primary" style="font-size:12px;" onclick="abrirModalTrabajador(null)">+ Nuevo trabajador</button>';
+    html += '</div></div>';
+
+    if (!workers.length) {
+      html += '<div class="empty" style="padding:1.5rem;">No hay trabajadores asignados a esta obra.</div>';
+    } else {
+      // Cabecera dinámica con los requisitos de trabajador
+      var thReqs = reqsTrabajador.slice(0,5).map(function(r){
+        return '<th style="font-size:11px;">' + r.label.split(' ')[0] + '</th>';
+      }).join('');
+
+      html += '<table class="data-table"><thead><tr><th>Trabajador</th>' + thReqs + '<th></th></tr></thead><tbody>';
+      workers.forEach(function(w) {
+        var wd = docsWorkerMap[w.id] || {};
+        var celdas = reqsTrabajador.slice(0,5).map(function(req) {
+          var d = wd[req.tipo_doc] || {};
+          if (!d.id) return '<td><span style="color:#ccc;font-size:11px;">—</span></td>';
+          var icon = d.estado==='entregado' ? '✓' : d.estado==='vencido' ? '✗' : '⏳';
+          var col  = d.estado==='entregado' ? '#2E7D32' : d.estado==='vencido' ? '#B71C1C' : '#E65100';
+          var iaTag = d.ai_extractado && !d.ai_revisado ? '<span style="font-size:9px;color:#5B3BCC;">🤖</span>' : '';
+          return '<td style="text-align:center;">' +
+            '<span style="color:' + col + ';font-size:13px;font-weight:600;">' + icon + '</span>' + iaTag +
+            (d.fecha_vencimiento ? '<div style="font-size:10px;color:#aaa;">' + new Date(d.fecha_vencimiento).toLocaleDateString('es-ES') + '</div>' : '') +
+            '</td>';
+        }).join('');
+        html += '<tr>' +
+          '<td><div style="font-weight:500;">' + w.nombre + ' ' + w.apellidos + '</div><div style="font-size:11px;color:#888;">' + (w.cargo||'') + '</div></td>' +
+          celdas +
+          '<td><button class="btn" style="font-size:11px;padding:3px 10px;" onclick="abrirDocsWorker(' + w.id + ')">Docs</button></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    el.innerHTML = html;
+    await recalcularEstadoPRL();
+
+  } catch(e) { console.error(e); el.innerHTML = '<div class="empty">Error cargando ficha PRL</div>'; }
+};
+
+// Sobreescribir abrirDocsWorker para añadir botón IA
+var _origAbrirDocsWorker2 = abrirDocsWorker;
+abrirDocsWorker = function(workerId) {
+  db.from('supplier_workers').select('*').eq('id', workerId).single().then(async function(res) {
+    var worker = res.data;
+    if (!worker) return;
+    var docsRes = await db.from('supplier_worker_docs').select('*').eq('worker_id', workerId);
+    var docsMap = {};
+    (docsRes.data||[]).forEach(function(d){docsMap[d.tipo_doc]=d;});
+
+    var reqsTrabajador = _prlRequisitosProyecto.trabajador.length
+      ? _prlRequisitosProyecto.trabajador
+      : PRL_DOCS_TRABAJADOR.map(function(d){return {tipo_doc:d.key,label:d.label,vencimiento_dias:d.vencimiento_dias};});
+
+    var existing = document.getElementById('modal-prl-worker-docs');
+    if (existing) existing.remove();
+
+    var rows = reqsTrabajador.map(function(def) {
+      var doc = docsMap[def.tipo_doc] || {};
+      var iaTag = doc.ai_extractado && !doc.ai_revisado
+        ? '<span style="font-size:10px;background:#EDE9FE;color:#5B3BCC;padding:1px 6px;border-radius:10px;margin-left:4px;">🤖 Sin revisar</span>' : '';
+      return '<tr>' +
+        '<td style="font-size:13px;">' + def.label + iaTag + '</td>' +
+        '<td>' + prlDocEstadoBadge(doc.estado||'pendiente') + '</td>' +
+        '<td>' + prlVencimientoLabel(doc.fecha_vencimiento) + '</td>' +
+        '<td style="font-size:12px;">' + (doc.archivo_nombre || doc.archivo_url ? '📎 ' + (doc.archivo_nombre||'Ver') : '—') + '</td>' +
+        '<td style="display:flex;gap:4px;">' +
+          '<button class="btn" style="font-size:11px;padding:3px 8px;" onclick="abrirModalDocWorker(\'' + def.tipo_doc + '\',' + (doc.id||'null') + ',' + workerId + ')">' + (doc.id?'Editar':'Registrar') + '</button>' +
+          _btnIA(def.tipo_doc, 'trabajador', workerId, doc.id||null, def.label) +
+        '</td>' +
+        '</tr>';
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.id = 'modal-prl-worker-docs';
+    modal.style = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;align-items:center;justify-content:center;';
+    modal.innerHTML = '<div style="background:white;border-radius:12px;padding:28px;width:650px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+      '<h2 style="margin:0 0 4px;font-size:16px;">👷 ' + worker.nombre + ' ' + worker.apellidos + '</h2>' +
+      '<div style="font-size:12px;color:#888;margin-bottom:16px;">' + (worker.cargo||'') + ' · ' + (worker.dni_nie||'Sin DNI') + '</div>' +
+      '<table class="data-table"><thead><tr><th>Documento</th><th>Estado</th><th>Vencimiento</th><th>Archivo</th><th></th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div style="margin-top:16px;text-align:right;"><button class="btn" onclick="document.getElementById(\'modal-prl-worker-docs\').remove();renderPrlFichaContent();">Cerrar</button></div>' +
+      '</div>';
+    document.body.appendChild(modal);
+  });
+};
+
+
 // ---- DASHBOARD JEFE DE OBRA ----
 async function loadDashboardJefeObra() {
   // Mostrar panel jefe de obra — ocultar sidebar para interfaz simplificada
@@ -6506,7 +8452,7 @@ function npMostrarPaso(paso) {
 
 function npAnterior(p) { npMostrarPaso(p-1); }
 
-function npSiguiente(p) {
+async function npSiguiente(p) {
   if (p===1) {
     if (npClienteTipo==='existente' && !npClienteSeleccionado) { alert('Selecciona un cliente.'); return; }
     if (npClienteTipo==='nuevo') {
@@ -6516,6 +8462,22 @@ function npSiguiente(p) {
       var em=document.getElementById('np-new-email').value.trim();
       if (!n||!a||!co||!em) { alert('Rellena los campos obligatorios.'); return; }
       if (a.length!==3) { alert('El acrónimo debe tener exactamente 3 letras.'); return; }
+      // Validar duplicado por nombre - comparación exacta insensible a mayúsculas
+      var nombreBuscar = n.toLowerCase().trim();
+      var todosClientes = await db.from('clients').select('id,commercial_name');
+      var dupNombre = todosClientes.data ? todosClientes.data.filter(function(c){
+        return c.commercial_name && c.commercial_name.toLowerCase().trim() === nombreBuscar;
+      }) : [];
+      if (dupNombre.length) {
+        alert('⚠️ Ya existe un cliente con ese nombre:\n"' + dupNombre[0].commercial_name + '"\n\nBúscalo en la lista de clientes registrados.');
+        return;
+      }
+      // Validar duplicado por acrónimo
+      var dupAcro = await db.from('clients').select('id,commercial_name').eq('client_code', a.toUpperCase());
+      if (dupAcro.data && dupAcro.data.length) {
+        alert('⚠️ El acrónimo "' + a.toUpperCase() + '" ya está en uso por:\n"' + dupAcro.data[0].commercial_name + '"\n\nElige un acrónimo diferente.');
+        return;
+      }
     }
   }
   if (p===2) {
@@ -6528,7 +8490,7 @@ function npSiguiente(p) {
 
 function npDragOver(e) { e.preventDefault(); var dz=document.getElementById('np-dropzone'); if(dz){dz.style.borderColor='#185FA5';dz.style.background='#f0f7ff';} }
 function npDragLeave(e) { var dz=document.getElementById('np-dropzone'); if(dz){dz.style.borderColor='#ccc';dz.style.background='';} }
-function npHandleDrop(e) { e.preventDefault(); npDragLeave(e); if(e.dataTransfer.files.length) npAgregarArchivos(e.dataTransfer.files); }
+async function npHandleDrop(e) { e.preventDefault(); npDragLeave(e); if(e.dataTransfer.files.length) await npAgregarArchivos(e.dataTransfer.files); }
 
 function npDetectarTipo(file) {
   var n=file.name.toLowerCase();
@@ -6536,37 +8498,128 @@ function npDetectarTipo(file) {
   if(n.endsWith('.pdf')) return 'pdf';
   if(n.endsWith('.doc')||n.endsWith('.docx')) return 'word';
   if(n.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'imagen';
+  if(n.endsWith('.zip')) return 'zip';
   return 'otro';
 }
 
-function npAgregarEnlace() {
-  var inp = document.getElementById('np-link-input');
-  var url = inp ? inp.value.trim() : '';
-  if (!url) { alert('Pega un enlace antes de añadirlo.'); return; }
-  if (!url.startsWith('http')) { alert('El enlace debe empezar por http:// o https://'); return; }
-  var nombre = 'Enlace externo';
-  if (url.includes('wetransfer')) nombre = 'WeTransfer';
-  else if (url.includes('drive.google')) nombre = 'Google Drive';
-  else if (url.includes('dropbox')) nombre = 'Dropbox';
-  else if (url.includes('onedrive') || url.includes('sharepoint') || url.includes('1drv.ms')) nombre = 'OneDrive';
-  var nombreCustom = prompt('Nombre del documento (opcional):', nombre);
-  if (nombreCustom === null) return;
-  if (nombreCustom.trim()) nombre = nombreCustom.trim();
-  // Añadir como archivo especial de tipo enlace
-  npArchivos.push({ file: { name: nombre, size: 0, type: 'text/uri-list' }, nombre: nombre, tipo: 'enlace', esMediciones: false, url: url });
-  if (inp) inp.value = '';
-  npRenderArchivos();
+// ============================================================
+// DESCOMPRIMIR ZIP CON JSZIP
+// ============================================================
+
+async function descomprimirZip(zipFile) {
+  // Devuelve array de {file: File, nombre: string, tipo: string}
+  var archivos = [];
+  try {
+    if (typeof JSZip === 'undefined') {
+      alert('JSZip no está disponible. Sube los archivos individualmente.');
+      return archivos;
+    }
+    var zip = await JSZip.loadAsync(zipFile);
+    var entries = Object.keys(zip.files);
+    var total = entries.length;
+    var procesados = 0;
+
+    for (var i = 0; i < entries.length; i++) {
+      var entry = zip.files[entries[i]];
+      if (entry.dir) continue; // ignorar carpetas
+      var nombre = entries[i];
+      // Ignorar archivos ocultos del sistema (macOS __MACOSX, .DS_Store, Thumbs.db)
+      if (nombre.includes('__MACOSX') || nombre.split('/').pop().startsWith('.') ||
+          nombre.toLowerCase().endsWith('.ds_store') || nombre.toLowerCase().endsWith('thumbs.db')) continue;
+
+      try {
+        var blob = await entry.async('blob');
+        // Inferir mime type por extensión
+        var ext = nombre.split('.').pop().toLowerCase();
+        var mimeMap = {
+          pdf:'application/pdf', xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          xls:'application/vnd.ms-excel', docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          doc:'application/msword', jpg:'image/jpeg', jpeg:'image/jpeg',
+          png:'image/png', gif:'image/gif', webp:'image/webp', txt:'text/plain'
+        };
+        var mime = mimeMap[ext] || 'application/octet-stream';
+        var nombreCorto = nombre.split('/').pop(); // solo el nombre del archivo sin path
+        var file = new File([blob], nombreCorto, { type: mime });
+        archivos.push({ file: file, nombre: nombreCorto, tipo: npDetectarTipoNombre(nombreCorto, mime), esMediciones: false });
+        procesados++;
+      } catch(fe) { console.error('Error procesando archivo del ZIP:', nombre, fe); }
+    }
+    console.log('ZIP descomprimido: ' + procesados + ' archivos de ' + total + ' entradas');
+  } catch(e) {
+    console.error('Error descomprimiendo ZIP:', e);
+    alert('Error al descomprimir el ZIP: ' + e.message);
+  }
+  return archivos;
 }
 
-function npAgregarArchivos(files) {
+function npDetectarTipoNombre(nombre, mime) {
+  var n = nombre.toLowerCase();
+  if(n.endsWith('.xlsx')||n.endsWith('.xls')) return 'excel';
+  if(n.endsWith('.pdf')) return 'pdf';
+  if(n.endsWith('.doc')||n.endsWith('.docx')) return 'word';
+  if(n.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'imagen';
+  return 'otro';
+}
+
+async function npAgregarArchivos(files) {
   for (var i=0;i<files.length;i++) {
     var file=files[i];
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      // Descomprimir ZIP
+      var banner = document.getElementById('np-archivos-lista');
+      var loadMsg = document.createElement('div');
+      loadMsg.style.cssText = 'padding:10px;background:#E6F1FB;border-radius:6px;font-size:12px;color:#185FA5;margin-bottom:6px;';
+      loadMsg.textContent = '📦 Descomprimiendo ' + file.name + '...';
+      if (banner) banner.insertBefore(loadMsg, banner.firstChild);
+      var archivosZip = await descomprimirZip(file);
+      if (loadMsg.parentNode) loadMsg.parentNode.removeChild(loadMsg);
+      if (archivosZip.length) {
+        archivosZip.forEach(function(a) {
+          if (!npArchivos.some(function(x){return x.file.name===a.file.name;})) {
+            npArchivos.push(a);
+          }
+        });
+        // Mostrar banner informativo
+        var infoMsg = document.createElement('div');
+        infoMsg.style.cssText = 'padding:8px 12px;background:#EAF3DE;border:1px solid #C0DD97;border-radius:6px;font-size:12px;color:#3B6D11;margin-bottom:6px;';
+        infoMsg.textContent = '✓ ZIP descomprimido: ' + archivosZip.length + ' archivos añadidos de "' + file.name + '"';
+        if (banner) banner.insertBefore(infoMsg, banner.firstChild);
+        setTimeout(function(){ if(infoMsg.parentNode) infoMsg.parentNode.removeChild(infoMsg); }, 4000);
+      } else {
+        alert('No se encontraron archivos válidos en el ZIP.');
+      }
+      continue;
+    }
     if (npArchivos.some(function(a){return a.file.name===file.name;})) continue;
     if (file.size>50*1024*1024) { alert(file.name+' supera 50MB.'); continue; }
     npArchivos.push({file:file, nombre:file.name, tipo:npDetectarTipo(file), esMediciones:false});
   }
   npRenderArchivos();
   document.getElementById('np-file-input').value='';
+}
+
+function npAgregarEnlace() {
+  var input = document.getElementById('np-link-url');
+  if (!input) return;
+  var url = input.value.trim();
+  if (!url) { input.focus(); return; }
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    alert('Introduce una URL válida (debe empezar por https://)'); input.focus(); return;
+  }
+  var proveedor = 'Enlace externo';
+  if (url.includes('wetransfer')) proveedor = 'WeTransfer';
+  else if (url.includes('drive.google')) proveedor = 'Google Drive';
+  else if (url.includes('dropbox')) proveedor = 'Dropbox';
+  else if (url.includes('onedrive') || url.includes('1drv.ms')) proveedor = 'OneDrive';
+  else if (url.includes('sharepoint')) proveedor = 'SharePoint';
+  else if (url.includes('transfernow')) proveedor = 'TransferNow';
+  var nombre = proveedor + ' — ' + url.substring(0, 55) + (url.length > 55 ? '…' : '');
+  if (npArchivos.some(function(a){ return a.url === url; })) {
+    alert('Este enlace ya está añadido.'); return;
+  }
+  npArchivos.push({ file: null, nombre: nombre, tipo: 'enlace', esMediciones: false, url: url, proveedor: proveedor });
+  input.value = '';
+  npRenderArchivos();
 }
 
 function npRenderArchivos() {
@@ -6577,21 +8630,23 @@ function npRenderArchivos() {
     el.innerHTML='<div style="text-align:center;padding:1rem;font-size:12px;color:#aaa;">No hay archivos añadidos aún</div>';
     return;
   }
-  var iconos={excel:'📊',pdf:'📄',word:'📝',imagen:'🖼️',enlace:'🔗',otro:'📎'};
+  var iconos={excel:'📊',pdf:'📄',word:'📝',imagen:'🖼️',otro:'📎',enlace:'🔗'};
   npArchivos.forEach(function(a, idx) {
-    var esMed=a.esMediciones;
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esMed?'#EAF3DE':'white')+';border:1px solid '+(esMed?'#C0DD97':'#e5e5e0')+';border-radius:8px;margin-bottom:6px;';
-    var sz = a.tipo === 'enlace' ? (a.url ? a.url.substring(0,40)+'...' : 'Enlace externo') : (a.file.size>1048576?(a.file.size/1048576).toFixed(1)+' MB':Math.round(a.file.size/1024)+' KB');
     var esEnlace = a.tipo === 'enlace';
+    var esMed = a.esMediciones;
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(esEnlace?'#F5F0FF':esMed?'#EAF3DE':'white')+';border:1px solid '+(esEnlace?'#C9B8F0':esMed?'#C0DD97':'#e5e5e0')+';border-radius:8px;margin-bottom:6px;';
+    var sz = esEnlace ? 'Enlace externo' : (a.file.size>1048576?(a.file.size/1048576).toFixed(1)+' MB':Math.round(a.file.size/1024)+' KB');
     row.innerHTML='<span style="font-size:20px;flex-shrink:0;">'+(iconos[a.tipo]||'📎')+'</span>'+
       '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+a.nombre+'</div>'+
       '<div style="font-size:11px;color:#888;">'+sz+(esMed?' &nbsp;<strong style="color:#3B6D11;">MEDICIONES</strong>':'')+'</div></div>'+
-      (esEnlace ? '' : '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;"><input type="checkbox" '+(esMed?'checked':'')+' style="width:14px;height:14px;"> Mediciones</label>')+
+      (esEnlace ? '' :
+        '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;">'+
+        '<input type="checkbox" '+(esMed?'checked':'')+' style="width:14px;height:14px;"> Mediciones</label>')+
       '<button style="background:none;border:none;cursor:pointer;font-size:16px;color:#aaa;flex-shrink:0;">✕</button>';
-    // Eventos
-    var cb = row.querySelector('input[type=checkbox]');
-    if (cb) cb.onchange = (function(i){ return function(e){ npToggleMediciones(i,e.target.checked); }; })(idx);
+    if (!esEnlace) {
+      row.querySelector('input[type=checkbox]').onchange = (function(i){ return function(e){ npToggleMediciones(i,e.target.checked); }; })(idx);
+    }
     row.querySelector('button').onclick = (function(i){ return function(){ npEliminarArchivo(i); }; })(idx);
     el.appendChild(row);
   });
@@ -6628,15 +8683,11 @@ function npGenerarResumen() {
       return meds.length?meds.map(function(a){return a.nombre;}).join(', '):'No marcado (se identificara en analisis)';
     })()}
   ];
-  var enlacesResumen = npArchivos.filter(function(a){ return a.tipo === 'enlace'; });
-  var enlacesHtml = enlacesResumen.length ? '<div style="display:flex;padding:9px 0;border-bottom:1px solid #f5f5f0;">' +
-    '<div style="width:180px;font-size:11px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;flex-shrink:0;">Enlaces</div>' +
-    '<div style="font-size:13px;color:#1a1a1a;">' + enlacesResumen.map(function(a){ return '🔗 ' + a.nombre; }).join('<br>') + '</div></div>' : '';
   el.innerHTML=campos.map(function(c){
     return '<div style="display:flex;padding:9px 0;border-bottom:1px solid #f5f5f0;">'+
       '<div style="width:180px;font-size:11px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;flex-shrink:0;">'+c.label+'</div>'+
       '<div style="font-size:13px;color:#1a1a1a;">'+(c.val||'-')+'</div></div>';
-  }).join('') + enlacesHtml;
+  }).join('');
 }
 
 async function npGuardar() {
@@ -6663,6 +8714,7 @@ async function npGuardar() {
       clienteId=npClienteSeleccionado.id;
       acronimo=npClienteSeleccionado.client_code||npClienteSeleccionado.internal_code||'XXX';
     }
+
     var anyo=new Date().getFullYear();
     var lastProj=await db.from('projects').select('project_code').order('id',{ascending:false}).limit(1);
     var nProj=1;
@@ -6674,6 +8726,7 @@ async function npGuardar() {
       name:document.getElementById('np-proj-nombre').value.trim(),
       code:projCode,
       project_code:projCode,
+      client_project_id:document.getElementById('np-proj-client-id').value.trim()||null,
       message_id:'MANUAL-'+Date.now(),
       client_id:clienteId,
       contact_email:npClienteTipo==='nuevo'?document.getElementById('np-new-email').value.trim():(npClienteSeleccionado.commercial_email||''),
@@ -6693,11 +8746,10 @@ async function npGuardar() {
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
       if (arch.tipo === 'enlace') {
-        // Guardar enlace externo directamente sin subir a Storage
-        var enlaceRes = await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:arch.url,
-          file_size:null,file_type:'enlace',mime_type:'text/uri-list',is_measurements:false,
+        // Guardar enlace externo directamente en BD sin subir a storage
+        await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:arch.url,
+          file_size:0,file_type:'enlace',mime_type:'text/uri-list',is_measurements:false,
           uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
-        console.log('Enlace guardado:', arch.nombre, enlaceRes.error || 'OK');
         continue;
       }
       var filePath='proyecto-'+proyectoId+'/'+Date.now()+'-'+arch.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
@@ -6747,15 +8799,92 @@ async function anDesmarcarMediciones(adjuntoId, projectId) {
 
 async function anDescargarArchivo(filePath, fileName) {
   try {
-    var res=await db.storage.from('project-attachments').createSignedUrl(filePath,300);
-    if(res.data&&res.data.signedUrl) window.open(res.data.signedUrl,'_blank');
-    else alert('No se pudo generar el enlace.');
-  } catch(e) { alert('Error: '+e.message); }
+    var res = await db.storage.from('project-attachments').createSignedUrl(filePath, 300);
+    if (!res.data || !res.data.signedUrl) { alert('No se pudo generar el enlace.'); return; }
+    var url = res.data.signedUrl;
+    var ext = fileName.split('.').pop().toLowerCase();
+    if (['xlsx','xls','doc','docx'].includes(ext)) {
+      window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank');
+    } else {
+      window.open(url, '_blank');
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function anAgregarEnlace(projectId) {
+  var input = document.getElementById('an-link-url');
+  if (!input) return;
+  var url = input.value.trim();
+  if (!url) { input.focus(); return; }
+  if (!url.startsWith('http://') && !url.startsWith('https://')) { alert('Introduce una URL válida (debe empezar por https://)'); input.focus(); return; }
+
+  // Detectar proveedor
+  var proveedor = 'externo';
+  if (url.includes('wetransfer')) proveedor = 'WeTransfer';
+  else if (url.includes('drive.google')) proveedor = 'Google Drive';
+  else if (url.includes('dropbox')) proveedor = 'Dropbox';
+  else if (url.includes('onedrive') || url.includes('1drv.ms')) proveedor = 'OneDrive';
+  else if (url.includes('sharepoint')) proveedor = 'SharePoint';
+  else if (url.includes('transfernow')) proveedor = 'TransferNow';
+
+  var displayName = proveedor + ' — ' + url.substring(0, 60) + (url.length > 60 ? '…' : '');
+
+  try {
+    await db.from('project_attachments').insert({
+      project_id:       projectId,
+      file_name:        displayName,
+      file_path:        url,
+      file_size:        0,
+      file_type:        'enlace',
+      mime_type:        'text/uri-list',
+      is_measurements:  false,
+      uploaded_by:      currentUser ? currentUser.email : 'manual',
+      uploaded_at:      new Date().toISOString(),
+      storage_provider: 'external'
+    });
+    input.value = '';
+    // Notificación verde
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+    notif.textContent = '✓ Enlace ' + proveedor + ' añadido correctamente';
+    document.body.appendChild(notif);
+    setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3000);
+    cargarDocumentosAnálisis(projectId, null);
+  } catch(e) { alert('Error al guardar enlace: ' + e.message); }
 }
 
 async function anAgregarArchivos(files, projectId) {
   for(var i=0;i<files.length;i++){
     var file=files[i];
+
+    // Soporte ZIP: descomprimir y subir cada archivo
+    if(file.name.toLowerCase().endsWith('.zip')){
+      var dz = document.getElementById('an-dropzone');
+      if(dz){ dz.innerHTML='<div style="font-size:13px;color:#185FA5;padding:0.5rem;">📦 Descomprimiendo '+file.name+'...</div>'; }
+      var archivosZip = await descomprimirZip(file);
+      if(dz){ dz.innerHTML='<div style="font-size:1.5rem;margin-bottom:6px;">📂</div><div style="font-size:12px;color:#666;margin-bottom:8px;">Arrastra archivos aqui o haz clic para seleccionar</div><div style="display:inline-block;background:#185FA5;color:white;padding:5px 14px;border-radius:6px;font-size:11px;">Seleccionar archivos</div>'; }
+      if(!archivosZip.length){ alert('No se encontraron archivos válidos en el ZIP.'); continue; }
+      var subidos=0;
+      for(var z=0;z<archivosZip.length;z++){
+        var a=archivosZip[z];
+        if(a.file.size>50*1024*1024){ console.warn('Archivo del ZIP supera 50MB, omitido: '+a.nombre); continue; }
+        var filePath='proyecto-'+projectId+'/zip-'+Date.now()+'-'+a.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+        var upRes=await db.storage.from('project-attachments').upload(filePath,a.file,{cacheControl:'3600',upsert:false});
+        if(upRes.error){ console.error('Error subiendo archivo del ZIP:', upRes.error); continue; }
+        await db.from('project_attachments').insert({project_id:projectId,file_name:a.nombre,file_path:filePath,
+          file_size:a.file.size,file_type:a.tipo,mime_type:a.file.type,is_measurements:false,
+          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'supabase'});
+        subidos++;
+      }
+      // Notificación
+      var notifDiv=document.createElement('div');
+      notifDiv.style.cssText='position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+      notifDiv.textContent='✓ ZIP descomprimido: '+subidos+' archivos subidos de "'+file.name+'"';
+      document.body.appendChild(notifDiv);
+      setTimeout(function(){if(notifDiv.parentNode)notifDiv.parentNode.removeChild(notifDiv);},4000);
+      continue;
+    }
+
     if(file.size>50*1024*1024){alert(file.name+' supera 50MB.');continue;}
     var tipo=npDetectarTipo(file);
     var filePath='proyecto-'+projectId+'/'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
@@ -6767,92 +8896,6 @@ async function anAgregarArchivos(files, projectId) {
   }
   document.getElementById('an-file-input').value='';
   cargarDocumentosAnálisis(projectId,null);
-}
-
-async function anAgregarEnlace(projectId) {
-  var inp = document.getElementById('an-link-input');
-  var url = inp ? inp.value.trim() : '';
-  if (!url) { alert('Pega un enlace antes de añadirlo.'); return; }
-  if (!url.startsWith('http')) { alert('El enlace debe empezar por http:// o https://'); return; }
-
-  // Mostrar estado de carga
-  var linkBtn = inp ? inp.nextElementSibling : null;
-  var btnOriginal = linkBtn ? linkBtn.textContent : '';
-  if (linkBtn) { linkBtn.textContent = '⏳ Descargando...'; linkBtn.disabled = true; }
-
-  try {
-    // Llamar al webhook de n8n para descargar y subir automáticamente
-    var n8nUrl = 'https://n8n.solventaapi.com/webhook/descargar-archivo';
-    var resp = await fetch(n8nUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: url,
-        project_id: projectId,
-        user_email: currentUser ? currentUser.email : 'manual'
-      })
-    });
-
-    if (!resp.ok) throw new Error('Error en el servidor: ' + resp.status);
-    var result = await resp.json();
-
-    if (result.ok) {
-      // Archivo ya subido a Supabase por n8n — solo recargar la lista
-      if (inp) inp.value = '';
-      cargarDocumentosAnálisis(projectId, null);
-      // Mostrar confirmación breve
-      if (linkBtn) { linkBtn.textContent = '✅ Añadido'; linkBtn.style.background = '#3B6D11'; }
-      setTimeout(function() {
-        if (linkBtn) { linkBtn.textContent = btnOriginal; linkBtn.disabled = false; linkBtn.style.background = '#185FA5'; }
-      }, 2000);
-    } else {
-      // n8n respondió pero con error — ejecutar fallback manualmente
-      await anFallbackEnlace(url, projectId, inp, linkBtn, btnOriginal);
-    }
-  } catch(e) {
-    console.error('Error descargando enlace:', e);
-    await anFallbackEnlace(url, projectId, inp, linkBtn, btnOriginal);
-  }
-}
-
-function mostrarAvisoEnlace(btn) {
-  var url = btn.dataset.url;
-  if (!url) return;
-  var aviso = document.createElement('div');
-  aviso.style.cssText = 'position:fixed;top:20px;right:20px;background:#1C1C1E;color:white;padding:16px 20px;border-radius:10px;font-size:13px;z-index:9999;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
-  aviso.innerHTML = '<div style="font-weight:600;margin-bottom:6px;">📂 Descarga automática no disponible</div>' +
-    '<div style="font-size:12px;color:#aaa;margin-bottom:12px;">Abriendo el enlace. Descarga los archivos y arrástralos al recuadro de carga.</div>' +
-    '<div style="font-size:11px;color:#52B788;">↓ Arrastra los archivos al recuadro de arriba</div>';
-  document.body.appendChild(aviso);
-  setTimeout(function() { window.open(url, '_blank'); }, 400);
-  setTimeout(function() { if (aviso.parentNode) aviso.remove(); }, 5000);
-}
-
-async function anFallbackEnlace(url, projectId, inp, linkBtn, btnOriginal) {
-  if (linkBtn) { linkBtn.textContent = btnOriginal; linkBtn.disabled = false; }
-  // Guardar como referencia externa automáticamente
-  var nombre = 'Enlace externo';
-  if (url.includes('wetransfer')) nombre = 'WeTransfer';
-  else if (url.includes('drive.google')) nombre = 'Google Drive';
-  else if (url.includes('dropbox')) nombre = 'Dropbox';
-  else if (url.includes('onedrive') || url.includes('sharepoint')) nombre = 'OneDrive';
-  await db.from('project_attachments').insert({
-    project_id: projectId, file_name: nombre, file_path: url,
-    file_size: null, file_type: 'enlace', mime_type: 'text/uri-list',
-    is_measurements: false, uploaded_by: currentUser ? currentUser.email : 'manual',
-    uploaded_at: new Date().toISOString(), storage_provider: 'external'
-  });
-  if (inp) inp.value = '';
-  cargarDocumentosAnálisis(projectId, null);
-  // Mostrar aviso y abrir el enlace automáticamente
-  var aviso = document.createElement('div');
-  aviso.style.cssText = 'position:fixed;top:20px;right:20px;background:#1C1C1E;color:white;padding:16px 20px;border-radius:10px;font-size:13px;z-index:9999;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
-  aviso.innerHTML = '<div style="font-weight:600;margin-bottom:6px;">📂 Descarga automática no disponible</div>' +
-    '<div style="font-size:12px;color:#aaa;margin-bottom:12px;">Abriendo el enlace para que puedas cargar los archivos manualmente en el dropzone.</div>' +
-    '<div style="font-size:11px;color:#52B788;">↓ Arrastra los archivos al recuadro de arriba</div>';
-  document.body.appendChild(aviso);
-  setTimeout(function() { window.open(url, '_blank'); }, 500);
-  setTimeout(function() { if(aviso.parentNode) aviso.remove(); }, 5000);
 }
 
 // ============================================================
@@ -7329,9 +9372,11 @@ async function cargarProveedoresGremio(nombreGremio, idx) {
   // Map gremio name to specialty_code
   var mapaEspecialidades = {
     'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
-    'Climatización': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
+    'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
     'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
-    'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS', 'Seguridad y Salud': 'SEGURIDAD_SALUD'
+    'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS', 'Seguridad y Salud': 'SEGURIDAD_SALUD',
+    'Soldadura': 'SOLDADURA', 'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
+    'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
   };
   var specialtyCode = mapaEspecialidades[nombreGremio];
 
@@ -7477,9 +9522,11 @@ function confirmarGremio(nombre, idx) {
   // Save selected suppliers for this gremio
   var mapaCodigosGremio3 = {
     'Demoliciones':'DEMOLICION','Albañilería':'ALBANILERIA','Pladur':'PLADUR',
-    'Climatización':'CLIMATIZACION','Electricidad':'ELECTRICIDAD',
+    'Climatización y ventilación':'CLIMATIZACION','Electricidad':'ELECTRICIDAD',
     'Contraincendios':'CONTRAINCENDIOS','Fontanería':'FONTANERIA',
-    'Varios':'VARIOS','Gestión de Residuos':'GESTION_RESIDUOS','Seguridad y Salud':'SEGURIDAD_SALUD'
+    'Varios':'VARIOS','Gestión de Residuos':'GESTION_RESIDUOS','Seguridad y Salud':'SEGURIDAD_SALUD',
+    'Soldadura':'SOLDADURA','Falso techo':'FALSO_TECHO','Ferretería':'FERRETERIA',
+    'CCTV y Datos':'CCTV_DATOS','Gestión y Limpieza':'GESTION_LIMPIEZA'
   };
   var gremioCode = mapaCodigosGremio3[nombre] || nombre.toUpperCase().replace(/\s/g,'_');
   var checkboxes = document.querySelectorAll('[id^="prov-check-"]:checked');
@@ -7531,10 +9578,12 @@ async function confirmarMediciones() {
       // Normalize gremio name to specialty_code
       var mapaCodigosGremio = {
         'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
-        'Climatización': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
+        'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
         'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
         'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS',
-        'Seguridad y Salud': 'SEGURIDAD_SALUD'
+        'Seguridad y Salud': 'SEGURIDAD_SALUD', 'Soldadura': 'SOLDADURA',
+        'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
+        'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
       };
       var specialtyCode = mapaCodigosGremio[gremioNombre] || gremioNombre.toUpperCase().replace(/\s/g,'_').replace(/[ÁÉÍÓÚ]/g, function(c){ return {Á:'A',É:'E',Í:'I',Ó:'O',Ú:'U'}[c]||c; });
       await db.from('project_specialties').insert({
@@ -8014,7 +10063,7 @@ async function cargarSeccionAnalisisDocumental(projectId) {
   if (!el) return;
 
   try {
-    // Load attachments with their doc_type — excluir enlaces externos
+    // Load attachments — excluir enlaces externos
     var res = await db.from('project_attachments').select('*').eq('project_id', projectId).order('uploaded_at');
     var adj = (res.data || []).filter(function(a){ return a.file_type !== 'enlace' && a.storage_provider !== 'external'; });
 
@@ -8027,7 +10076,6 @@ async function cargarSeccionAnalisisDocumental(projectId) {
     html += '<div style="font-size:13px;font-weight:600;color:#1a1a1a;">🤖 Análisis documental con IA</div>';
 
     var hasAnalyzable = adj.some(function(a) {
-      if (a.file_type === 'enlace' || a.storage_provider === 'external') return false;
       var t = a.doc_type || clasificarDocumentoPorNombre(a.file_name, a.mime_type);
       return t !== 'DWG' && t !== 'MEDICIONES';
     });
@@ -8042,22 +10090,6 @@ async function cargarSeccionAnalisisDocumental(projectId) {
       html += '<div style="background:#FEF3C7;border:1px solid #FAC775;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#854F0B;">';
       html += '⚠️ <strong>Archivos en enlace externo detectado:</strong> ' + repData.external_links;
       html += ' — Descárgalos manualmente y súbelos al proyecto.</div>';
-    }
-
-    // Mostrar enlaces externos por separado
-    var enlaces = (res.data || []).filter(function(a){ return a.file_type === 'enlace' || a.storage_provider === 'external'; });
-    if (enlaces.length) {
-      html += '<div style="margin-bottom:1rem;">';
-      html += '<div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:6px;">🔗 Enlaces externos</div>';
-      enlaces.forEach(function(e) {
-        html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;margin-bottom:6px;">';
-        html += '<span style="font-size:14px;">🔗</span>';
-        html += '<div style="flex:1;font-size:12px;font-weight:500;">' + e.file_name + '</div>';
-        html += '<span style="font-size:10px;color:#888;background:#f0f0f0;padding:2px 7px;border-radius:5px;">No analizable con IA</span>';
-        html += '<button class="btn btn-sm" style="font-size:11px;" onclick="mostrarAvisoEnlace(this)" data-url="' + e.file_path.replace(/"/g, '&quot;') + '">Abrir enlace</button>';
-        html += '</div>';
-      });
-      html += '</div>';
     }
 
     if (!adj.length) {
@@ -8312,9 +10344,6 @@ async function ejecutarAnalisisIA(projectId) {
 
     // Reload section to show updated state with download button
     cargarSeccionAnalisisDocumental(projectId);
-    
-    // Auto-generate PDF
-    setTimeout(function() { generarPdfInforme(projectId, informeFinal); }, 500);
 
   } catch(e) {
     if (reportEl) reportEl.innerHTML = '<div style="color:#E02020;font-size:12px;padding:1rem;">Error al analizar: ' + e.message + '</div>';
@@ -8528,6 +10557,222 @@ async function compararCertificacionIA(certId, projectId) {
     btn.textContent = '🤖 Comparar con IA';
     btn.disabled = false;
   }
+}
+
+// ---- INFORMES: HISTÓRICO DE PROYECTOS ----
+var infProyData = [];
+
+async function cargarInformeProyectos() {
+  var el = document.getElementById('informes-proyectos-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    var res = await db.from('projects')
+      .select('id,name,code,project_code,contact_email,category,confidence,received_at,created_at,project_statuses(code,name),clients(commercial_name)')
+      .order('created_at', {ascending: false});
+    infProyData = res.data || [];
+    document.getElementById('inf-proy-desde').value = '';
+    document.getElementById('inf-proy-hasta').value = '';
+    document.getElementById('inf-proy-buscar').value = '';
+    document.getElementById('inf-proy-estado').value = '';
+    renderInformeProyectos(infProyData);
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+function filtrarInformeProyectos() {
+  var q = (document.getElementById('inf-proy-buscar').value || '').toLowerCase();
+  var estado = document.getElementById('inf-proy-estado').value;
+  var desde = document.getElementById('inf-proy-desde').value;
+  var hasta = document.getElementById('inf-proy-hasta').value;
+  var filtered = infProyData.filter(function(p) {
+    var stCode = p.project_statuses ? p.project_statuses.code : '';
+    var texto = ((p.name||'')+(p.code||'')+(p.project_code||'')+(p.contact_email||'')+(p.category||'')).toLowerCase();
+    if (q && !texto.includes(q)) return false;
+    if (estado && stCode !== estado) return false;
+    var fecha = p.received_at || p.created_at || '';
+    if (desde && fecha.substring(0,10) < desde) return false;
+    if (hasta && fecha.substring(0,10) > hasta) return false;
+    return true;
+  });
+  renderInformeProyectos(filtered);
+}
+
+function limpiarFiltrosProyectos() {
+  document.getElementById('inf-proy-buscar').value = '';
+  document.getElementById('inf-proy-estado').value = '';
+  document.getElementById('inf-proy-desde').value = '';
+  document.getElementById('inf-proy-hasta').value = '';
+  renderInformeProyectos(infProyData);
+}
+
+function renderInformeProyectos(data) {
+  var countEl = document.getElementById('inf-proy-count');
+  var el = document.getElementById('informes-proyectos-content');
+  if (countEl) countEl.textContent = data.length + ' proyecto(s)';
+  if (!data.length) { el.innerHTML = '<div class="empty">No hay proyectos con los filtros aplicados.</div>'; return; }
+  var badgeColors = {solicitado:'#F1EFE8',en_analisis:'#EEEDFE',oferta_en_curso:'#FAEEDA',oferta_enviada:'#E6F1FB',adjudicado:'#EAF3DE',en_ejecucion:'#E1F5EE',cancelled:'#FCEBEB'};
+  var rows = data.map(function(p) {
+    var st = p.project_statuses ? p.project_statuses : {code:'',name:'-'};
+    var bg = badgeColors[st.code] || '#f5f5f0';
+    var conf = p.confidence ? Math.round(p.confidence*100)+'%' : '-';
+    var fecha = p.received_at ? new Date(p.received_at).toLocaleDateString('es-ES') : (p.created_at ? new Date(p.created_at).toLocaleDateString('es-ES') : '-');
+    return '<tr onclick="abrirProyectoById('+p.id+')" style="cursor:pointer;">' +
+      '<td><strong>'+(p.name||p.code||'#'+p.id)+'</strong>' +
+      (p.project_code ? '<br><span style="font-size:10px;color:#aaa;">'+p.project_code+'</span>' : '') + '</td>' +
+      '<td>'+(p.contact_email||'-')+'</td>' +
+      '<td>'+(p.category||'-')+'</td>' +
+      '<td style="text-align:center;">' + conf + '</td>' +
+      '<td><span style="font-size:10px;padding:2px 8px;border-radius:8px;background:'+bg+';">'+st.name+'</span></td>' +
+      '<td>'+fecha+'</td>' +
+      '</tr>';
+  }).join('');
+  el.innerHTML = '<div class="card"><table><thead><tr>' +
+    '<th>Proyecto</th><th>Cliente / Email</th><th>Gremio</th><th style="text-align:center;">Confianza IA</th><th>Estado</th><th>Fecha</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function imprimirInforme(contenidoId) {
+  var el = document.getElementById(contenidoId);
+  if (!el) return;
+  var w = window.open('','_blank');
+  w.document.write('<html><head><title>Informe EasyProject</title>' +
+    '<style>body{font-family:Arial,sans-serif;padding:2rem;font-size:12px;}' +
+    'table{width:100%;border-collapse:collapse;}' +
+    'th{background:#f5f5f0;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;border-bottom:2px solid #ccc;}' +
+    'td{padding:8px 10px;border-bottom:1px solid #eee;vertical-align:middle;}' +
+    'h1{font-size:16px;margin-bottom:0.5rem;}p{color:#888;font-size:11px;margin-bottom:1rem;}' +
+    '</style></head><body>' +
+    '<h1>EasyProject · BYG Soluciones</h1>' +
+    '<p>Generado el '+new Date().toLocaleDateString('es-ES')+' a las '+new Date().toLocaleTimeString('es-ES')+'</p>' +
+    el.innerHTML + '</body></html>');
+  w.document.close(); w.print();
+}
+
+// ---- INFORMES: GASTOS ----
+var infGasData = [];
+
+async function cargarInformeGastos() {
+  var el = document.getElementById('informes-gastos-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    var res = await db.from('project_expenses')
+      .select('*,projects(name,code,project_code)')
+      .order('expense_date', {ascending: false});
+    infGasData = res.data || [];
+    document.getElementById('inf-gas-buscar').value = '';
+    document.getElementById('inf-gas-aprobado').value = '';
+    document.getElementById('inf-gas-desde').value = '';
+    document.getElementById('inf-gas-hasta').value = '';
+    renderInformeGastos(infGasData);
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+function filtrarInformeGastos() {
+  var q = (document.getElementById('inf-gas-buscar').value || '').toLowerCase();
+  var aprobado = document.getElementById('inf-gas-aprobado').value;
+  var desde = document.getElementById('inf-gas-desde').value;
+  var hasta = document.getElementById('inf-gas-hasta').value;
+  var filtered = infGasData.filter(function(g) {
+    var pNombre = g.projects ? (g.projects.name||g.projects.code||'') : '';
+    var texto = (pNombre+(g.supplier_name||'')+(g.concept||'')).toLowerCase();
+    if (q && !texto.includes(q)) return false;
+    if (aprobado === '1' && !g.approved) return false;
+    if (aprobado === '0' && g.approved) return false;
+    var fecha = g.expense_date || '';
+    if (desde && fecha.substring(0,10) < desde) return false;
+    if (hasta && fecha.substring(0,10) > hasta) return false;
+    return true;
+  });
+  renderInformeGastos(filtered);
+}
+
+function renderInformeGastos(data) {
+  var el = document.getElementById('informes-gastos-content');
+  var totalEl = document.getElementById('inf-gas-total');
+  var total = data.reduce(function(acc,g){ return acc+(parseFloat(g.amount)||0); }, 0);
+  var totalApro = data.filter(function(g){return g.approved;}).reduce(function(acc,g){ return acc+(parseFloat(g.amount)||0); }, 0);
+  if (totalEl) totalEl.innerHTML = 'Total: <strong>'+total.toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</strong> · Aprobado: <strong style="color:#3B6D11;">'+totalApro.toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</strong> · Pendiente: <strong style="color:#A32D2D;">'+(total-totalApro).toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</strong>';
+  if (!data.length) { el.innerHTML = '<div class="empty">No hay gastos con los filtros aplicados.</div>'; return; }
+  var rows = data.map(function(g) {
+    var pNombre = g.projects ? (g.projects.name||g.projects.code||'#'+g.project_id) : '#'+g.project_id;
+    var fecha = g.expense_date ? new Date(g.expense_date).toLocaleDateString('es-ES') : '-';
+    return '<tr>' +
+      '<td>'+fecha+'</td>' +
+      '<td><strong>'+pNombre+'</strong></td>' +
+      '<td>'+(g.supplier_name||'-')+'</td>' +
+      '<td>'+(g.concept||'-')+'</td>' +
+      '<td><span class="badge '+(g.expense_type==='factura'?'b-oferta_enviada':'b-default')+'">'+(g.expense_type==='factura'?'Factura':'Albarán')+'</span></td>' +
+      '<td style="text-align:right;font-weight:500;">'+parseFloat(g.amount).toLocaleString('es-ES',{minimumFractionDigits:2})+' EUR</td>' +
+      '<td>'+(g.approved?'<span class="badge b-adjudicado">Aprobado</span>':'<span class="badge b-review">Pendiente</span>')+'</td>' +
+      '</tr>';
+  }).join('');
+  el.innerHTML = '<div class="card"><table><thead><tr>' +
+    '<th>Fecha</th><th>Proyecto</th><th>Proveedor</th><th>Concepto</th><th>Tipo</th><th style="text-align:right;">Importe</th><th>Estado</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ---- INFORMES: DESVIACIONES DE OBRA ----
+var infDesvData = [];
+
+async function cargarInformeDesviaciones() {
+  var el = document.getElementById('informes-desviaciones-content');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  try {
+    // Hitos completados con desviación
+    var res = await db.from('project_milestones')
+      .select('*,projects(id,name,code,project_code,project_managers(full_name))')
+      .eq('completed', true)
+      .not('actual_date', 'is', null)
+      .not('planned_date', 'is', null)
+      .order('actual_date', {ascending: false});
+    infDesvData = res.data || [];
+    document.getElementById('inf-desv-buscar').value = '';
+    renderInformeDesviaciones(infDesvData);
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+function filtrarInformeDesviaciones() {
+  var q = (document.getElementById('inf-desv-buscar').value || '').toLowerCase();
+  var filtered = infDesvData.filter(function(h) {
+    var pNombre = h.projects ? (h.projects.name||h.projects.code||'') : '';
+    var mgr = h.projects && h.projects.project_managers ? h.projects.project_managers.full_name : '';
+    var texto = (pNombre+mgr+(h.milestone_name||'')).toLowerCase();
+    return !q || texto.includes(q);
+  });
+  renderInformeDesviaciones(filtered);
+}
+
+function renderInformeDesviaciones(data) {
+  var el = document.getElementById('informes-desviaciones-content');
+  if (!data.length) { el.innerHTML = '<div class="empty">No hay hitos completados con datos de desviación.</div>'; return; }
+  var totalDias = data.reduce(function(acc,h){ return acc+(parseInt(h.deviation_days)||0); }, 0);
+  var mediaDias = data.length > 0 ? Math.round(totalDias/data.length) : 0;
+  var retrasados = data.filter(function(h){ return (parseInt(h.deviation_days)||0) > 0; }).length;
+  var adelantados = data.filter(function(h){ return (parseInt(h.deviation_days)||0) < 0; }).length;
+  var resumen = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;">' +
+    '<div class="metric"><div class="metric-label">Hitos analizados</div><div class="metric-value">'+data.length+'</div></div>' +
+    '<div class="metric"><div class="metric-label">Retrasados</div><div class="metric-value" style="color:#A32D2D;">'+retrasados+'</div></div>' +
+    '<div class="metric"><div class="metric-label">Adelantados</div><div class="metric-value" style="color:#3B6D11;">'+adelantados+'</div></div>' +
+    '<div class="metric"><div class="metric-label">Desviación media</div><div class="metric-value" style="color:'+(mediaDias>0?'#A32D2D':'#3B6D11')+';">'+(mediaDias>0?'+':'')+mediaDias+'d</div></div>' +
+    '</div>';
+  var rows = data.map(function(h) {
+    var pNombre = h.projects ? (h.projects.name||h.projects.code||'#'+h.project_id) : '#'+h.project_id;
+    var mgr = h.projects && h.projects.project_managers ? h.projects.project_managers.full_name : '-';
+    var dias = parseInt(h.deviation_days)||0;
+    var col = dias > 5 ? '#A32D2D' : dias > 0 ? '#854F0B' : dias < 0 ? '#3B6D11' : '#888';
+    var planDate = h.planned_date ? new Date(h.planned_date).toLocaleDateString('es-ES') : '-';
+    var realDate = h.actual_date ? new Date(h.actual_date).toLocaleDateString('es-ES') : '-';
+    return '<tr>' +
+      '<td><strong>'+pNombre+'</strong></td>' +
+      '<td>'+mgr+'</td>' +
+      '<td>'+(h.milestone_name||'-')+'</td>' +
+      '<td>'+planDate+'</td>' +
+      '<td>'+realDate+'</td>' +
+      '<td style="text-align:center;font-weight:600;color:'+col+';">'+(dias>0?'+':'')+dias+' días</td>' +
+      '</tr>';
+  }).join('');
+  el.innerHTML = resumen + '<div class="card"><table><thead><tr>' +
+    '<th>Proyecto</th><th>Jefe de Obra</th><th>Hito</th><th>Fecha prevista</th><th>Fecha real</th><th style="text-align:center;">Desviación</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 // ---- INFORMES TÉCNICOS DE ANÁLISIS ----
