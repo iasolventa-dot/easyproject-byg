@@ -498,11 +498,14 @@
       <button class="btn-refresh" onclick="loadDashboard()">Actualizar</button>
       <button id="btn-nuevo-proyecto" class="btn-refresh" style="background:#3B6D11;" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button>
       <div class="dept-select" id="dept-select-wrap">
-        <button class="dept-btn active-tecnico" onclick="setDept('tecnico',this)">Técnico</button>
-        <button class="dept-btn" onclick="setDept('direccion',this)">Dirección</button>
-        <button class="dept-btn" onclick="setDept('comercial',this)">Comercial</button>
-        <button class="dept-btn" onclick="setDept('prl',this)">PRL</button>
-        <button class="dept-btn" onclick="setDept('admin',this)">Admin</button>
+        <div id="dept-btns-container" style="display:none;gap:6px;align-items:center;">
+          <span style="font-size:10px;color:#aaa;margin-right:2px;">SUPERADMIN:</span>
+          <button class="dept-btn active-tecnico" onclick="setDept('tecnico',this)">Técnico</button>
+          <button class="dept-btn" onclick="setDept('direccion',this)">Dirección</button>
+          <button class="dept-btn" onclick="setDept('comercial',this)">Comercial</button>
+          <button class="dept-btn" onclick="setDept('prl',this)">PRL</button>
+          <button class="dept-btn" onclick="setDept('admin',this)">Admin</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3373,7 +3376,10 @@ async function loadGremios() {
     if (!res.data||!res.data.length){tbody.innerHTML='<tr><td colspan="3" class="empty">No hay gremios</td></tr>';return;}
     tbody.innerHTML=res.data.map(function(g){
       return '<tr><td><span class="badge b-default">'+g.code+'</span></td><td>'+g.name+'</td>' +
-        '<td style="text-align:right;"><button class="btn btn-sm" onclick="editarGremio(\''+g.id+'\',\''+g.code+'\',\''+encodeURIComponent(g.name)+'\')">Editar</button></td></tr>';
+        '<td style="text-align:right;display:flex;gap:6px;justify-content:flex-end;">' +
+          '<button class="btn btn-sm" onclick="editarGremio(\''+g.id+'\',\''+g.code+'\',\''+encodeURIComponent(g.name)+'\')">Editar</button>' +
+          '<button class="btn btn-sm" style="background:white;border:1px solid #FFCDD2;color:#C62828;" onclick="borrarGremio(\''+g.id+'\',\''+encodeURIComponent(g.name)+'\')">Borrar</button>' +
+        '</td></tr>';
     }).join('');
   } catch(e){console.error(e);}
 }
@@ -3397,6 +3403,23 @@ function editarGremio(id, codigo, nombreEnc) {
 function cerrarModalGremio() {
   document.getElementById('modal-gremio').style.display = 'none';
   gremioEditando = null;
+}
+
+async function borrarGremio(id, nombreEnc) {
+  var nombre = decodeURIComponent(nombreEnc);
+  if (!confirm('¿Seguro que quieres borrar el gremio "' + nombre + '"?\n\nEsta acción no se puede deshacer.')) return;
+  try {
+    var res = await db.from('supplier_specialties').delete().eq('id', parseInt(id));
+    if (res.error) throw res.error;
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#C62828;color:white;padding:14px 20px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;';
+    notif.innerHTML = '<span style="font-size:18px;">🗑</span><span>Gremio <strong>"' + nombre + '"</strong> eliminado</span>';
+    document.body.appendChild(notif);
+    setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3000);
+    loadGremios();
+  } catch(e) {
+    alert('Error al borrar el gremio:\n' + (e.message || JSON.stringify(e)));
+  }
 }
 
 async function guardarGremio() {
@@ -3737,49 +3760,14 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       });
       el.appendChild(lista);
     }
-    // Zona de arrastre + botón seleccionar
+    // ---- Sección enlace externo (WeTransfer, Drive, Dropbox, OneDrive) ----
     var addDiv=document.createElement('div');
     addDiv.style.marginTop='0.75rem';
-    
-    var inp=document.createElement('input');
-    inp.type='file';inp.multiple=true;inp.id='an-file-input';inp.style.display='none';
-    inp.accept='.pdf,.xlsx,.xls,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.zip';
-    inp.onchange=function(){anAgregarArchivos(this.files,projectId);};
-    
-    var dropzone=document.createElement('div');
-    dropzone.id='an-dropzone';
-    dropzone.style.cssText='border:2px dashed #ccc;border-radius:8px;padding:1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;';
-    dropzone.innerHTML='<div style="font-size:1.5rem;margin-bottom:6px;">&#128206;</div>'+
-      '<div style="font-size:12px;color:#666;margin-bottom:4px;">Arrastra archivos aqui o haz clic para seleccionar</div>'+
-      '<div style="font-size:10px;color:#aaa;margin-bottom:8px;">PDF, Excel, Word, imágenes — o un <strong>ZIP</strong> con todos los documentos</div>'+
-      '<div style="display:inline-block;background:#185FA5;color:white;padding:5px 14px;border-radius:6px;font-size:11px;">Seleccionar archivos</div>';
-    
-    dropzone.onclick=function(){ document.getElementById('an-file-input').click(); };
-    dropzone.ondragover=function(e){
-      e.preventDefault();
-      dropzone.style.borderColor='#185FA5';
-      dropzone.style.background='#f0f7ff';
-    };
-    dropzone.ondragleave=function(){
-      dropzone.style.borderColor='#ccc';
-      dropzone.style.background='';
-    };
-    dropzone.ondrop=function(e){
-      e.preventDefault();
-      dropzone.style.borderColor='#ccc';
-      dropzone.style.background='';
-      if(e.dataTransfer.files.length) anAgregarArchivos(e.dataTransfer.files, projectId);
-    };
-    
-    // ---- Sección enlace externo (WeTransfer, Drive, Dropbox, OneDrive) ----
+
     var linkSection = document.createElement('div');
-    linkSection.style.cssText = 'margin-top:0.75rem;';
+    linkSection.style.cssText = 'margin-top:0.5rem;';
     linkSection.innerHTML =
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-        '<div style="flex:1;height:1px;background:#e5e5e0;"></div>' +
-        '<span style="font-size:11px;color:#aaa;white-space:nowrap;">o añadir enlace externo</span>' +
-        '<div style="flex:1;height:1px;background:#e5e5e0;"></div>' +
-      '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:500;">📎 Añadir enlace externo de documentación</div>' +
       '<div style="display:flex;gap:6px;">' +
         '<input id="an-link-url" type="url" placeholder="https://wetransfer.com/... · drive.google.com · dropbox.com · onedrive..." ' +
           'style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px;outline:none;" />' +
@@ -3794,8 +3782,6 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
         '<span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">SharePoint</span>' +
       '</div>';
 
-    addDiv.appendChild(inp);
-    addDiv.appendChild(dropzone);
     addDiv.appendChild(linkSection);
     el.appendChild(addDiv);
     var archsMed=adj.filter(function(a){return a.is_measurements;});
@@ -4849,6 +4835,16 @@ function volverDesdeAdjudicado() {
 var currentUser = null;
 
 var deptByEmail = {
+  // Correos reales BYG
+  'francisco.galvan@bygsoluciones.es':    'tecnico',
+  'anabel.cruz@bygsoluciones.es':         'tecnico',
+  'javier.bastos@bygsoluciones.es':       'direccion',
+  'marta.torrado@bygsoluciones.es':       'prl',
+  'david.suarez@bygsoluciones.es':        'comercial',
+  'sandra.leal@bygsoluciones.es':         'admin',
+  // Superadmin Solventa (acceso a todos los departamentos vía setDept)
+  'frangutierrez@bygsoluciones.es':       'superadmin',
+  // Correos legacy demo (mantener por si acaso)
   'tecnico@bygsoluciones.es':             'tecnico',
   'direccion@bygsoluciones.es':           'direccion',
   'comercial@bygsoluciones.es':           'comercial',
@@ -5023,17 +5019,26 @@ function iniciarApp() {
   appIniciada = true;
   ocultarLogin();
   var email = currentUser.email;
-  var dept = deptByEmail[email] || 'tecnico';
+  var deptMapped = deptByEmail[email] || 'tecnico';
+  // Superadmin entra como tecnico pero con botones de dept visibles
+  var dept = (deptMapped === 'superadmin') ? 'tecnico' : deptMapped;
+  var esSuperadmin = (deptMapped === 'superadmin');
   currentDept = dept;
+
+  // Mostrar/ocultar botones de cambio de departamento
+  var deptBtnsContainer = document.getElementById('dept-btns-container');
+  if (deptBtnsContainer) {
+    deptBtnsContainer.style.display = esSuperadmin ? 'flex' : 'none';
+  }
 
   // Aplicar tema del departamento
   var cfg = deptConfig[dept];
   document.body.className = 'dept-' + dept;
-  document.getElementById('user-name').textContent = cfg.name;
+  document.getElementById('user-name').textContent = esSuperadmin ? 'Solventa IA (Admin)' : cfg.name;
   document.getElementById('user-email').textContent = email;
-  document.getElementById('dept-badge').textContent = cfg.badge;
+  document.getElementById('dept-badge').textContent = esSuperadmin ? 'SUPERADMIN' : cfg.badge;
   document.getElementById('dept-badge').className = 'dept-badge dept-' + dept + '-badge';
-  document.getElementById('dept-indicator').textContent = cfg.desc;
+  document.getElementById('dept-indicator').textContent = esSuperadmin ? 'Vista: Superadmin — acceso a todos los departamentos' : cfg.desc;
   document.getElementById('dept-indicator').className = 'dept-indicator di-' + dept;
 
   // Activar boton de departamento
@@ -8903,17 +8908,26 @@ async function anAgregarArchivos(files, projectId) {
 // ============================================================
 
 var MAPEO_GREMIOS = {
-  'C01': { gremio: 'Demoliciones',        color: '#FFE0B2' },
-  'C02': { gremio: 'Albañilería',          color: '#BBDEFB' },
-  'C03': { gremio: 'Pladur',              color: '#C8E6C9' },
-  'C04': { gremio: 'Climatización',       color: '#E1BEE7' },
-  'C05': { gremio: 'Climatización',       color: '#E1BEE7' },
-  'C06': { gremio: 'Electricidad',        color: '#FFF9C4' },
-  'C07': { gremio: 'Contraincendios',     color: '#FFCDD2' },
-  'C08': { gremio: 'Fontanería',          color: '#B3E5FC' },
-  'C09': { gremio: 'Varios',              color: '#F5F5F5' },
-  'C10': { gremio: 'Gestión de Residuos', color: '#DCEDC8' },
-  'C11': { gremio: 'Seguridad y Salud',   color: '#CFD8DC' },
+  'C01': { gremio: 'Demoliciones',                     color: '#FFE0B2' },
+  'C02': { gremio: 'Albañilería',                      color: '#BBDEFB' },
+  'C03': { gremio: 'Pladur',                           color: '#C8E6C9' },
+  'C04': { gremio: 'Climatización',                    color: '#E1BEE7' },
+  'C05': { gremio: 'Climatización',                    color: '#E1BEE7' },
+  'C06': { gremio: 'Electricidad',                     color: '#FFF9C4' },
+  'C07': { gremio: 'Contraincendios',                  color: '#FFCDD2' },
+  'C08': { gremio: 'Fontanería',                       color: '#B3E5FC' },
+  'C09': { gremio: 'Varios',                           color: '#F5F5F5' },
+  'C10': { gremio: 'Gestión de Residuos',              color: '#DCEDC8' },
+  'C11': { gremio: 'Seguridad y Salud',                color: '#CFD8DC' },
+  'C12': { gremio: 'Soldadura',                        color: '#F8BBD9' },
+  'C13': { gremio: 'Falso techo',                      color: '#D7CCC8' },
+  'C14': { gremio: 'Ferretería',                       color: '#B0BEC5' },
+  'C15': { gremio: 'CCTV y Datos',                     color: '#C5CAE9' },
+  'C16': { gremio: 'Gestión y Limpieza',               color: '#F0F4C3' },
+  'C17': { gremio: 'Carpintería',                      color: '#FFCC80' },
+  'C18': { gremio: 'Pintura',                          color: '#F48FB1' },
+  'C19': { gremio: 'Pavimentos y revestimientos',      color: '#A5D6A7' },
+  'C20': { gremio: 'Prevención de Riesgos Laborales',  color: '#FFAB91' },
 };
 
 var _medicionesResultado = null; // Guarda resultado para confirmar
@@ -9253,7 +9267,7 @@ function verPartidasGremio(nombre, data, idx) {
   var thead = document.createElement('thead');
   var theadRow = document.createElement('tr');
   theadRow.style.background = '#f5f5f0';
-  [['Capítulo','120px'], ['Código','80px'], ['Descripción','auto'], ['Ud','50px'], ['Cantidad','80px'], ['','40px']].forEach(function(th) {
+  [['Capítulo','220px'], ['Código','80px'], ['Descripción','auto'], ['Ud','50px'], ['Cantidad','80px'], ['','40px']].forEach(function(th) {
     var cell = document.createElement('th');
     cell.style.cssText = 'padding:8px 12px;text-align:left;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;border-bottom:2px solid #e5e5e0;white-space:nowrap;width:'+th[1]+';';
     cell.textContent = th[0];
@@ -9338,13 +9352,33 @@ function verPartidasGremio(nombre, data, idx) {
 }
 
 function moverPartida(item, gremioOrigen) {
-  var gremios = Object.keys(_medicionesResultado.gremios).filter(function(g){ return g !== gremioOrigen; });
+  // Obtener gremios del resultado actual + todos los disponibles en BD
+  var gremiosEnResultado = Object.keys(_medicionesResultado.gremios).filter(function(g){ return g !== gremioOrigen; });
+
+  // Combinar con todos los gremios del MAPEO para permitir mover a cualquiera
+  var todosGremios = Object.values(MAPEO_GREMIOS).map(function(g){ return g.gremio; });
+  // Añadir también gremios que ya están en el resultado pero no en MAPEO
+  gremiosEnResultado.forEach(function(g){ if (todosGremios.indexOf(g) === -1) todosGremios.push(g); });
+  // Eliminar duplicados y el origen
+  var gremios = todosGremios.filter(function(g, i, arr){
+    return g !== gremioOrigen && arr.indexOf(g) === i;
+  }).sort();
+
   var opcionesTexto = gremios.map(function(g,i){ return (i+1) + '. ' + g; }).join('\n');
   var resp = prompt('Mover partida "' + (item.partida.descripcion||'').substring(0,40) + '" a:\n\n' + opcionesTexto + '\n\nEscribe el número:');
   if (!resp) return;
   var destIdx = parseInt(resp) - 1;
   if (isNaN(destIdx) || destIdx < 0 || destIdx >= gremios.length) { alert('Número incorrecto'); return; }
   var destGremio = gremios[destIdx];
+
+  // Si el gremio destino no existe aún en el resultado, crearlo
+  if (!_medicionesResultado.gremios[destGremio]) {
+    var colorEntry = Object.values(MAPEO_GREMIOS).find(function(m){ return m.gremio === destGremio; });
+    _medicionesResultado.gremios[destGremio] = {
+      color: colorEntry ? colorEntry.color : '#F5F5F5',
+      capitulos: []
+    };
+  }
 
   // Remove from origen
   var origen = _medicionesResultado.gremios[gremioOrigen];
