@@ -4637,7 +4637,10 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
         var pdfFile = new File([pdfBlob], pdfFileName, {type:'application/pdf'});
         var projCode2 = ocProyecto.code || ocProyecto.name || ('Proyecto-' + ocProyecto.id);
         var projName2 = ocProyecto.name || ocProyecto.code || '';
-        var driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Proveedores', null);
+        // Usar folder_id guardado en BD para evitar crear carpetas duplicadas
+        var projDriveData = await db.from('projects').select('drive_folder_id').eq('id', ocProyecto.id).single();
+        var existingFolderId = projDriveData.data ? projDriveData.data.drive_folder_id : null;
+        var driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Proveedores', existingFolderId);
         if (driveRes) {
           await db.from('offer_analysis').update({pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId})
             .eq('project_id', ocProyecto.id).eq('specialty_code', gremio).order('created_at', {ascending: false}).limit(1);
@@ -9345,7 +9348,11 @@ async function npGuardar() {
     // Crear carpeta Drive siempre que haya archivos o enlaces
     if(npArchivos.length > 0){
       var folderRes=await storageCreateFolder(proyectoId,projCode,newProj.name);
-      if(folderRes) driveFolderId=folderRes.folder_id;
+      if(folderRes) {
+        driveFolderId=folderRes.folder_id;
+        // Guardar folder_id en BD para reutilizarlo siempre
+        await db.from('projects').update({drive_folder_id:folderRes.folder_id, drive_folder_url:folderRes.folder_url}).eq('id',proyectoId);
+      }
     }
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
@@ -9535,8 +9542,17 @@ async function anAgregarArchivos(files, projectId) {
   var anFolderId=null;
   var hayArchivos=Array.from(files).some(function(f){return !f.name.toLowerCase().endsWith('.zip')||true;});
   if(hayArchivos && projectId){
-    var anFolderRes=await storageCreateFolder(projectId,null,null);
-    if(anFolderRes) anFolderId=anFolderRes.folder_id;
+    // Intentar usar folder_id guardado en BD primero
+    var projDriveRes = await db.from('projects').select('drive_folder_id,code,name').eq('id',projectId).single();
+    if (projDriveRes.data && projDriveRes.data.drive_folder_id) {
+      anFolderId = projDriveRes.data.drive_folder_id;
+    } else {
+      var anFolderRes=await storageCreateFolder(projectId, projDriveRes.data?projDriveRes.data.code:null, projDriveRes.data?projDriveRes.data.name:null);
+      if(anFolderRes) {
+        anFolderId=anFolderRes.folder_id;
+        await db.from('projects').update({drive_folder_id:anFolderRes.folder_id, drive_folder_url:anFolderRes.folder_url}).eq('id',projectId);
+      }
+    }
   }
   for(var i=0;i<files.length;i++){
     var file=files[i];
