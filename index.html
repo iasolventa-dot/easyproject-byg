@@ -8906,12 +8906,63 @@ async function npGuardar() {
             uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
           continue;
         }
-        // Si es ZIP subido a Drive, registrar como un único archivo ZIP
-        var tipoEnlace = enlaceRes.es_zip ? 'zip' : 'otro';
-        await db.from('project_attachments').insert({project_id:proyectoId,file_name:enlaceRes.fileName,file_path:enlaceRes.viewUrl,
-          file_size:0,file_type:tipoEnlace,mime_type:enlaceRes.mimeType||'application/octet-stream',is_measurements:false,
-          drive_file_id:enlaceRes.fileId,
-          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'google_drive'});
+        // Si es ZIP: descargar desde Drive, descomprimir y subir cada archivo individualmente
+        if (enlaceRes.es_zip) {
+          try {
+            loadNotif=document.createElement('div');
+            loadNotif.style.cssText='position:fixed;bottom:20px;right:20px;background:#185FA5;color:white;padding:12px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+            loadNotif.textContent='📦 Descomprimiendo ZIP del enlace...';
+            document.body.appendChild(loadNotif);
+            // Descargar el ZIP desde Drive usando la URL de descarga directa
+            var zipFetchResp = await fetch(enlaceRes.downloadUrl);
+            var zipBlob = await zipFetchResp.blob();
+            var zipFile = new File([zipBlob], enlaceRes.fileName || 'archivo.zip', {type:'application/zip'});
+            var archivosZip = await descomprimirZip(zipFile);
+            if(loadNotif.parentNode) loadNotif.parentNode.removeChild(loadNotif);
+            if (archivosZip.length > 0) {
+              // Borrar el ZIP de Drive (ya no lo necesitamos)
+              try {
+                await fetch('https://www.googleapis.com/drive/v3/files/' + enlaceRes.fileId, { method: 'DELETE' });
+              } catch(de) { console.warn('No se pudo borrar ZIP temporal de Drive:', de); }
+              // Subir cada archivo descomprimido individualmente
+              for (var z=0; z<archivosZip.length; z++) {
+                var za = archivosZip[z];
+                var zaRes = await storageUpload(za.file, proyectoId, projCode, newProj.name, 'Adjuntos', driveFolderId);
+                if (!zaRes) { console.error('Error subiendo archivo del ZIP:', za.nombre); continue; }
+                if (zaRes.folder_id && !driveFolderId) driveFolderId = zaRes.folder_id;
+                await db.from('project_attachments').insert({project_id:proyectoId, file_name:za.nombre, file_path:zaRes.viewUrl,
+                  file_size:za.file.size, file_type:za.tipo, mime_type:za.file.type, is_measurements:false,
+                  drive_file_id:zaRes.fileId,
+                  uploaded_by:currentUser?currentUser.email:'manual', uploaded_at:new Date().toISOString(), storage_provider:'google_drive'});
+              }
+              var zipNotif=document.createElement('div');
+              zipNotif.style.cssText='position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:14px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+              zipNotif.textContent='✓ ZIP desplegado: ' + archivosZip.length + ' archivos subidos desde el enlace';
+              document.body.appendChild(zipNotif);
+              setTimeout(function(){if(zipNotif.parentNode)zipNotif.parentNode.removeChild(zipNotif);},4000);
+            } else {
+              // ZIP vacío o error — registrar como referencia
+              await db.from('project_attachments').insert({project_id:proyectoId, file_name:enlaceRes.fileName, file_path:enlaceRes.viewUrl,
+                file_size:0, file_type:'zip', mime_type:'application/zip', is_measurements:false,
+                drive_file_id:enlaceRes.fileId,
+                uploaded_by:currentUser?currentUser.email:'manual', uploaded_at:new Date().toISOString(), storage_provider:'google_drive'});
+            }
+          } catch(ze) {
+            console.error('Error descomprimiendo ZIP del enlace:', ze);
+            if(loadNotif && loadNotif.parentNode) loadNotif.parentNode.removeChild(loadNotif);
+            // Fallback: registrar el ZIP como está
+            await db.from('project_attachments').insert({project_id:proyectoId, file_name:enlaceRes.fileName, file_path:enlaceRes.viewUrl,
+              file_size:0, file_type:'zip', mime_type:'application/zip', is_measurements:false,
+              drive_file_id:enlaceRes.fileId,
+              uploaded_by:currentUser?currentUser.email:'manual', uploaded_at:new Date().toISOString(), storage_provider:'google_drive'});
+          }
+        } else {
+          // No es ZIP — registrar el archivo directamente
+          await db.from('project_attachments').insert({project_id:proyectoId, file_name:enlaceRes.fileName, file_path:enlaceRes.viewUrl,
+            file_size:0, file_type:'otro', mime_type:enlaceRes.mimeType||'application/octet-stream', is_measurements:false,
+            drive_file_id:enlaceRes.fileId,
+            uploaded_by:currentUser?currentUser.email:'manual', uploaded_at:new Date().toISOString(), storage_provider:'google_drive'});
+        }
         continue;
       }
       var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Adjuntos',driveFolderId);
