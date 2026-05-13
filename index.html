@@ -4419,16 +4419,18 @@ async function verComparativo(gremio) {
 
     var iaTexto = null;
     try {
-      var iaRes = await fetch('https://n8n.solventaapi.com/webhook/analisis-documental', {
+      // Llamar a n8n que hace proxy a OpenAI con la API key configurada
+      var iaRes = await fetch('https://n8n.solventaapi.com/webhook/comparativo-ofertas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'comparativo_ofertas', prompt: prompt, proyecto_id: ocProyecto.id, gremio: gremioNombre })
+        body: JSON.stringify({ prompt: prompt, proyecto_id: ocProyecto.id, gremio: gremioNombre })
       });
       if (iaRes.ok) {
         var iaText = await iaRes.text();
         if (iaText && iaText.trim()) {
           var iaData = JSON.parse(iaText);
-          iaTexto = iaData.analysis || iaData.resultado || iaData.respuesta || iaData.text || iaData.output || null;
+          iaTexto = iaData.respuesta || iaData.text || iaData.output || iaData.result || null;
+          if (iaTexto) iaTexto = iaTexto.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         }
       }
     } catch(iaErr) { console.warn('IA no disponible, usando fallback:', iaErr.message); }
