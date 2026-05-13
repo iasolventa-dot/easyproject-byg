@@ -4177,7 +4177,7 @@ async function cargarOfertasRecibidas() {
 
       return '<div class="card" style="margin-bottom:1rem;" data-gremio="'+gremio+'">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">' +
-        '<div style="display:flex;align-items:center;gap:8px;"><span class="badge b-default">'+gremio+'</span>' +
+        '<div style="display:flex;align-items:center;gap:8px;"><span class="badge b-default">'+(MAPEO_GREMIOS[gremio]?MAPEO_GREMIOS[gremio].gremio:gremio)+'</span>' +
         '<span style="font-size:12px;color:#888;">'+respondidos+' de '+enviados+' ofertas recibidas</span></div>' +
         (respondidos >= 2 ? '<button class="btn btn-primary btn-sm" onclick="verComparativoGremio(this)">Ver comparativo IA</button>' : '') +
         '</div>' +
@@ -4193,8 +4193,63 @@ async function cargarOfertasRecibidas() {
   } catch(e) { console.error('Error:', e); el.innerHTML='<div class="empty">Error cargando ofertas</div>'; }
 }
 
-function verOfertaRecibida(reqId) {
-  alert('En producción: muestra el detalle de la oferta recibida y sus partidas normalizadas por la IA.');
+async function verOfertaRecibida(reqId) {
+  try {
+    var res = await db.from('offer_responses')
+      .select('*,suppliers(commercial_name)')
+      .eq('offer_request_id', reqId)
+      .single();
+    if (!res.data) { alert('No hay respuesta registrada para esta petición.'); return; }
+    var r = res.data;
+    var gremioNombre = MAPEO_GREMIOS[r.specialty_code] ? MAPEO_GREMIOS[r.specialty_code].gremio : r.specialty_code;
+    var proveedor = r.suppliers ? r.suppliers.commercial_name : '-';
+    var importe = parseFloat(r.total_amount).toLocaleString('es-ES', {minimumFractionDigits:2}) + ' €';
+    var cobertura = r.coverage_pct ? r.coverage_pct + '%' : '-';
+    var plazo = r.delivery_days ? r.delivery_days + ' días' : '-';
+    var formato = r.response_format || '-';
+    var seleccionado = r.selected ? '✅ Seleccionada' : 'No seleccionada';
+
+    var html = '<div style="padding:1rem;min-width:320px;">' +
+      '<h3 style="margin:0 0 1rem 0;font-size:15px;">Oferta recibida — ' + gremioNombre + '</h3>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+      '<tr><td style="padding:6px 0;color:#666;width:40%;">Proveedor</td><td style="font-weight:500;">' + proveedor + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Importe total</td><td style="font-weight:600;font-size:15px;color:#3B6D11;">' + importe + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Cobertura</td><td>' + cobertura + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Plazo entrega</td><td>' + plazo + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Formato</td><td>' + formato + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Estado</td><td>' + seleccionado + '</td></tr>' +
+      '</table>' +
+      '<div style="margin-top:1rem;display:flex;gap:8px;justify-content:flex-end;">' +
+      '<button class="btn" onclick="this.closest(\'[data-modal]\').remove()">Cerrar</button>' +
+      (!r.selected ? '<button class="btn btn-primary" onclick="seleccionarOferta(' + r.id + ',' + reqId + ')">Seleccionar esta oferta</button>' : '') +
+      '</div></div>';
+
+    // Mostrar en modal simple
+    var overlay = document.createElement('div');
+    overlay.setAttribute('data-modal','1');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-width:480px;width:90%;';
+    box.innerHTML = html;
+    overlay.appendChild(box);
+    overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+  } catch(e) { alert('Error cargando oferta: ' + e.message); }
+}
+
+async function seleccionarOferta(responseId, reqId) {
+  try {
+    // Deseleccionar otras del mismo gremio
+    var rRes = await db.from('offer_responses').select('specialty_code').eq('id', responseId).single();
+    if (rRes.data) {
+      await db.from('offer_responses').update({selected:false}).eq('project_id', ocProyecto.id).eq('specialty_code', rRes.data.specialty_code);
+    }
+    // Seleccionar esta
+    await db.from('offer_responses').update({selected:true}).eq('id', responseId);
+    document.querySelector('[data-modal]').remove();
+    alert('Oferta seleccionada correctamente.');
+    cargarOfertasRecibidas();
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 function verComparativo(gremio) {
