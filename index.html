@@ -8344,7 +8344,8 @@ async function verDocumentoGasto(fileName, displayName) {
 // Para cambiar de proveedor en el futuro, editar solo estas
 // dos funciones. El resto del código no cambia.
 // ============================================================
-var STORAGE_N8N_WEBHOOK = 'https://n8n.solventaapi.com/webhook/subir-archivo-drive';
+var STORAGE_N8N_WEBHOOK        = 'https://n8n.solventaapi.com/webhook/subir-archivo-drive';
+var STORAGE_N8N_FOLDER_WEBHOOK = 'https://n8n.solventaapi.com/webhook/crear-carpeta-drive';
 
 async function storageUpload(file, projectId, projectCode, projectName, subcarpeta, folderIdKnown) {
   // Convierte el archivo a base64 y lo manda a n8n → Google Drive
@@ -8382,6 +8383,25 @@ async function storageUpload(file, projectId, projectCode, projectName, subcarpe
     return data;
   } catch(e) {
     console.error('storageUpload exception:', e);
+    return null;
+  }
+}
+
+async function storageCreateFolder(projectId, projectCode, projectName) {
+  // Crea (o localiza si ya existe) la carpeta del proyecto en Drive
+  // Devuelve: { folder_id, folder_url } o null si error
+  try {
+    var res = await fetch(STORAGE_N8N_FOLDER_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: projectId, project_code: projectCode, project_name: projectName })
+    });
+    if (!res.ok) { console.error('storageCreateFolder HTTP error:', res.status); return null; }
+    var data = await res.json();
+    if (!data.ok || !data.folder_id) { console.error('storageCreateFolder error:', data); return null; }
+    return { folder_id: data.folder_id, folder_url: data.folder_url };
+  } catch(e) {
+    console.error('storageCreateFolder exception:', e);
     return null;
   }
 }
@@ -8826,6 +8846,13 @@ async function npGuardar() {
     };
     var projRes=await db.from('projects').insert(newProj).select().single();
     var proyectoId=projRes.data.id;
+    // Crear carpeta Drive UNA SOLA VEZ antes de subir archivos
+    var driveFolderId=null;
+    var tieneArchivos=npArchivos.some(function(a){return a.tipo!=='enlace';});
+    if(tieneArchivos){
+      var folderRes=await storageCreateFolder(proyectoId,projCode,newProj.name);
+      if(folderRes) driveFolderId=folderRes.folder_id;
+    }
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
       if (arch.tipo === 'enlace') {
@@ -8835,8 +8862,9 @@ async function npGuardar() {
           uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
         continue;
       }
-      var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Adjuntos',null);
+      var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Adjuntos',driveFolderId);
       if(!driveRes){console.error('Error subiendo '+arch.nombre+' a Drive');continue;}
+      if(driveRes.folder_id && !driveFolderId) driveFolderId=driveRes.folder_id; // Guardar para siguientes archivos
       await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:driveRes.viewUrl,
         file_size:arch.file.size,file_type:arch.tipo,mime_type:arch.file.type,is_measurements:arch.esMediciones,
         drive_file_id:driveRes.fileId,
@@ -8941,6 +8969,13 @@ async function anAgregarEnlace(projectId) {
 }
 
 async function anAgregarArchivos(files, projectId) {
+  // Crear carpeta Drive UNA SOLA VEZ antes de subir archivos
+  var anFolderId=null;
+  var hayArchivos=Array.from(files).some(function(f){return !f.name.toLowerCase().endsWith('.zip')||true;});
+  if(hayArchivos && projectId){
+    var anFolderRes=await storageCreateFolder(projectId,null,null);
+    if(anFolderRes) anFolderId=anFolderRes.folder_id;
+  }
   for(var i=0;i<files.length;i++){
     var file=files[i];
 
@@ -8955,8 +8990,9 @@ async function anAgregarArchivos(files, projectId) {
       for(var z=0;z<archivosZip.length;z++){
         var a=archivosZip[z];
         if(a.file.size>50*1024*1024){ console.warn('Archivo del ZIP supera 50MB, omitido: '+a.nombre); continue; }
-        var driveResZ=await storageUpload(a.file,projectId,null,null,'Adjuntos',null);
+        var driveResZ=await storageUpload(a.file,projectId,null,null,'Adjuntos',anFolderId);
         if(!driveResZ){ console.error('Error subiendo archivo del ZIP a Drive'); continue; }
+        if(driveResZ.folder_id && !anFolderId) anFolderId=driveResZ.folder_id;
         await db.from('project_attachments').insert({project_id:projectId,file_name:a.nombre,file_path:driveResZ.viewUrl,
           file_size:a.file.size,file_type:a.tipo,mime_type:a.file.type,is_measurements:false,
           drive_file_id:driveResZ.fileId,
@@ -8974,8 +9010,9 @@ async function anAgregarArchivos(files, projectId) {
 
     if(file.size>50*1024*1024){alert(file.name+' supera 50MB.');continue;}
     var tipo=npDetectarTipo(file);
-    var driveResS=await storageUpload(file,projectId,null,null,'Adjuntos',null);
+    var driveResS=await storageUpload(file,projectId,null,null,'Adjuntos',anFolderId);
     if(!driveResS){console.error('Error subiendo '+file.name+' a Drive');continue;}
+    if(driveResS.folder_id && !anFolderId) anFolderId=driveResS.folder_id;
     await db.from('project_attachments').insert({project_id:projectId,file_name:file.name,file_path:driveResS.viewUrl,
       file_size:file.size,file_type:tipo,mime_type:file.type,is_measurements:false,
       drive_file_id:driveResS.fileId,
