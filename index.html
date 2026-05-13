@@ -3754,7 +3754,7 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
           bm.style.cssText='background:'+(esMed?'#EAF3DE':'#f0f7ff')+';border:1px solid '+(esMed?'#C0DD97':'#B5D4F4')+';color:'+(esMed?'#3B6D11':'#185FA5')+';padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';
           bm.onclick=(function(id,pid,marked){return function(){marked?anDesmarcarMediciones(id,pid):anMarcarMediciones(id,pid);};})(a.id,projectId,esMed);
           row.appendChild(bm);
-          var bd=document.createElement('button');bd.textContent='Ver';bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';bd.onclick=(function(p,n){return function(){anDescargarArchivo(p,n);};})(a.file_path,a.file_name);row.appendChild(bd);
+          var bd=document.createElement('button');bd.textContent='Ver';bd.style.cssText='background:white;border:1px solid #ddd;padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;';bd.onclick=(function(p,n,sp,did){return function(){anDescargarArchivo(p,n,sp,did);};})(a.file_path,a.file_name,a.storage_provider,a.drive_file_id);row.appendChild(bd);
         }
         lista.appendChild(row);
       });
@@ -5765,14 +5765,11 @@ async function confirmarGasto() {
     var fileInput = document.getElementById('gasto-file-input');
     if (fileInput && fileInput.files && fileInput.files[0]) {
       var file = fileInput.files[0];
-      var fileName = ejProyecto.id + '_' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      var uploadRes = await db.storage.from('gastos-documentos').upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-      if (!uploadRes.error) {
-        data.document_url = fileName;
+      var driveResGasto = await storageUpload(file, ejProyecto.id, null, null, 'Gastos', null);
+      if (driveResGasto) {
+        data.document_url = driveResGasto.viewUrl;
         data.document_name = file.name;
+        data.drive_file_id = driveResGasto.fileId;
       }
     }
 
@@ -8330,9 +8327,10 @@ function abrirProyectoJefeObra(id, stCode) {
 
 async function verDocumentoGasto(fileName, displayName) {
   try {
-    var res = await db.storage.from('gastos-documentos').createSignedUrl(fileName, 300); // 5 min
-    if (res.data && res.data.signedUrl) {
-      window.open(res.data.signedUrl, '_blank');
+    var record = { file_path: fileName, storage_provider: fileName && fileName.startsWith('https://') ? 'google_drive' : 'supabase', _bucket: 'gastos-documentos' };
+    var urls = await storageGetUrl(record);
+    if (urls && urls.viewUrl) {
+      window.open(urls.viewUrl, '_blank');
     } else {
       alert('No se pudo obtener el documento.');
     }
@@ -8341,6 +8339,86 @@ async function verDocumentoGasto(fileName, displayName) {
 
 </script>
 <script>
+// ============================================================
+// STORAGE ABSTRACTION LAYER — Google Drive via n8n
+// Para cambiar de proveedor en el futuro, editar solo estas
+// dos funciones. El resto del código no cambia.
+// ============================================================
+var STORAGE_N8N_WEBHOOK = 'https://n8n.solventaapi.com/webhook/subir-archivo-drive';
+
+async function storageUpload(file, projectId, projectCode, projectName, subcarpeta, folderIdKnown) {
+  // Convierte el archivo a base64 y lo manda a n8n → Google Drive
+  // Devuelve: { fileId, viewUrl, downloadUrl, folder_id, folder_url } o null si error
+  try {
+    var arrayBuffer = await file.arrayBuffer();
+    var bytes = new Uint8Array(arrayBuffer);
+    var binary = '';
+    var chunkSize = 8192;
+    for (var i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    var base64 = btoa(binary);
+
+    var payload = {
+      file_base64:  base64,
+      file_name:    file.name,
+      mime_type:    file.type || 'application/octet-stream',
+      project_id:   projectId   || null,
+      project_code: projectCode || null,
+      project_name: projectName || null,
+      subcarpeta:   subcarpeta  || 'Adjuntos',
+      folder_id:    folderIdKnown || null
+    };
+
+    var res = await fetch(STORAGE_N8N_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) { console.error('storageUpload HTTP error:', res.status); return null; }
+    var data = await res.json();
+    if (!data.ok || !data.fileId) { console.error('storageUpload error:', data.error); return null; }
+    return data;
+  } catch(e) {
+    console.error('storageUpload exception:', e);
+    return null;
+  }
+}
+
+async function storageGetUrl(fileRecord) {
+  // Devuelve URL para abrir/descargar un archivo según su proveedor
+  // fileRecord debe tener: { file_path, storage_provider, drive_file_id (opcional) }
+  // Devuelve: { viewUrl, downloadUrl } o null si error
+  var provider = fileRecord.storage_provider || 'supabase';
+
+  if (provider === 'google_drive' || (fileRecord.file_path && fileRecord.file_path.startsWith('https://drive.google.com'))) {
+    // Google Drive: la URL de visualización ya está en file_path
+    var viewUrl = fileRecord.file_path;
+    var downloadUrl = fileRecord.drive_file_id
+      ? 'https://drive.google.com/uc?export=download&id=' + fileRecord.drive_file_id
+      : viewUrl;
+    return { viewUrl: viewUrl, downloadUrl: downloadUrl };
+  }
+
+  if (provider === 'external' || (fileRecord.file_path && fileRecord.file_path.startsWith('http'))) {
+    // Enlace externo: abrir directamente
+    return { viewUrl: fileRecord.file_path, downloadUrl: fileRecord.file_path };
+  }
+
+  // Legacy Supabase Storage: generar signed URL
+  try {
+    var bucket = fileRecord._bucket || 'project-attachments';
+    var res = await db.storage.from(bucket).createSignedUrl(fileRecord.file_path, 300);
+    if (!res.data || !res.data.signedUrl) return null;
+    return { viewUrl: res.data.signedUrl, downloadUrl: res.data.signedUrl };
+  } catch(e) {
+    console.error('storageGetUrl (supabase) error:', e);
+    return null;
+  }
+}
+// ============================================================
+
 // MÓDULO NUEVO PROYECTO + ADJUNTOS
 var npClienteTipo = 'existente';
 var npClienteSeleccionado = null;
@@ -8757,12 +8835,12 @@ async function npGuardar() {
           uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
         continue;
       }
-      var filePath='proyecto-'+proyectoId+'/'+Date.now()+'-'+arch.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      var upRes=await db.storage.from('project-attachments').upload(filePath,arch.file,{cacheControl:'3600',upsert:false});
-      if(upRes.error){console.error('Error subiendo '+arch.nombre+':',upRes.error);continue;}
-      await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:filePath,
+      var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Adjuntos',null);
+      if(!driveRes){console.error('Error subiendo '+arch.nombre+' a Drive');continue;}
+      await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:driveRes.viewUrl,
         file_size:arch.file.size,file_type:arch.tipo,mime_type:arch.file.type,is_measurements:arch.esMediciones,
-        uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'supabase'});
+        drive_file_id:driveRes.fileId,
+        uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'google_drive'});
     }
     // Crear notificaciones para los otros departamentos
     var deptCreador = currentDept || 'tecnico';
@@ -8802,16 +8880,20 @@ async function anDesmarcarMediciones(adjuntoId, projectId) {
   } catch(e) { alert('Error: '+e.message); }
 }
 
-async function anDescargarArchivo(filePath, fileName) {
+async function anDescargarArchivo(filePath, fileName, storageProvider, driveFileId) {
   try {
-    var res = await db.storage.from('project-attachments').createSignedUrl(filePath, 300);
-    if (!res.data || !res.data.signedUrl) { alert('No se pudo generar el enlace.'); return; }
-    var url = res.data.signedUrl;
-    var ext = fileName.split('.').pop().toLowerCase();
+    var record = {
+      file_path: filePath,
+      storage_provider: storageProvider || (filePath && filePath.startsWith('https://') ? 'external' : 'supabase'),
+      drive_file_id: driveFileId || null
+    };
+    var urls = await storageGetUrl(record);
+    if (!urls || !urls.viewUrl) { alert('No se pudo generar el enlace.'); return; }
+    var ext = (fileName || '').split('.').pop().toLowerCase();
     if (['xlsx','xls','doc','docx'].includes(ext)) {
-      window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank');
+      window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(urls.downloadUrl), '_blank');
     } else {
-      window.open(url, '_blank');
+      window.open(urls.viewUrl, '_blank');
     }
   } catch(e) { alert('Error: ' + e.message); }
 }
@@ -8873,12 +8955,12 @@ async function anAgregarArchivos(files, projectId) {
       for(var z=0;z<archivosZip.length;z++){
         var a=archivosZip[z];
         if(a.file.size>50*1024*1024){ console.warn('Archivo del ZIP supera 50MB, omitido: '+a.nombre); continue; }
-        var filePath='proyecto-'+projectId+'/zip-'+Date.now()+'-'+a.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-        var upRes=await db.storage.from('project-attachments').upload(filePath,a.file,{cacheControl:'3600',upsert:false});
-        if(upRes.error){ console.error('Error subiendo archivo del ZIP:', upRes.error); continue; }
-        await db.from('project_attachments').insert({project_id:projectId,file_name:a.nombre,file_path:filePath,
+        var driveResZ=await storageUpload(a.file,projectId,null,null,'Adjuntos',null);
+        if(!driveResZ){ console.error('Error subiendo archivo del ZIP a Drive'); continue; }
+        await db.from('project_attachments').insert({project_id:projectId,file_name:a.nombre,file_path:driveResZ.viewUrl,
           file_size:a.file.size,file_type:a.tipo,mime_type:a.file.type,is_measurements:false,
-          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'supabase'});
+          drive_file_id:driveResZ.fileId,
+          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'google_drive'});
         subidos++;
       }
       // Notificación
@@ -8892,12 +8974,12 @@ async function anAgregarArchivos(files, projectId) {
 
     if(file.size>50*1024*1024){alert(file.name+' supera 50MB.');continue;}
     var tipo=npDetectarTipo(file);
-    var filePath='proyecto-'+projectId+'/'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    var upRes=await db.storage.from('project-attachments').upload(filePath,file,{cacheControl:'3600',upsert:false});
-    if(upRes.error){console.error(upRes.error);continue;}
-    await db.from('project_attachments').insert({project_id:projectId,file_name:file.name,file_path:filePath,
+    var driveResS=await storageUpload(file,projectId,null,null,'Adjuntos',null);
+    if(!driveResS){console.error('Error subiendo '+file.name+' a Drive');continue;}
+    await db.from('project_attachments').insert({project_id:projectId,file_name:file.name,file_path:driveResS.viewUrl,
       file_size:file.size,file_type:tipo,mime_type:file.type,is_measurements:false,
-      uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'supabase'});
+      drive_file_id:driveResS.fileId,
+      uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'google_drive'});
   }
   document.getElementById('an-file-input').value='';
   cargarDocumentosAnálisis(projectId,null);
@@ -8968,9 +9050,11 @@ async function anAnalizarMediciones(projectId, adjuntoIds) {
         continue;
       }
 
-      // Get signed URL and download file
-      var urlRes = await db.storage.from('project-attachments').createSignedUrl(adj.file_path, 60);
-      if (!urlRes.data || !urlRes.data.signedUrl) { alert('No se pudo acceder al archivo'); continue; }
+      // Get URL for file (Drive o Supabase legacy)
+      var _recSheetJS = { file_path: adj.file_path, storage_provider: adj.storage_provider, drive_file_id: adj.drive_file_id };
+      var _urlsSheetJS = await storageGetUrl(_recSheetJS);
+      if (!_urlsSheetJS || !_urlsSheetJS.downloadUrl) { alert('No se pudo acceder al archivo'); continue; }
+      var urlRes = { data: { signedUrl: _urlsSheetJS.downloadUrl } };
 
       loadingDiv.innerHTML = '<div style="font-size:13px;color:#185FA5;font-weight:500;">📊 Leyendo Excel con SheetJS...</div>';
 
@@ -9066,9 +9150,10 @@ function agruparPorGremio(capitulos, obraNombre) {
 async function analizarMedicionesConIA(adj, projectId) {
   // Get file as base64 and send to n8n/OpenAI
   try {
-    var urlRes = await db.storage.from('project-attachments').createSignedUrl(adj.file_path, 60);
-    if (!urlRes.data) return null;
-    var response = await fetch(urlRes.data.signedUrl);
+    var _recIA = { file_path: adj.file_path, storage_provider: adj.storage_provider, drive_file_id: adj.drive_file_id };
+    var _urlsIA = await storageGetUrl(_recIA);
+    if (!_urlsIA) return null;
+    var response = await fetch(_urlsIA.downloadUrl);
     var arrayBuffer = await response.arrayBuffer();
     var base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(arrayBuffer)));
 
@@ -9800,19 +9885,14 @@ async function guardarCertificacion() {
       if (iniciado === 'cliente') clientDocPath = file.name;
       else bygDocPath = file.name;
 
-      // Try upload to Supabase storage
+      // Upload a Google Drive via n8n
       try {
-        var arrayBuf = await file.arrayBuffer();
-        var uploadRes = await db.storage.from('project-attachments').upload(
-          'certificaciones/' + filePath,
-          new Uint8Array(arrayBuf),
-          { contentType: file.type }
-        );
-        if (!uploadRes.error) {
-          if (iniciado === 'cliente') clientDocPath = 'certificaciones/' + filePath;
-          else bygDocPath = 'certificaciones/' + filePath;
+        var driveResCert = await storageUpload(file, ejProyecto.id, null, null, 'Certificaciones', null);
+        if (driveResCert) {
+          if (iniciado === 'cliente') { clientDocPath = driveResCert.viewUrl; clientDocDriveId = driveResCert.fileId; }
+          else { bygDocPath = driveResCert.viewUrl; bygDocDriveId = driveResCert.fileId; }
         }
-      } catch(eu) { console.error('Upload error:', eu); }
+      } catch(eu) { console.error('Upload Drive error:', eu); }
     }
 
     // Save to DB - use only confirmed columns
@@ -9969,11 +10049,9 @@ async function guardarContrapropuesta(certId, projectId) {
   if (fileInput && fileInput.files && fileInput.files[0]) {
     var file = fileInput.files[0];
     try {
-      var arrayBuf = await file.arrayBuffer();
-      var filePath = 'certificaciones/contra_' + certId + '_' + Date.now() + '.' + file.name.split('.').pop();
-      var uploadRes = await db.storage.from('project-attachments').upload(filePath, new Uint8Array(arrayBuf), { contentType: file.type });
-      if (!uploadRes.error) bygDocPath = filePath;
-    } catch(eu) { console.error('Upload error:', eu); }
+      var driveResContra = await storageUpload(file, null, null, null, 'Certificaciones', null);
+      if (driveResContra) bygDocPath = driveResContra.viewUrl;
+    } catch(eu) { console.error('Upload Drive error:', eu); }
   }
 
   try {
@@ -9987,8 +10065,9 @@ async function guardarContrapropuesta(certId, projectId) {
 
 async function verDocCert(filePath) {
   try {
-    var res = await db.storage.from('project-attachments').createSignedUrl(filePath, 300);
-    if (res.data && res.data.signedUrl) window.open(res.data.signedUrl, '_blank');
+    var record = { file_path: filePath, storage_provider: filePath && filePath.startsWith('https://') ? 'google_drive' : 'supabase' };
+    var urls = await storageGetUrl(record);
+    if (urls && urls.viewUrl) window.open(urls.viewUrl, '_blank');
     else alert('No se pudo generar el enlace al documento.');
   } catch(e) { alert('Error: ' + e.message); }
 }
@@ -10156,7 +10235,7 @@ async function cargarSeccionAnalisisDocumental(projectId) {
         html += '</select>';
 
         // Preview button
-        html += '<button class="btn btn-sm" style="font-size:11px;flex-shrink:0;" onclick="anDescargarArchivo(\'' + a.file_path + '\',\'' + a.file_name + '\')">👁 Ver</button>';
+        html += '<button class="btn btn-sm" style="font-size:11px;flex-shrink:0;" onclick="anDescargarArchivo(\'' + a.file_path + '\',\'' + a.file_name + '\',\'' + (a.storage_provider||'supabase') + '\',\'' + (a.drive_file_id||'') + '\')">👁 Ver</button>';
 
         // Status badge
         if (isDWG) {
@@ -10244,14 +10323,15 @@ async function ejecutarAnalisisIA(projectId) {
       try {
         if (reportEl) reportEl.innerHTML = '<div style="text-align:center;padding:2rem;font-size:12px;color:#888;">🤖 Analizando ' + (i+1) + '/' + adj.length + ': ' + a.file_name + '...</div>';
 
-        var signedRes = await db.storage.from('project-attachments').createSignedUrl(a.file_path, 120);
-        if (!signedRes.data || !signedRes.data.signedUrl) {
+        var _recAnalisis = { file_path: a.file_path, storage_provider: a.storage_provider, drive_file_id: a.drive_file_id };
+        var _urlsAnalisis = await storageGetUrl(_recAnalisis);
+        if (!_urlsAnalisis || !_urlsAnalisis.downloadUrl) {
           docsOmitidos.push(a.file_name + ' (no se pudo acceder al archivo)');
           continue;
         }
 
         // Fetch file as arrayBuffer for text extraction
-        var fileResp = await fetch(signedRes.data.signedUrl);
+        var fileResp = await fetch(_urlsAnalisis.downloadUrl);
         var arrayBuffer = await fileResp.arrayBuffer();
 
         // Extract text based on file type
@@ -10482,11 +10562,10 @@ async function generarPdfInforme(projectId, textoInforme) {
     }
     try {
       var pdfBlob=doc.output('blob');
-      var pdfArr=await pdfBlob.arrayBuffer();
-      var pdfPath='informes/informe_analisis_'+projectId+'_'+Date.now()+'.pdf';
-      var up=await db.storage.from('project-attachments').upload(pdfPath,new Uint8Array(pdfArr),{contentType:'application/pdf'});
-      if (!up.error) await db.from('project_analysis').update({ai_report_pdf_path:pdfPath}).eq('project_id',projectId);
-    } catch(eu){ console.error('Upload PDF:',eu); }
+      var pdfFile=new File([pdfBlob],'informe_analisis_'+projectId+'_'+Date.now()+'.pdf',{type:'application/pdf'});
+      var driveResPdf=await storageUpload(pdfFile,projectId,null,null,'Informes Técnicos',null);
+      if (driveResPdf) await db.from('project_analysis').update({ai_report_pdf_path:driveResPdf.viewUrl}).eq('project_id',projectId);
+    } catch(eu){ console.error('Upload PDF Drive:',eu); }
     doc.save('Informe_Analisis_Proyecto_'+projectId+'.pdf');
   } catch(e) { alert('Error generando PDF: '+e.message); console.error(e); }
 }
@@ -10510,11 +10589,13 @@ async function compararCertificacionIA(certId, projectId) {
       return;
     }
 
-    // Get signed URLs for both docs
-    var urlCliente = await db.storage.from('project-attachments').createSignedUrl(cert.client_doc_path, 120);
-    var urlByg = await db.storage.from('project-attachments').createSignedUrl(cert.byg_doc_path, 120);
+    // Get URLs for both docs (Drive o Supabase legacy)
+    var _recCliente = { file_path: cert.client_doc_path, storage_provider: cert.client_doc_path && cert.client_doc_path.startsWith('https://') ? 'google_drive' : 'supabase' };
+    var _recByg = { file_path: cert.byg_doc_path, storage_provider: cert.byg_doc_path && cert.byg_doc_path.startsWith('https://') ? 'google_drive' : 'supabase' };
+    var urlClienteObj = await storageGetUrl(_recCliente);
+    var urlBygObj = await storageGetUrl(_recByg);
 
-    if (!urlCliente.data || !urlByg.data) {
+    if (!urlClienteObj || !urlBygObj) {
       alert('No se pudieron acceder a los documentos');
       return;
     }
@@ -10544,8 +10625,8 @@ async function compararCertificacionIA(certId, projectId) {
       }
     }
 
-    var textoCliente = await extraerTextoDoc(urlCliente.data.signedUrl, cert.client_doc_path.split('/').pop());
-    var textoByg = await extraerTextoDoc(urlByg.data.signedUrl, cert.byg_doc_path.split('/').pop());
+    var textoCliente = await extraerTextoDoc(urlClienteObj.downloadUrl, cert.client_doc_path.split('/').pop());
+    var textoByg = await extraerTextoDoc(urlBygObj.downloadUrl, cert.byg_doc_path.split('/').pop());
 
     // Build comparison prompt
     var prompt = "Eres un técnico experto en certificaciones de obra de reforma comercial. " +
