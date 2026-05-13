@@ -8346,6 +8346,7 @@ async function verDocumentoGasto(fileName, displayName) {
 // ============================================================
 var STORAGE_N8N_WEBHOOK        = 'https://n8n.solventaapi.com/webhook/subir-archivo-drive';
 var STORAGE_N8N_FOLDER_WEBHOOK = 'https://n8n.solventaapi.com/webhook/crear-carpeta-drive';
+var STORAGE_N8N_ENLACE_WEBHOOK = 'https://n8n.solventaapi.com/webhook/descargar-enlace-drive';
 
 async function storageUpload(file, projectId, projectCode, projectName, subcarpeta, folderIdKnown) {
   // Convierte el archivo a base64 y lo manda a n8n → Google Drive
@@ -8402,6 +8403,29 @@ async function storageCreateFolder(projectId, projectCode, projectName) {
     return { folder_id: data.folder_id, folder_url: data.folder_url };
   } catch(e) {
     console.error('storageCreateFolder exception:', e);
+    return null;
+  }
+}
+
+async function storageDownloadLink(url, folderId, projectId) {
+  // Descarga un enlace externo (WeTransfer, Dropbox, Drive, OneDrive) y lo sube a Drive
+  // Devuelve: { fileId, viewUrl, downloadUrl, fileName, es_zip } o null si error
+  try {
+    var res = await fetch(STORAGE_N8N_ENLACE_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: url,
+        folder_id: folderId,
+        project_id: projectId
+      })
+    });
+    if (!res.ok) { console.error('storageDownloadLink HTTP error:', res.status); return null; }
+    var data = await res.json();
+    if (!data.ok || !data.fileId) { console.error('storageDownloadLink error:', data.error); return null; }
+    return data;
+  } catch(e) {
+    console.error('storageDownloadLink exception:', e);
     return null;
   }
 }
@@ -8723,6 +8747,13 @@ function npAgregarEnlace() {
   npArchivos.push({ file: null, nombre: nombre, tipo: 'enlace', esMediciones: false, url: url, proveedor: proveedor });
   input.value = '';
   npRenderArchivos();
+  // Mostrar aviso de que se descargará al guardar
+  var aviso = document.createElement('div');
+  aviso.style.cssText = 'margin-top:6px;padding:7px 12px;background:#E6F1FB;border-radius:6px;font-size:11px;color:#185FA5;';
+  aviso.textContent = '⬇️ El archivo de ' + proveedor + ' se descargará y subirá a Drive al registrar el proyecto.';
+  var lista = document.getElementById('np-archivos-lista');
+  if (lista) lista.insertAdjacentElement('afterend', aviso);
+  setTimeout(function(){ if(aviso.parentNode) aviso.parentNode.removeChild(aviso); }, 5000);
 }
 
 function npRenderArchivos() {
@@ -8856,10 +8887,27 @@ async function npGuardar() {
     for (var i=0;i<npArchivos.length;i++) {
       var arch=npArchivos[i];
       if (arch.tipo === 'enlace') {
-        // Guardar enlace externo directamente en BD sin subir a storage
-        await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:arch.url,
-          file_size:0,file_type:'enlace',mime_type:'text/uri-list',is_measurements:false,
-          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
+        // Descargar enlace externo via n8n y subir a Drive
+        var loadNotif=document.createElement('div');
+        loadNotif.style.cssText='position:fixed;bottom:20px;right:20px;background:#185FA5;color:white;padding:12px 18px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+        loadNotif.textContent='⬇️ Descargando ' + arch.proveedor + '...';
+        document.body.appendChild(loadNotif);
+        var enlaceRes = await storageDownloadLink(arch.url, driveFolderId, proyectoId);
+        if(loadNotif.parentNode) loadNotif.parentNode.removeChild(loadNotif);
+        if (!enlaceRes) {
+          // Si falla la descarga, guardar como enlace externo de referencia
+          console.warn('No se pudo descargar '+arch.url+', guardando como enlace externo');
+          await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:arch.url,
+            file_size:0,file_type:'enlace',mime_type:'text/uri-list',is_measurements:false,
+            uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'external'});
+          continue;
+        }
+        // Si es ZIP subido a Drive, registrar como un único archivo ZIP
+        var tipoEnlace = enlaceRes.es_zip ? 'zip' : 'otro';
+        await db.from('project_attachments').insert({project_id:proyectoId,file_name:enlaceRes.fileName,file_path:enlaceRes.viewUrl,
+          file_size:0,file_type:tipoEnlace,mime_type:enlaceRes.mimeType||'application/octet-stream',is_measurements:false,
+          drive_file_id:enlaceRes.fileId,
+          uploaded_by:currentUser?currentUser.email:'manual',uploaded_at:new Date().toISOString(),storage_provider:'google_drive'});
         continue;
       }
       var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Adjuntos',driveFolderId);
