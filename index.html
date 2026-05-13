@@ -479,6 +479,7 @@
   <div class="nav-item sub" id="nav-informes-gastos" onclick="showPanel('informes-gastos')" style="display:none;">Gastos</div>
   <div class="nav-item sub" id="nav-informes-desviaciones" onclick="showPanel('informes-desviaciones')" style="display:none;">Desviaciones de obra</div>
   <div class="nav-item sub" id="nav-informes-tecnico-analisis" onclick="showPanel('informes-tecnico-analisis')" style="display:none;">Informes técnicos de análisis</div>
+  <div class="nav-item sub" id="nav-informes-analisis-proveedores" onclick="showPanel('informes-analisis-proveedores')" style="display:none;">Análisis de proveedores</div>
 
   <div class="user-pill">
     <strong id="user-name">Dept. Técnico</strong>
@@ -1934,6 +1935,17 @@
 
 
 <!-- PANEL INFORMES: INFORMES TÉCNICOS DE ANÁLISIS -->
+<!-- PANEL: Análisis de Proveedores -->
+<div id="panel-informes-analisis-proveedores" class="panel">
+  <div class="topbar">
+    <h1>Análisis de Proveedores</h1>
+    <button class="btn btn-sm" onclick="cargarInformeAnalisisProveedores()">🔄 Actualizar</button>
+  </div>
+  <div class="content" id="panel-analisis-proveedores-content">
+    <div class="loading">Cargando análisis...</div>
+  </div>
+</div>
+
 <div id="panel-informes-tecnico-analisis" class="panel">
   <div class="topbar">
     <h1>Informes técnicos de análisis de Proyectos</h1>
@@ -2096,6 +2108,7 @@ function showPanel(name) {
   if (name==='alertas') loadAlertas();
   if (name==='informes-proyectos') cargarInformeProyectos();
   if (name==='informes-gastos') cargarInformeGastos();
+  if (name==='informes-analisis-proveedores') cargarInformeAnalisisProveedores();
   if (name==='informes-desviaciones') cargarInformeDesviaciones();
   if (name==='informes-tecnico-analisis') cargarInformeTecnicoAnalisis();
 }
@@ -4455,11 +4468,186 @@ async function verComparativo(gremio) {
   }
 }
 
+async function cargarInformeAnalisisProveedores() {
+  var el = document.getElementById('panel-analisis-proveedores-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Cargando análisis de proveedores...</div>';
+  try {
+    var res = await db.from('offer_analysis')
+      .select('*,projects(name,code)')
+      .order('created_at', {ascending: false});
+    var registros = res.data || [];
+    if (!registros.length) {
+      el.innerHTML = '<div class="empty">No hay análisis de proveedores registrados aún.</div>';
+      return;
+    }
+    // Agrupar por proyecto
+    var porProyecto = {};
+    registros.forEach(function(r) {
+      var key = r.project_id;
+      if (!porProyecto[key]) porProyecto[key] = { proyecto: r.projects, items: [] };
+      porProyecto[key].items.push(r);
+    });
+    var html = Object.values(porProyecto).map(function(grupo) {
+      var proj = grupo.proyecto;
+      var projNombre = proj ? (proj.name || proj.code) : 'Proyecto';
+      var filas = grupo.items.map(function(r) {
+        var fecha = r.created_at ? new Date(r.created_at).toLocaleDateString('es-ES') : '-';
+        var importe = r.importe_adjudicado ? parseFloat(r.importe_adjudicado).toLocaleString('es-ES', {minimumFractionDigits:2}) + '€' : '-';
+        return '<tr>' +
+          '<td>' + (r.gremio_nombre || r.specialty_code) + '</td>' +
+          '<td style="font-weight:500;">' + (r.proveedor_seleccionado || '-') + '</td>' +
+          '<td style="text-align:right;color:#3B6D11;font-weight:500;">' + importe + '</td>' +
+          '<td>' + fecha + '</td>' +
+          '<td>' + (r.created_by || '-') + '</td>' +
+          '<td style="text-align:center;">' +
+          (r.pdf_url ? '<a href="' + r.pdf_url + '" target="_blank" style="color:#185FA5;font-size:12px;">📄 Ver PDF</a>' : '-') +
+          '</td>' +
+          '<td style="text-align:center;">' +
+          '<button class="btn btn-sm" onclick="verAnalisisDetalle(' + r.id + ')">Ver análisis</button>' +
+          '</td>' +
+          '</tr>';
+      }).join('');
+      var totalAdjudicado = grupo.items.reduce(function(sum, r) { return sum + (parseFloat(r.importe_adjudicado) || 0); }, 0);
+      return '<div class="card" style="margin-bottom:1.5rem;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">' +
+        '<h3 style="margin:0;font-size:14px;">' + projNombre + '</h3>' +
+        '<span style="font-size:12px;color:#3B6D11;font-weight:500;">Total adjudicado: ' + totalAdjudicado.toLocaleString('es-ES', {minimumFractionDigits:2}) + '€</span>' +
+        '</div>' +
+        '<table class="data-table">' +
+        '<thead><tr><th>Gremio</th><th>Proveedor adjudicado</th><th style="text-align:right;">Importe</th><th>Fecha</th><th>Por</th><th style="text-align:center;">PDF</th><th style="text-align:center;">Análisis</th></tr></thead>' +
+        '<tbody>' + filas + '</tbody></table></div>';
+    }).join('');
+    el.innerHTML = html;
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+async function verAnalisisDetalle(id) {
+  var res = await db.from('offer_analysis').select('*').eq('id', id).single();
+  if (!res.data) return;
+  var r = res.data;
+  var overlay = document.createElement('div');
+  overlay.setAttribute('data-modal-analisis','1');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.25);width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:1.5rem;';
+  box.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">' +
+    '<h3 style="margin:0;font-size:15px;">Análisis — ' + (r.gremio_nombre || r.specialty_code) + '</h3>' +
+    '<button onclick="this.closest(\'[data-modal-analisis]\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;">✕</button>' +
+    '</div>' +
+    '<div style="background:#f5f5f0;border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:12px;">' +
+    '<strong>Proveedor adjudicado:</strong> ' + (r.proveedor_seleccionado || '-') + '<br>' +
+    '<strong>Importe:</strong> ' + (r.importe_adjudicado ? parseFloat(r.importe_adjudicado).toLocaleString('es-ES',{minimumFractionDigits:2})+'€' : '-') + '<br>' +
+    '<strong>Fecha:</strong> ' + (r.created_at ? new Date(r.created_at).toLocaleDateString('es-ES') : '-') + '<br>' +
+    '<strong>Por:</strong> ' + (r.created_by || '-') +
+    (r.pdf_url ? '<br><a href="' + r.pdf_url + '" target="_blank" style="color:#185FA5;">📄 Ver PDF en Drive</a>' : '') +
+    '</div>' +
+    '<div style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#333;">' + (r.analysis_text || '') + '</div>';
+  overlay.appendChild(box);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
 async function seleccionarOfertaComp(responseId, gremio, reqId) {
   try {
     await db.from('offer_responses').update({selected:false}).eq('project_id', ocProyecto.id).eq('specialty_code', gremio);
     await db.from('offer_responses').update({selected:true}).eq('id', responseId);
-    // Refrescar la tabla dentro del modal
+
+    // Guardar análisis en BD y Drive
+    var iaTextoEl = document.getElementById('comp-ia-texto');
+    var iaTexto = iaTextoEl ? iaTextoEl.innerText : '';
+    var gremioNombre = MAPEO_GREMIOS[gremio] ? MAPEO_GREMIOS[gremio].gremio : gremio;
+
+    // Obtener datos del proveedor seleccionado
+    var provRes = await db.from('offer_responses').select('*,suppliers(commercial_name)').eq('id', responseId).single();
+    var provNombre = provRes.data && provRes.data.suppliers ? provRes.data.suppliers.commercial_name : '-';
+    var importe = provRes.data ? parseFloat(provRes.data.total_amount) : 0;
+
+    // Obtener tabla comparativa del modal
+    var tablaEl = document.querySelector('[data-modal-comp] table');
+    var tablaTexto = tablaEl ? tablaEl.innerText : '';
+
+    // Texto completo del informe
+    var informeTexto = '=== ANÁLISIS COMPARATIVO DE PROVEEDORES ===\n' +
+      'Proyecto: ' + (ocProyecto.name || ocProyecto.code) + '\n' +
+      'Gremio: ' + gremioNombre + '\n' +
+      'Fecha: ' + new Date().toLocaleDateString('es-ES') + '\n' +
+      'Proveedor adjudicado: ' + provNombre + '\n' +
+      'Importe adjudicado: ' + importe.toLocaleString('es-ES', {minimumFractionDigits:2}) + '€\n\n' +
+      '--- TABLA COMPARATIVA ---\n' + tablaTexto + '\n\n' +
+      '--- ANÁLISIS IA ---\n' + iaTexto;
+
+    // Guardar en BD
+    await db.from('offer_analysis').insert({
+      project_id: ocProyecto.id,
+      specialty_code: gremio,
+      gremio_nombre: gremioNombre,
+      proveedor_seleccionado: provNombre,
+      supplier_id: provRes.data ? provRes.data.supplier_id : null,
+      importe_adjudicado: importe,
+      analysis_text: informeTexto,
+      created_by: currentUser ? currentUser.email : 'manual',
+      created_at: new Date().toISOString()
+    });
+
+    // Generar PDF con jsPDF y subir a Drive
+    try {
+      if (typeof jsPDF !== 'undefined' || (window.jspdf && window.jspdf.jsPDF)) {
+        var JsPDF = (typeof jsPDF !== 'undefined') ? jsPDF : window.jspdf.jsPDF;
+        var doc = new JsPDF();
+        var margin = 15;
+        var y = 20;
+        var pageW = doc.internal.pageSize.getWidth();
+
+        // Cabecera
+        doc.setFillColor(24, 95, 165);
+        doc.rect(0, 0, pageW, 28, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14); doc.setFont(undefined, 'bold');
+        doc.text('Análisis Comparativo de Proveedores', margin, 13);
+        doc.setFontSize(10); doc.setFont(undefined, 'normal');
+        doc.text('Gremio: ' + gremioNombre + ' | Proyecto: ' + (ocProyecto.name || ocProyecto.code), margin, 22);
+        y = 38;
+
+        // Datos adjudicación
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.text('Proveedor adjudicado: ' + provNombre, margin, y); y += 7;
+        doc.text('Importe: ' + importe.toLocaleString('es-ES', {minimumFractionDigits:2}) + '€', margin, y); y += 7;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.text('Fecha: ' + new Date().toLocaleDateString('es-ES') + ' | Elaborado por: ' + (currentUser ? currentUser.email : '-'), margin, y); y += 12;
+
+        // Análisis IA
+        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.text('Análisis IA:', margin, y); y += 7;
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+        var lineas = doc.splitTextToSize(iaTexto, pageW - margin * 2);
+        lineas.forEach(function(linea) {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.text(linea, margin, y); y += 5;
+        });
+
+        // Subir PDF a Drive
+        var pdfBlob = doc.output('blob');
+        var pdfFileName = 'Analisis_' + gremioNombre.replace(/\s/g,'_') + '_' + Date.now() + '.pdf';
+        var pdfFile = new File([pdfBlob], pdfFileName, {type:'application/pdf'});
+        var driveRes = await storageUpload(pdfFile, ocProyecto.id, null, null, 'Análisis de Proveedores', null);
+        if (driveRes) {
+          await db.from('offer_analysis').update({pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId})
+            .eq('project_id', ocProyecto.id).eq('specialty_code', gremio).order('created_at', {ascending: false}).limit(1);
+        }
+      }
+    } catch(pdfErr) { console.warn('Error generando PDF:', pdfErr); }
+
+    // Notificación
+    var fb = document.createElement('div');
+    fb.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:12px 18px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+    fb.textContent = '✓ Proveedor seleccionado y análisis guardado';
+    document.body.appendChild(fb);
+    setTimeout(function(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }, 3000);
+
     document.querySelector('[data-modal-comp]').remove();
     verComparativo(gremio);
     cargarOfertasRecibidas();
