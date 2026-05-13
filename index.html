@@ -4272,10 +4272,11 @@ async function verComparativo(gremio) {
       .select('*,suppliers(commercial_name)')
       .eq('project_id', ocProyecto.id)
       .eq('specialty_code', gremio);
+    console.log('offer_responses query:', gremio, res);
     var ofertas = res.data || [];
 
     if (ofertas.length < 2) {
-      document.getElementById('comp-loading').innerHTML = '<div style="color:#888;font-size:13px;">Se necesitan al menos 2 ofertas para comparar.</div>';
+      document.getElementById('comp-loading').innerHTML = '<div style="color:#888;font-size:13px;">Se necesitan al menos 2 ofertas para comparar. (Gremio: '+gremio+', encontradas: '+ofertas.length+')</div>';
       return;
     }
 
@@ -4329,14 +4330,21 @@ async function verComparativo(gremio) {
 
     var prompt = 'Eres un experto en construcción y reformas comerciales. Analiza estas ofertas recibidas para el gremio de ' + gremioNombre + ' en el proyecto "' + proyecto + '":\n\n' + resumenOfertas + '\n\nProporciona un análisis comparativo breve (3-4 frases) destacando: cuál es la más económica, la diferencia de precio entre ellas, y qué factores adicionales (plazo, cobertura) hay que considerar. Termina con una recomendación clara de cuál seleccionar y por qué. Responde en español, de forma directa y profesional.';
 
-    var iaRes = await fetch('https://n8n.solventaapi.com/webhook/analisis-documental', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo: 'comparativo_ofertas', prompt: prompt, proyecto_id: ocProyecto.id, gremio: gremioNombre })
-    });
-
-    var iaData = iaRes.ok ? await iaRes.json() : null;
-    var iaTexto = (iaData && (iaData.analysis || iaData.resultado || iaData.respuesta || iaData.text || iaData.output)) || null;
+    var iaTexto = null;
+    try {
+      var iaRes = await fetch('https://n8n.solventaapi.com/webhook/analisis-documental', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'comparativo_ofertas', prompt: prompt, proyecto_id: ocProyecto.id, gremio: gremioNombre })
+      });
+      if (iaRes.ok) {
+        var iaText = await iaRes.text();
+        if (iaText && iaText.trim()) {
+          var iaData = JSON.parse(iaText);
+          iaTexto = iaData.analysis || iaData.resultado || iaData.respuesta || iaData.text || iaData.output || null;
+        }
+      }
+    } catch(iaErr) { console.warn('IA no disponible, usando fallback:', iaErr.message); }
 
     if (!iaTexto) {
       // Fallback: análisis local sin IA
