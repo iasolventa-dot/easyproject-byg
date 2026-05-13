@@ -4206,35 +4206,108 @@ async function verOfertaRecibida(reqId) {
     var importe = parseFloat(r.total_amount).toLocaleString('es-ES', {minimumFractionDigits:2}) + ' €';
     var cobertura = r.coverage_pct ? r.coverage_pct + '%' : '-';
     var plazo = r.delivery_days ? r.delivery_days + ' días' : '-';
-    var formato = r.response_format || '-';
-    var seleccionado = r.selected ? '✅ Seleccionada' : 'No seleccionada';
+    var seleccionado = r.selected;
+    var scopeNotes = r.scope_notes || '';
+    var pdfUrl = r.pdf_url || '';
 
-    var html = '<div style="padding:1rem;min-width:320px;">' +
-      '<h3 style="margin:0 0 1rem 0;font-size:15px;">Oferta recibida — ' + gremioNombre + '</h3>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
-      '<tr><td style="padding:6px 0;color:#666;width:40%;">Proveedor</td><td style="font-weight:500;">' + proveedor + '</td></tr>' +
-      '<tr><td style="padding:6px 0;color:#666;">Importe total</td><td style="font-weight:600;font-size:15px;color:#3B6D11;">' + importe + '</td></tr>' +
-      '<tr><td style="padding:6px 0;color:#666;">Cobertura</td><td>' + cobertura + '</td></tr>' +
-      '<tr><td style="padding:6px 0;color:#666;">Plazo entrega</td><td>' + plazo + '</td></tr>' +
-      '<tr><td style="padding:6px 0;color:#666;">Formato</td><td>' + formato + '</td></tr>' +
-      '<tr><td style="padding:6px 0;color:#666;">Estado</td><td>' + seleccionado + '</td></tr>' +
-      '</table>' +
-      '<div style="margin-top:1rem;display:flex;gap:8px;justify-content:flex-end;">' +
-      '<button class="btn" onclick="this.closest(\'[data-modal]\').remove()">Cerrar</button>' +
-      (!r.selected ? '<button class="btn btn-primary" onclick="seleccionarOferta(' + r.id + ',' + reqId + ')">Seleccionar esta oferta</button>' : '') +
-      '</div></div>';
-
-    // Mostrar en modal simple
     var overlay = document.createElement('div');
     overlay.setAttribute('data-modal','1');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
     var box = document.createElement('div');
-    box.style.cssText = 'background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-width:480px;width:90%;';
-    box.innerHTML = html;
+    box.style.cssText = 'background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-width:580px;width:100%;max-height:90vh;overflow-y:auto;';
+
+    box.innerHTML =
+      '<div style="padding:1.5rem;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">' +
+      '<h3 style="margin:0;font-size:15px;">Oferta recibida — ' + gremioNombre + '</h3>' +
+      '<button onclick="this.closest(\'[data-modal]\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;">✕</button>' +
+      '</div>' +
+
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:1.25rem;">' +
+      '<tr><td style="padding:6px 0;color:#666;width:35%;">Proveedor</td><td style="font-weight:600;">' + proveedor + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Importe total</td><td style="font-weight:700;font-size:16px;color:#3B6D11;">' + importe + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Cobertura</td><td>' + cobertura + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Plazo entrega</td><td>' + plazo + '</td></tr>' +
+      '<tr><td style="padding:6px 0;color:#666;">Estado</td><td>' + (seleccionado ? '<span style="color:#3B6D11;font-weight:500;">✅ Seleccionada</span>' : '<span style="color:#888;">No seleccionada</span>') + '</td></tr>' +
+      '</table>' +
+
+      '<div style="border-top:1px solid #f0f0ea;padding-top:1.25rem;margin-bottom:1rem;">' +
+      '<div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;">📋 Alcance / Notas técnicas</div>' +
+      '<textarea id="oferta-scope-notes" rows="4" placeholder="Describe qué incluye y qué excluye esta oferta, partidas principales, condiciones especiales..." ' +
+      'style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box;">' + scopeNotes + '</textarea>' +
+      '</div>' +
+
+      '<div style="margin-bottom:1.25rem;">' +
+      '<div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;">📄 PDF de la oferta</div>' +
+      (pdfUrl ?
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<a href="' + pdfUrl + '" target="_blank" style="font-size:12px;color:#185FA5;">📄 Ver PDF adjunto</a>' +
+        '<button onclick="eliminarPdfOferta(' + r.id + ')" style="background:none;border:none;color:#c00;font-size:11px;cursor:pointer;">Eliminar</button>' +
+        '</div>' :
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<input type="file" id="oferta-pdf-input" accept=".pdf" style="font-size:12px;">' +
+        '<button class="btn btn-sm" onclick="subirPdfOferta(' + r.id + ')" id="btn-subir-pdf">Subir PDF</button>' +
+        '</div>'
+      ) +
+      '</div>' +
+
+      '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;">' +
+      '<button class="btn" onclick="this.closest(\'[data-modal]\').remove()">Cerrar</button>' +
+      '<button class="btn" onclick="guardarNotasOferta(' + r.id + ',' + reqId + ')">Guardar notas</button>' +
+      (!seleccionado ? '<button class="btn btn-primary" onclick="seleccionarOferta(' + r.id + ',' + reqId + ')">Seleccionar esta oferta</button>' : '') +
+      '</div>' +
+      '</div>';
+
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
   } catch(e) { alert('Error cargando oferta: ' + e.message); }
+}
+
+async function guardarNotasOferta(responseId, reqId) {
+  var notas = document.getElementById('oferta-scope-notes');
+  if (!notas) return;
+  try {
+    await db.from('offer_responses').update({ scope_notes: notas.value }).eq('id', responseId);
+    var btn = document.querySelector('[data-modal] .btn');
+    // Feedback visual
+    var fb = document.createElement('div');
+    fb.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:10px 16px;border-radius:8px;font-size:13px;z-index:99999;';
+    fb.textContent = '✓ Notas guardadas';
+    document.body.appendChild(fb);
+    setTimeout(function(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }, 2500);
+  } catch(e) { alert('Error guardando notas: ' + e.message); }
+}
+
+async function subirPdfOferta(responseId) {
+  var input = document.getElementById('oferta-pdf-input');
+  if (!input || !input.files[0]) { alert('Selecciona un PDF primero.'); return; }
+  var file = input.files[0];
+  var btn = document.getElementById('btn-subir-pdf');
+  if (btn) { btn.textContent = 'Subiendo...'; btn.disabled = true; }
+  try {
+    // Obtener datos del proyecto para la carpeta
+    var projCode = ocProyecto ? (ocProyecto.code || '') : '';
+    var projName = ocProyecto ? (ocProyecto.name || '') : '';
+    var driveRes = await storageUpload(file, ocProyecto ? ocProyecto.id : null, projCode, projName, 'Ofertas Proveedores', null);
+    if (!driveRes) { alert('Error subiendo el PDF.'); if(btn){btn.textContent='Subir PDF';btn.disabled=false;} return; }
+    await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', responseId);
+    document.querySelector('[data-modal]').remove();
+    // Mostrar confirmación
+    var fb = document.createElement('div');
+    fb.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:10px 16px;border-radius:8px;font-size:13px;z-index:99999;';
+    fb.textContent = '✓ PDF subido correctamente a Drive';
+    document.body.appendChild(fb);
+    setTimeout(function(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }, 3000);
+    cargarOfertasRecibidas();
+  } catch(e) { alert('Error: ' + e.message); if(btn){btn.textContent='Subir PDF';btn.disabled=false;} }
+}
+
+async function eliminarPdfOferta(responseId) {
+  if (!confirm('¿Eliminar el PDF adjunto?')) return;
+  await db.from('offer_responses').update({ pdf_url: null, pdf_drive_file_id: null }).eq('id', responseId);
+  document.querySelector('[data-modal]').remove();
+  cargarOfertasRecibidas();
 }
 
 async function seleccionarOferta(responseId, reqId) {
@@ -4322,13 +4395,27 @@ async function verComparativo(gremio) {
     // Llamar a la IA
     var proyecto = ocProyecto.name || ocProyecto.code || 'el proyecto';
     var resumenOfertas = ofertas.map(function(o) {
-      return '- ' + (o.suppliers?o.suppliers.commercial_name:'Proveedor') +
+      var linea = '- ' + (o.suppliers?o.suppliers.commercial_name:'Proveedor') +
         ': ' + parseFloat(o.total_amount).toLocaleString('es-ES',{minimumFractionDigits:2}) + '€' +
         (o.delivery_days ? ', plazo ' + o.delivery_days + ' días' : '') +
         (o.coverage_pct ? ', cobertura ' + o.coverage_pct + '%' : '');
-    }).join('\n');
+      if (o.scope_notes && o.scope_notes.trim()) {
+        linea += '\n  Alcance declarado: ' + o.scope_notes.trim();
+      }
+      if (o.pdf_url) linea += '\n  (Dispone de PDF adjunto con detalle completo)';
+      return linea;
+    }).join('\n\n');
 
-    var prompt = 'Eres un experto en construcción y reformas comerciales. Analiza estas ofertas recibidas para el gremio de ' + gremioNombre + ' en el proyecto "' + proyecto + '":\n\n' + resumenOfertas + '\n\nProporciona un análisis comparativo breve (3-4 frases) destacando: cuál es la más económica, la diferencia de precio entre ellas, y qué factores adicionales (plazo, cobertura) hay que considerar. Termina con una recomendación clara de cuál seleccionar y por qué. Responde en español, de forma directa y profesional.';
+    var prompt = 'Eres un experto técnico en construcción y reformas de espacios comerciales trabajando para BYG Soluciones. ' +
+      'Analiza en detalle estas ofertas recibidas para el gremio de ' + gremioNombre + ' en el proyecto "' + proyecto + '":\n\n' +
+      resumenOfertas + '\n\n' +
+      'Proporciona un análisis comparativo exhaustivo estructurado en estas secciones:\n' +
+      '1. COMPARATIVA ECONÓMICA: diferencias de precio exactas y en porcentaje entre ofertas.\n' +
+      '2. COMPARATIVA DE ALCANCE: qué incluye y excluye cada oferta, riesgos de alcance incompleto o solapamiento.\n' +
+      '3. COMPARATIVA TÉCNICA: plazos, cobertura del trabajo, condiciones de pago y garantías relevantes.\n' +
+      '4. RIESGOS Y CONSIDERACIONES: qué factores hay que aclarar o negociar antes de adjudicar.\n' +
+      '5. RECOMENDACIÓN FINAL: qué proveedor seleccionar y por qué, argumentando precio, alcance, plazo y fiabilidad.\n\n' +
+      'Sé específico con los números. Si alguna oferta cubre menos alcance que otras, indícalo claramente y estima el impacto económico real. Responde en español.';
 
     var iaTexto = null;
     try {
