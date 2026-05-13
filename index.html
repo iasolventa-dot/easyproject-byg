@@ -4635,7 +4635,9 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
         var pdfBlob = doc.output('blob');
         var pdfFileName = 'Analisis_' + gremioNombre.replace(/\s/g,'_') + '_' + Date.now() + '.pdf';
         var pdfFile = new File([pdfBlob], pdfFileName, {type:'application/pdf'});
-        var driveRes = await storageUpload(pdfFile, ocProyecto.id, null, null, 'Análisis de Proveedores', null);
+        var projCode2 = ocProyecto.code || ocProyecto.name || ('Proyecto-' + ocProyecto.id);
+        var projName2 = ocProyecto.name || ocProyecto.code || '';
+        var driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Proveedores', null);
         if (driveRes) {
           await db.from('offer_analysis').update({pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId})
             .eq('project_id', ocProyecto.id).eq('specialty_code', gremio).order('created_at', {ascending: false}).limit(1);
