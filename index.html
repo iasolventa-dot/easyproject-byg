@@ -2150,6 +2150,8 @@ function setDept(dept, btn) {
   if (navInfDesv) navInfDesv.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
   // Informes técnicos de análisis solo técnico y dirección
   if (navInfTA) navInfTA.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
+  var navInfAP = document.getElementById('nav-informes-analisis-proveedores');
+  if (navInfAP) navInfAP.style.display = ['tecnico','direccion','comercial'].indexOf(dept) > -1 ? 'block' : 'none';
 
   loadDashboard();
 }
@@ -5519,6 +5521,8 @@ function iniciarApp() {
   if (navInfGas2) navInfGas2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
   if (navInfDesv2) navInfDesv2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
   if (navInfTA2) navInfTA2.style.display = ['tecnico','direccion'].indexOf(dept) > -1 ? 'block' : 'none';
+  var navInfAP2 = document.getElementById('nav-informes-analisis-proveedores');
+  if (navInfAP2) navInfAP2.style.display = ['tecnico','direccion','comercial'].indexOf(dept) > -1 ? 'block' : 'none';
 
   loadDashboard();
 }
