@@ -8421,7 +8421,11 @@ async function storageDownloadLink(url, folderId, projectId) {
       })
     });
     if (!res.ok) { console.error('storageDownloadLink HTTP error:', res.status); return null; }
-    var data = await res.json();
+    // Leer respuesta como texto primero para evitar crash si n8n devuelve vacío
+    var text = await res.text();
+    if (!text || text.trim() === '') { console.error('storageDownloadLink: respuesta vacía de n8n'); return null; }
+    var data;
+    try { data = JSON.parse(text); } catch(pe) { console.error('storageDownloadLink: JSON inválido:', text.substring(0,200)); return null; }
     if (!data.ok || !data.fileId) { console.error('storageDownloadLink error:', data.error); return null; }
     return data;
   } catch(e) {
@@ -8879,8 +8883,8 @@ async function npGuardar() {
     var proyectoId=projRes.data.id;
     // Crear carpeta Drive UNA SOLA VEZ antes de subir archivos
     var driveFolderId=null;
-    var tieneArchivos=npArchivos.some(function(a){return a.tipo!=='enlace';});
-    if(tieneArchivos){
+    // Crear carpeta Drive siempre que haya archivos o enlaces
+    if(npArchivos.length > 0){
       var folderRes=await storageCreateFolder(proyectoId,projCode,newProj.name);
       if(folderRes) driveFolderId=folderRes.folder_id;
     }
