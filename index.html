@@ -4252,8 +4252,121 @@ async function seleccionarOferta(responseId, reqId) {
   } catch(e) { alert('Error: ' + e.message); }
 }
 
-function verComparativo(gremio) {
-  alert('En producción: la IA genera el cuadro comparativo de las ofertas recibidas para '+gremio+', normaliza partidas y recomienda el mejor proveedor.');
+async function verComparativo(gremio) {
+  var gremioNombre = MAPEO_GREMIOS[gremio] ? MAPEO_GREMIOS[gremio].gremio : gremio;
+
+  // Crear modal con loading
+  var overlay = document.createElement('div');
+  overlay.setAttribute('data-modal-comp','1');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.25);width:100%;max-width:700px;max-height:90vh;overflow-y:auto;';
+  box.innerHTML = '<div style="padding:1.5rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;"><h3 style="margin:0;font-size:16px;">Comparativo IA — '+gremioNombre+'</h3><button onclick="document.querySelector(\"[data-modal-comp]\").remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;">✕</button></div><div id="comp-loading" style="text-align:center;padding:2rem;"><div style="font-size:14px;color:#666;">⏳ Analizando ofertas con IA...</div></div></div>';
+  overlay.appendChild(box);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+
+  try {
+    // Cargar ofertas del gremio
+    var res = await db.from('offer_responses')
+      .select('*,suppliers(commercial_name)')
+      .eq('project_id', ocProyecto.id)
+      .eq('specialty_code', gremio);
+    var ofertas = res.data || [];
+
+    if (ofertas.length < 2) {
+      document.getElementById('comp-loading').innerHTML = '<div style="color:#888;font-size:13px;">Se necesitan al menos 2 ofertas para comparar.</div>';
+      return;
+    }
+
+    // Ordenar por importe
+    ofertas.sort(function(a,b){ return a.total_amount - b.total_amount; });
+    var minImporte = parseFloat(ofertas[0].total_amount);
+
+    // Construir tabla comparativa
+    var filas = ofertas.map(function(o, idx) {
+      var imp = parseFloat(o.total_amount);
+      var diferencia = imp - minImporte;
+      var esMasBarato = diferencia === 0;
+      var pct = minImporte > 0 ? ((diferencia/minImporte)*100).toFixed(1) : 0;
+      var rowBg = esMasBarato ? 'background:#F0FFF4;' : '';
+      return '<tr style="'+rowBg+'">' +
+        '<td style="padding:10px 12px;font-weight:500;">'+(o.suppliers?o.suppliers.commercial_name:'-')+(esMasBarato?'<span style="margin-left:6px;font-size:10px;background:#3B6D11;color:white;padding:2px 6px;border-radius:4px;">MÁS ECONÓMICA</span>':'')+'</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:600;color:'+(esMasBarato?'#3B6D11':'#333')+';">'+imp.toLocaleString('es-ES',{minimumFractionDigits:2})+'€</td>' +
+        '<td style="padding:10px 12px;text-align:right;color:#888;font-size:12px;">'+(esMasBarato?'—':'+'+diferencia.toLocaleString('es-ES',{minimumFractionDigits:2})+'€ (+'+pct+'%)')+'</td>' +
+        '<td style="padding:10px 12px;text-align:center;">'+(o.delivery_days?o.delivery_days+' días':'-')+'</td>' +
+        '<td style="padding:10px 12px;text-align:center;">'+(o.coverage_pct?o.coverage_pct+'%':'-')+'</td>' +
+        '<td style="padding:10px 12px;text-align:center;">'+(o.selected?'<span style="color:#3B6D11;font-weight:500;">✓ Seleccionada</span>':'<button class="btn btn-sm" onclick="seleccionarOfertaComp('+o.id+',\''+gremio+'\','+o.offer_request_id+')">Seleccionar</button>')+'</td>' +
+        '</tr>';
+    }).join('');
+
+    var tablaHtml = '<div style="overflow-x:auto;margin-bottom:1.5rem;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+      '<thead><tr style="background:#f5f5f0;">' +
+      '<th style="padding:10px 12px;text-align:left;">Proveedor</th>' +
+      '<th style="padding:10px 12px;text-align:right;">Importe</th>' +
+      '<th style="padding:10px 12px;text-align:right;">vs. mejor</th>' +
+      '<th style="padding:10px 12px;text-align:center;">Plazo</th>' +
+      '<th style="padding:10px 12px;text-align:center;">Cobertura</th>' +
+      '<th style="padding:10px 12px;text-align:center;">Acción</th>' +
+      '</tr></thead><tbody>'+filas+'</tbody></table></div>';
+
+    // Mostrar tabla mientras carga la IA
+    document.getElementById('comp-loading').innerHTML =
+      tablaHtml +
+      '<div style="background:#EEF4FF;border-radius:8px;padding:1rem;">' +
+      '<div style="font-size:12px;font-weight:600;color:#185FA5;margin-bottom:6px;">🤖 Análisis IA</div>' +
+      '<div id="comp-ia-texto" style="font-size:13px;color:#444;">⏳ Generando análisis...</div></div>';
+
+    // Llamar a la IA
+    var proyecto = ocProyecto.name || ocProyecto.code || 'el proyecto';
+    var resumenOfertas = ofertas.map(function(o) {
+      return '- ' + (o.suppliers?o.suppliers.commercial_name:'Proveedor') +
+        ': ' + parseFloat(o.total_amount).toLocaleString('es-ES',{minimumFractionDigits:2}) + '€' +
+        (o.delivery_days ? ', plazo ' + o.delivery_days + ' días' : '') +
+        (o.coverage_pct ? ', cobertura ' + o.coverage_pct + '%' : '');
+    }).join('\n');
+
+    var prompt = 'Eres un experto en construcción y reformas comerciales. Analiza estas ofertas recibidas para el gremio de ' + gremioNombre + ' en el proyecto "' + proyecto + '":\n\n' + resumenOfertas + '\n\nProporciona un análisis comparativo breve (3-4 frases) destacando: cuál es la más económica, la diferencia de precio entre ellas, y qué factores adicionales (plazo, cobertura) hay que considerar. Termina con una recomendación clara de cuál seleccionar y por qué. Responde en español, de forma directa y profesional.';
+
+    var iaRes = await fetch('https://n8n.solventaapi.com/webhook/analisis-documental', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'comparativo_ofertas', prompt: prompt, proyecto_id: ocProyecto.id, gremio: gremioNombre })
+    });
+
+    var iaData = iaRes.ok ? await iaRes.json() : null;
+    var iaTexto = (iaData && (iaData.analysis || iaData.resultado || iaData.respuesta || iaData.text || iaData.output)) || null;
+
+    if (!iaTexto) {
+      // Fallback: análisis local sin IA
+      var mejor = ofertas[0];
+      var segunda = ofertas[1];
+      var diff = (parseFloat(segunda.total_amount) - parseFloat(mejor.total_amount)).toLocaleString('es-ES',{minimumFractionDigits:2});
+      iaTexto = 'La oferta más económica es la de <strong>' + (mejor.suppliers?mejor.suppliers.commercial_name:'el primer proveedor') + '</strong> con ' + parseFloat(mejor.total_amount).toLocaleString('es-ES',{minimumFractionDigits:2}) + '€. ' +
+        'La siguiente opción supone un incremento de ' + diff + '€. ' +
+        (mejor.delivery_days ? 'El plazo de entrega es de ' + mejor.delivery_days + ' días. ' : '') +
+        '<br><br><strong>Recomendación:</strong> Seleccionar la oferta de ' + (mejor.suppliers?mejor.suppliers.commercial_name:'este proveedor') + ' por ser la más competitiva en precio.';
+    }
+
+    var el = document.getElementById('comp-ia-texto');
+    if (el) el.innerHTML = iaTexto;
+
+  } catch(e) {
+    var el = document.getElementById('comp-loading');
+    if (el) el.innerHTML = '<div style="color:#c00;font-size:13px;">Error: ' + e.message + '</div>';
+  }
+}
+
+async function seleccionarOfertaComp(responseId, gremio, reqId) {
+  try {
+    await db.from('offer_responses').update({selected:false}).eq('project_id', ocProyecto.id).eq('specialty_code', gremio);
+    await db.from('offer_responses').update({selected:true}).eq('id', responseId);
+    // Refrescar la tabla dentro del modal
+    document.querySelector('[data-modal-comp]').remove();
+    verComparativo(gremio);
+    cargarOfertasRecibidas();
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 async function cargarMontajeOferta() {
