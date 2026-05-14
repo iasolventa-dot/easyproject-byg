@@ -4552,6 +4552,7 @@ async function verAnalisisDetalle(id) {
 }
 
 async function seleccionarOfertaComp(responseId, gremio, reqId) {
+  if (window._seleccionandoOferta) return; window._seleccionandoOferta = true;
   try {
     await db.from('offer_responses').update({selected:false}).eq('project_id', ocProyecto.id).eq('specialty_code', gremio);
     await db.from('offer_responses').update({selected:true}).eq('id', responseId);
@@ -4656,9 +4657,8 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
     setTimeout(function(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }, 3000);
 
     document.querySelector('[data-modal-comp]').remove();
-    verComparativo(gremio);
     cargarOfertasRecibidas();
-  } catch(e) { alert('Error: ' + e.message); }
+  } catch(e) { alert('Error: ' + e.message); } finally { window._seleccionandoOferta = false; }
 }
 
 async function cargarMontajeOferta() {
