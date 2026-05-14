@@ -4824,120 +4824,199 @@ async function cargarMontajeOferta() {
   el.innerHTML = '<div class="loading">Cargando partidas...</div>';
 
   try {
-    // Cargar gremios del proyecto
-    var gremsRes = await db.from('project_gremio_suppliers')
-      .select('specialty_code')
-      .eq('project_id', ocProyecto.id);
-    var todosGremios = [];
-    if (gremsRes.data) {
-      var gremsUnicos = [...new Set(gremsRes.data.map(function(g){ return g.specialty_code; }))];
-      todosGremios = gremsUnicos;
-    }
+    // Cargar partidas de project_items
+    var itemsRes = await db.from('project_items')
+      .select('*')
+      .eq('project_id', ocProyecto.id)
+      .order('chapter_order')
+      .order('id');
+    var items = itemsRes.data || [];
 
-    // Cargar ofertas seleccionadas (offer_responses con selected=true)
+    // Cargar ofertas seleccionadas para saber importe por gremio
     var selRes = await db.from('offer_responses')
       .select('*,suppliers(commercial_name)')
       .eq('project_id', ocProyecto.id)
       .eq('selected', true);
     var seleccionadas = selRes.data || [];
-
-    // Cargar todos los requests para saber qué gremios tienen peticiones enviadas
-    var reqRes = await db.from('offer_requests')
-      .select('specialty_code,status')
-      .eq('project_id', ocProyecto.id);
-    var requests = reqRes.data || [];
-    var gremiosConPeticion = [...new Set(requests.map(function(r){ return r.specialty_code; }))];
-
-    // Indexar seleccionadas por gremio
     var selPorGremio = {};
-    seleccionadas.forEach(function(s) { selPorGremio[s.specialty_code] = s; });
+    seleccionadas.forEach(function(s){ selPorGremio[s.specialty_code] = s; });
 
-    // Gremios adjudicados (tienen oferta seleccionada)
-    var gremiosAdjudicados = Object.keys(selPorGremio);
-    // Gremios pendientes (tienen petición pero no selección aún)
+    // Cargar requests para saber gremios pendientes
+    var reqRes = await db.from('offer_requests').select('specialty_code,status').eq('project_id', ocProyecto.id);
+    var gremiosConPeticion = [...new Set((reqRes.data||[]).map(function(r){ return r.specialty_code; }))];
     var gremiosPendientes = gremiosConPeticion.filter(function(g){ return !selPorGremio[g]; });
 
-    if (!gremiosAdjudicados.length && !gremiosPendientes.length) {
-      el.innerHTML = '<div class="empty">No hay peticiones de oferta enviadas para este proyecto. Ve a la pestaña A para enviar las peticiones.</div>';
+    // Margen global: si no está definido, 20%
+    if (!ocMargenes['_global_']) ocMargenes['_global_'] = 20;
+    var margenGlobal = ocMargenes['_global_'];
+
+    // Si hay partidas en project_items — modo detallado por partidas
+    var tienePartidas = items.length > 0;
+
+    // Agrupar partidas por capítulo
+    var porCapitulo = {};
+    var ordenCapitulos = [];
+    items.forEach(function(item) {
+      var key = item.chapter_code || 'SIN_GREMIO';
+      if (!porCapitulo[key]) {
+        porCapitulo[key] = { nombre: item.chapter_name || key, items: [], order: item.chapter_order || 0 };
+        ordenCapitulos.push(key);
+      }
+      porCapitulo[key].items.push(item);
+    });
+
+    var totalCosteGlobal = 0;
+    var totalVentaGlobal = 0;
+
+    // Si no hay partidas, modo resumen por gremio (comportamiento anterior)
+    if (!tienePartidas) {
+      var gremiosAdj = Object.keys(selPorGremio);
+      if (!gremiosAdj.length && !gremiosPendientes.length) {
+        el.innerHTML = '<div class="empty">No hay peticiones enviadas ni partidas cargadas. Ve a la pestaña A o analiza las mediciones del proyecto.</div>';
+        return;
+      }
+      // Modo resumen por gremio
+      var filasAdj = gremiosAdj.map(function(gremio) {
+        var s = selPorGremio[gremio];
+        var gNombre = MAPEO_GREMIOS[gremio] ? MAPEO_GREMIOS[gremio].gremio : gremio;
+        var coste = parseFloat(s.total_amount) || 0;
+        var mKey = 'gremio_' + gremio;
+        if (ocMargenes[mKey] === undefined) ocMargenes[mKey] = margenGlobal;
+        var margen = ocMargenes[mKey];
+        var venta = Math.round(coste * (1 + margen/100) * 100) / 100;
+        totalCosteGlobal += coste; totalVentaGlobal += venta;
+        return '<tr><td><span class="badge b-default" style="font-size:9px;">' + gNombre + '</span></td>' +
+          '<td style="font-weight:500;">' + (s.suppliers?s.suppliers.commercial_name:'-') + '</td>' +
+          '<td style="text-align:right;">' + coste.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</td>' +
+          '<td style="text-align:center;"><input type="number" value="' + margen + '" min="0" max="200" step="0.5" ' +
+          'onchange="actualizarMargenYRecalcular(this,\'gremio\')" data-code="' + mKey + '" ' +
+          'style="width:60px;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> %</td>' +
+          '<td style="text-align:right;font-weight:600;color:#3B6D11;">' + venta.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</td>' +
+          '<td style="text-align:center;font-size:11px;">' + (s.delivery_days?s.delivery_days+' d\u00edas':'-') + '</td></tr>';
+      }).join('');
+      var filasPend = gremiosPendientes.map(function(g){
+        var gN = MAPEO_GREMIOS[g]?MAPEO_GREMIOS[g].gremio:g;
+        return '<tr style="opacity:0.5;"><td><span class="badge b-default" style="font-size:9px;">' + gN + '</span></td>' +
+          '<td colspan="4" style="font-size:12px;color:#888;">Pendiente de selecci\u00f3n</td>' +
+          '<td style="text-align:center;"><button class="btn btn-sm" style="font-size:10px;" onclick="showOcTab(\'ofertas\',document.querySelector(\'.proj-tab:nth-child(2)\'))">Ir a Ofertas</button></td></tr>';
+      }).join('');
+      el.innerHTML = _renderMontajeHeader(margenGlobal) +
+        (gremiosPendientes.length ? '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#854F0B;">\u26a0\ufe0f <strong>' + gremiosPendientes.length + ' gremio(s) pendiente(s)</strong> de adjudicar.</div>' : '') +
+        '<div style="overflow-x:auto;"><table class="data-table" style="min-width:680px;"><thead><tr><th>Gremio</th><th>Proveedor</th><th style="text-align:right;">Coste</th><th style="text-align:center;">Margen %</th><th style="text-align:right;">Precio venta</th><th style="text-align:center;">Plazo</th></tr></thead><tbody>' +
+        filasAdj + (filasPend ? '<tr><td colspan="6" style="padding:6px 12px;font-size:11px;color:#aaa;border-top:2px dashed #e5e5e0;background:#fafaf8;">Pendientes</td></tr>' + filasPend : '') +
+        '</tbody><tfoot><tr style="background:#f0f7e8;font-weight:600;"><td colspan="2" style="padding:10px 12px;">TOTAL (' + gremiosAdj.length + ' gremios)</td>' +
+        '<td style="text-align:right;padding:10px 12px;">' + totalCosteGlobal.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</td><td></td>' +
+        '<td style="text-align:right;padding:10px 12px;color:#3B6D11;">' + totalVentaGlobal.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</td>' +
+        '<td style="text-align:center;font-size:11px;color:#888;">Margen medio: ' + (totalCosteGlobal>0?(((totalVentaGlobal-totalCosteGlobal)/totalCosteGlobal)*100).toFixed(1)+'%':'-') + '</td></tr></tfoot></table></div>' +
+        _renderMontajeFooter(gremiosPendientes.length);
+      document.getElementById('oc-aprobaci\u00f3n-margenes').style.display = 'none';
       return;
     }
 
-    var totalCoste = 0;
-    var totalVenta = 0;
+    // MODO DETALLADO — hay partidas en project_items
+    var seccionesHtml = ordenCapitulos.map(function(capCode) {
+      var cap = porCapitulo[capCode];
+      var ofertaGremio = selPorGremio[capCode];
+      var importeGremio = ofertaGremio ? parseFloat(ofertaGremio.total_amount) || 0 : 0;
+      var provNombre = ofertaGremio && ofertaGremio.suppliers ? ofertaGremio.suppliers.commercial_name : null;
 
-    // --- SECCIÓN ADJUDICADOS ---
-    var filasAdj = gremiosAdjudicados.map(function(gremio) {
-      var s = selPorGremio[gremio];
-      var gremioNombre = MAPEO_GREMIOS[gremio] ? MAPEO_GREMIOS[gremio].gremio : gremio;
-      var provNombre = s.suppliers ? s.suppliers.commercial_name : '-';
-      var coste = parseFloat(s.total_amount) || 0;
-      var margenKey = 'gremio_' + gremio;
-      if (!ocMargenes[margenKey]) ocMargenes[margenKey] = 15;
-      var margen = ocMargenes[margenKey];
-      var precioVenta = Math.round(coste * (1 + margen / 100) * 100) / 100;
-      totalCoste += coste;
-      totalVenta += precioVenta;
-      return '<tr>' +
-        '<td><span class="badge b-default" style="font-size:9px;">' + gremioNombre + '</span></td>' +
-        '<td style="font-weight:500;">' + provNombre + '</td>' +
-        '<td style="text-align:right;">' + coste.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
-        '<td style="text-align:center;width:90px;"><input type="number" value="' + margen + '" min="0" max="100" step="0.5" ' +
-        'onchange="actualizarMargen(this)" data-code="' + margenKey + '" ' +
-        'style="width:60px;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> %</td>' +
-        '<td style="text-align:right;font-weight:600;color:#3B6D11;">' + precioVenta.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
-        '<td style="text-align:center;font-size:11px;">' +
-        (s.delivery_days ? s.delivery_days + ' días' : '-') + '</td>' +
-        '</tr>';
-    }).join('');
+      // Margen de capítulo: hereda global si no está definido
+      var mKeyGremio = 'gremio_' + capCode;
+      if (ocMargenes[mKeyGremio] === undefined) ocMargenes[mKeyGremio] = margenGlobal;
+      var margenGremio = ocMargenes[mKeyGremio];
 
-    // --- SECCIÓN PENDIENTES ---
-    var filasPend = gremiosPendientes.map(function(gremio) {
-      var gremioNombre = MAPEO_GREMIOS[gremio] ? MAPEO_GREMIOS[gremio].gremio : gremio;
-      return '<tr style="opacity:0.5;">' +
-        '<td><span class="badge b-default" style="font-size:9px;">' + gremioNombre + '</span></td>' +
-        '<td colspan="4" style="font-size:12px;color:#888;">Pendiente de selección de proveedor</td>' +
-        '<td style="text-align:center;"><button class="btn btn-sm" style="font-size:10px;" onclick="showOcTab(\'ofertas\',document.querySelector(\'.proj-tab:nth-child(2)\'))">Ir a Ofertas</button></td>' +
-        '</tr>';
-    }).join('');
+      // Si hay importe de oferta, distribuirlo proporcionalmente entre partidas sin precio
+      // (proporción por cantidad*unidad si disponible, o uniforme)
+      var partidasSinPrecio = cap.items.filter(function(it){ return !it.supplier_price; });
+      var partidasConPrecio = cap.items.filter(function(it){ return it.supplier_price; });
+      var sumaConPrecio = partidasConPrecio.reduce(function(s,it){ return s + parseFloat(it.supplier_price||0); }, 0);
+      var restante = importeGremio - sumaConPrecio;
 
-    var aviso = gremiosPendientes.length > 0 ?
-      '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#854F0B;">' +
-      '⚠️ <strong>' + gremiosPendientes.length + ' gremio(s) pendiente(s)</strong> de adjudicar. Puedes seguir trabajando en el montaje mientras llegan las ofertas restantes.' +
-      '</div>' : '';
+      var totalCapCoste = 0;
+      var totalCapVenta = 0;
 
-    var botonSometer = gremiosPendientes.length > 0 ?
-      '<button class="btn btn-primary" onclick="confirmarSometerConPendientes(' + gremiosPendientes.length + ')">Someter a aprobación de márgenes</button>' :
-      '<button class="btn btn-primary" onclick="someterAprobaciónMargenes()">Someter a aprobación de márgenes ✔</button>';
+      var filas = cap.items.map(function(item) {
+        var mKeyPartida = 'partida_' + item.id;
+        if (ocMargenes[mKeyPartida] === undefined) ocMargenes[mKeyPartida] = null; // null = hereda gremio
+        var margenPartida = ocMargenes[mKeyPartida];
+        var margenEfectivo = (margenPartida !== null) ? margenPartida : margenGremio;
+        var esHeredado = margenPartida === null;
 
-    el.innerHTML = aviso +
-      '<div style="overflow-x:auto;">' +
-      '<table class="data-table" style="min-width:680px;">' +
-      '<thead><tr>' +
-      '<th>Gremio</th><th>Proveedor adjudicado</th>' +
-      '<th style="text-align:right;">Coste prov.</th>' +
-      '<th style="text-align:center;">Margen %</th>' +
-      '<th style="text-align:right;">Precio venta</th>' +
-      '<th style="text-align:center;">Plazo</th>' +
-      '</tr></thead><tbody>' +
-      filasAdj +
-      (filasPend ? '<tr><td colspan="6" style="padding:6px 12px;font-size:11px;color:#aaa;border-top:2px dashed #e5e5e0;background:#fafaf8;">Pendientes de adjudicar</td></tr>' + filasPend : '') +
-      '</tbody>' +
-      (gremiosAdjudicados.length > 0 ?
-        '<tfoot><tr style="background:#f0f7e8;font-weight:600;">' +
-        '<td colspan="2" style="padding:10px 12px;font-size:13px;">TOTAL ADJUDICADO (' + gremiosAdjudicados.length + ' gremio(s))</td>' +
-        '<td style="text-align:right;padding:10px 12px;font-size:13px;">' + totalCoste.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
+        var coste = parseFloat(item.supplier_price) || 0;
+        var venta = Math.round(coste * (1 + margenEfectivo/100) * 100) / 100;
+        totalCapCoste += coste;
+        totalCapVenta += venta;
+
+        var precioStr = coste > 0 ? coste.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac' :
+          '<span style="font-size:11px;color:#aaa;">Sin precio</span>';
+        var ventaStr = coste > 0 ? venta.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac' : '-';
+
+        return '<tr>' +
+          '<td style="font-size:11px;color:#888;white-space:nowrap;">' + (item.item_code||'') + '</td>' +
+          '<td style="font-size:12px;">' + (item.item_description||'').substring(0,70) + '</td>' +
+          '<td style="text-align:center;font-size:11px;white-space:nowrap;">' + (item.quantity!=null?item.quantity+' '+(item.unit||''):(item.unit||'-')) + '</td>' +
+          '<td style="text-align:right;font-size:12px;">' + precioStr + '</td>' +
+          '<td style="text-align:center;">' +
+          '<input type="number" value="' + margenEfectivo.toFixed(1) + '" min="0" max="200" step="0.5" ' +
+          'onchange="actualizarMargenPartida(this,' + item.id + ',\''+capCode+'\')" ' +
+          'data-code="' + mKeyPartida + '" data-heredado="' + (esHeredado?'1':'0') + '" ' +
+          'title="' + (esHeredado?'Hereda margen del gremio':'Margen específico de esta partida') + '" ' +
+          'style="width:55px;padding:3px 4px;border:1px solid ' + (esHeredado?'#ddd':'#185FA5') + ';border-radius:4px;font-size:11px;text-align:center;background:' + (esHeredado?'white':'#EEF4FF') + ';"> %' +
+          (esHeredado?'':'<button onclick="resetMargenPartida('+item.id+',\''+capCode+'\')" title="Resetear a margen del gremio" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:10px;margin-left:2px;">\u21ba</button>') +
+          '</td>' +
+          '<td style="text-align:right;font-weight:500;color:#3B6D11;font-size:12px;">' + ventaStr + '</td>' +
+          '</tr>';
+      }).join('');
+
+      totalCosteGlobal += totalCapCoste;
+      totalVentaGlobal += totalCapVenta;
+
+      var headerColor = ofertaGremio ? '#EAF3DE' : '#FAFAF8';
+      var headerBorder = ofertaGremio ? '#C0DD97' : '#e5e5e0';
+
+      return '<div class="card" style="margin-bottom:1rem;padding:0;overflow:hidden;">' +
+        '<div style="background:' + headerColor + ';border-bottom:1px solid ' + headerBorder + ';padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span class="badge b-default" style="font-size:10px;">' + cap.nombre + '</span>' +
+        (provNombre ? '<span style="font-size:12px;color:#3B6D11;font-weight:500;">\u2714 ' + provNombre + '</span>' : '<span style="font-size:11px;color:#aaa;">Sin proveedor adjudicado</span>') +
+        (importeGremio > 0 ? '<span style="font-size:11px;color:#666;">Oferta: ' + importeGremio.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</span>' : '') +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<label style="font-size:11px;color:#666;">Margen gremio:</label>' +
+        '<input type="number" value="' + margenGremio.toFixed(1) + '" min="0" max="200" step="0.5" ' +
+        'onchange="actualizarMargenGremio(this,\''+capCode+'\')" data-cap="' + capCode + '" ' +
+        'style="width:55px;padding:3px 5px;border:1px solid #185FA5;border-radius:4px;font-size:12px;text-align:center;background:#EEF4FF;"> %' +
+        '</div></div>' +
+        '<div style="overflow-x:auto;padding:0 4px;">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+        '<thead><tr style="background:#fafaf8;">' +
+        '<th style="padding:6px 8px;text-align:left;font-size:10px;color:#888;font-weight:500;">C\u00f3digo</th>' +
+        '<th style="padding:6px 8px;text-align:left;font-size:10px;color:#888;font-weight:500;">Descripci\u00f3n</th>' +
+        '<th style="padding:6px 8px;text-align:center;font-size:10px;color:#888;font-weight:500;">Cantidad</th>' +
+        '<th style="padding:6px 8px;text-align:right;font-size:10px;color:#888;font-weight:500;">Coste prov.</th>' +
+        '<th style="padding:6px 8px;text-align:center;font-size:10px;color:#888;font-weight:500;">Margen %</th>' +
+        '<th style="padding:6px 8px;text-align:right;font-size:10px;color:#888;font-weight:500;">Precio venta</th>' +
+        '</tr></thead><tbody>' + filas + '</tbody>' +
+        '<tfoot><tr style="background:#f5f5f0;font-weight:600;">' +
+        '<td colspan="3" style="padding:8px;font-size:11px;">Subtotal ' + cap.nombre + '</td>' +
+        '<td style="text-align:right;padding:8px;font-size:11px;">' + totalCapCoste.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</td>' +
         '<td></td>' +
-        '<td style="text-align:right;padding:10px 12px;font-size:13px;color:#3B6D11;">' + totalVenta.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
-        '<td style="text-align:center;padding:10px 12px;font-size:11px;color:#888;">Margen medio: ' +
-        (totalCoste > 0 ? (((totalVenta - totalCoste) / totalCoste) * 100).toFixed(1) + '%' : '-') + '</td>' +
-        '</tr></tfoot>' : '') +
-      '</table></div>' +
-      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">' +
-      '<button class="btn" onclick="cargarMontajeOferta()">Actualizar</button>' +
-      (gremiosAdjudicados.length > 0 ? botonSometer : '') +
-      '</div>';
+        '<td style="text-align:right;padding:8px;font-size:11px;color:#3B6D11;">' + totalCapVenta.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</td>' +
+        '</tr></tfoot></table></div></div>';
+    }).join('');
 
-    document.getElementById('oc-aprobación-margenes').style.display = 'none';
+    el.innerHTML = _renderMontajeHeader(margenGlobal) + seccionesHtml +
+      '<div style="background:#f0f7e8;border:1px solid #C0DD97;border-radius:8px;padding:12px 16px;margin-top:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">' +
+      '<div><span style="font-size:13px;font-weight:600;">TOTAL GLOBAL</span>' +
+      '<span style="font-size:11px;color:#666;margin-left:12px;">' + items.length + ' partidas en ' + ordenCapitulos.length + ' gremios</span></div>' +
+      '<div style="display:flex;gap:24px;align-items:center;">' +
+      '<span style="font-size:12px;color:#666;">Coste: <strong>' + totalCosteGlobal.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</strong></span>' +
+      '<span style="font-size:14px;color:#3B6D11;font-weight:700;">Venta: ' + totalVentaGlobal.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</span>' +
+      '<span style="font-size:11px;color:#888;">Margen medio: ' + (totalCosteGlobal>0?(((totalVentaGlobal-totalCosteGlobal)/totalCosteGlobal)*100).toFixed(1)+'%':'-') + '</span>' +
+      '</div></div>' +
+      _renderMontajeFooter(gremiosPendientes.length);
+
+    document.getElementById('oc-aprobaci\u00f3n-margenes').style.display = 'none';
 
   } catch(e) {
     el.innerHTML = '<div class="empty">Error cargando montaje: ' + e.message + '</div>';
@@ -4945,11 +5024,57 @@ async function cargarMontajeOferta() {
   }
 }
 
-function confirmarSometerConPendientes(numPendientes) {
-  if (confirm('Hay ' + numPendientes + ' gremio(s) pendientes de adjudicar. ¿Deseas someter a aprobación el montaje parcial con los gremios ya adjudicados?')) {
-    someterAprobaciónMargenes();
-  }
+function _renderMontajeHeader(margenGlobal) {
+  return '<div style="background:#EEF4FF;border:1px solid #B5D4F4;border-radius:8px;padding:10px 16px;margin-bottom:1rem;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">' +
+    '<span style="font-size:12px;font-weight:600;color:#185FA5;">\ud83c\udfaf Margen global:</span>' +
+    '<input type="number" id="margen-global-input" value="' + margenGlobal + '" min="0" max="200" step="0.5" ' +
+    'onchange="aplicarMargenGlobal(this.value)" ' +
+    'style="width:65px;padding:4px 8px;border:1px solid #185FA5;border-radius:6px;font-size:13px;text-align:center;font-weight:600;"> %' +
+    '<span style="font-size:11px;color:#888;">Aplica a todos los gremios y partidas sin margen espec\u00edfico</span>' +
+    '<button class="btn btn-sm" onclick="aplicarMargenGlobal(document.getElementById(\'margen-global-input\').value)" style="margin-left:auto;">Aplicar a todo</button>' +
+    '</div>';
 }
+
+function _renderMontajeFooter(numPendientes) {
+  return '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">' +
+    '<button class="btn" onclick="cargarMontajeOferta()">Actualizar</button>' +
+    (numPendientes > 0 ?
+      '<button class="btn btn-primary" onclick="confirmarSometerConPendientes(' + numPendientes + ')">Someter a aprobaci\u00f3n de m\u00e1rgenes</button>' :
+      '<button class="btn btn-primary" onclick="someterAprobaci\u00f3nMargenes()">Someter a aprobaci\u00f3n de m\u00e1rgenes \u2714</button>') +
+    '</div>';
+}
+
+function aplicarMargenGlobal(valor) {
+  var v = parseFloat(valor) || 20;
+  ocMargenes['_global_'] = v;
+  // Resetear todos los márgenes de gremio para que hereden el global
+  Object.keys(ocMargenes).forEach(function(k){
+    if (k.startsWith('gremio_')) ocMargenes[k] = v;
+  });
+  cargarMontajeOferta();
+}
+
+function actualizarMargenGremio(input, capCode) {
+  var v = parseFloat(input.value) || 0;
+  ocMargenes['gremio_' + capCode] = v;
+  // Resetear márgenes de partida de ese gremio para que hereden
+  Object.keys(ocMargenes).forEach(function(k){
+    if (k.startsWith('partida_')) ocMargenes[k] = null;
+  });
+  cargarMontajeOferta();
+}
+
+function actualizarMargenPartida(input, itemId, capCode) {
+  var v = parseFloat(input.value) || 0;
+  ocMargenes['partida_' + itemId] = v;
+  cargarMontajeOferta();
+}
+
+function resetMargenPartida(itemId, capCode) {
+  ocMargenes['partida_' + itemId] = null;
+  cargarMontajeOferta();
+}
+
 
 function actualizarMargen(input) {
   var code = input.getAttribute('data-code');
@@ -10555,6 +10680,50 @@ async function confirmarMediciones() {
         }
       }
     } catch(es) { console.error('Error guardando proveedores:', es); }
+
+    // Guardar partidas en project_items
+    try {
+      await db.from('project_items').delete().eq('project_id', pid);
+      var itemsToInsert = [];
+      var chapterOrder = 0;
+      var mapaCodigosGremio2 = {
+        'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
+        'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
+        'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
+        'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS',
+        'Seguridad y Salud': 'SEGURIDAD_SALUD', 'Soldadura': 'SOLDADURA',
+        'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
+        'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
+      };
+      Object.keys(_medicionesResultado.gremios).forEach(function(gremioNombre) {
+        var gData = _medicionesResultado.gremios[gremioNombre];
+        var specialtyCode = mapaCodigosGremio2[gremioNombre] || gremioNombre.toUpperCase().replace(/\s/g,'_').replace(/[ÁÉÍÓÚ]/g, function(c){ return {Á:'A',É:'E',Í:'I',Ó:'O',Ú:'U'}[c]||c; });
+        (gData.capitulos || []).forEach(function(cap) {
+          chapterOrder++;
+          (cap.partidas || []).forEach(function(partida) {
+            itemsToInsert.push({
+              project_id: pid,
+              chapter_code: specialtyCode,
+              chapter_name: gremioNombre,
+              chapter_order: chapterOrder,
+              item_code: partida.codigo || '',
+              item_description: (partida.descripcion || '').substring(0, 500),
+              unit: partida.unidad || '',
+              quantity: partida.cantidad || null,
+              supplier_price: null,
+              margin_pct: 20,
+              sale_price: null,
+              created_at: new Date().toISOString()
+            });
+          });
+        });
+      });
+      // Insertar en lotes de 50
+      for (var bi = 0; bi < itemsToInsert.length; bi += 50) {
+        await db.from('project_items').insert(itemsToInsert.slice(bi, bi + 50));
+      }
+      console.log('project_items guardados:', itemsToInsert.length, 'partidas');
+    } catch(epi) { console.error('Error guardando partidas:', epi); }
 
     // Show success with option to advance
     var avanzar = confirm('✅ ' + gremiosArr.length + ' gremios guardados correctamente.\n\n¿Avanzar el proyecto a "Oferta en curso"?');
