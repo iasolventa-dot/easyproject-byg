@@ -4653,17 +4653,17 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
         var proyectoFolderId = projDriveData.data ? projDriveData.data.drive_folder_id : null;
         var driveRes;
         if (analisisFolderId) {
-          // Subcarpeta ya existe — subir DIRECTO a ella sin pasar subcarpeta al webhook
-          // Usamos el webhook de subida directa pasando el folder_id de la subcarpeta
+          // Subcarpeta ya existe — subir DIRECTO usando webhook específico sin lógica de subcarpetas
           var arrayBuffer2 = await pdfFile.arrayBuffer();
           var bytes2 = new Uint8Array(arrayBuffer2);
           var binary2 = ''; var chunk2 = 8192;
           for (var i2=0; i2<bytes2.length; i2+=chunk2) binary2 += String.fromCharCode.apply(null, bytes2.subarray(i2,i2+chunk2));
           var base642 = btoa(binary2);
-          var directRes = await fetch(STORAGE_N8N_WEBHOOK, {
+          // Usar webhook directo que no crea subcarpetas
+          var directRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({file_base64:base642, file_name:pdfFile.name, mime_type:'application/pdf', folder_id:analisisFolderId, project_id:ocProyecto.id})
+            body: JSON.stringify({file_base64:base642, file_name:pdfFile.name, mime_type:'application/pdf', folder_id:analisisFolderId})
           });
           var directText = await directRes.text();
           driveRes = directText && directText.trim() ? JSON.parse(directText) : null;
