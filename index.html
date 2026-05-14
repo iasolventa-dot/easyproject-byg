@@ -4377,7 +4377,7 @@ async function registrarOfertaManual(reqId, specialtyCode) {
     '</div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;margin-top:1.25rem;">' +
     '<button class="btn" onclick="this.closest(\'[data-modal-manual]\').remove()">Cancelar</button>' +
-    '<button class="btn btn-primary" id="btn-guardar-manual" onclick="guardarOfertaManual(' + reqId + ',\''+specialtyCode+'\')\">Guardar oferta</button>' +
+    '<button class="btn btn-primary" id="btn-guardar-manual" onclick="guardarOfertaManual('+reqId+',\''+specialtyCode+'\')">Guardar oferta</button>' +
     '</div></div>';
 
   overlay.appendChild(box);
