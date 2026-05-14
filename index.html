@@ -3991,7 +3991,7 @@ async function abrirOfertaCurso(id, nameEnc) {
   ocAprobaciónes = {técnico:false, comercial:false, dirección:false};
 
   try {
-    var res = await db.from('projects').select('id,name,code,contact_email,category,received_at,project_code,project_statuses(code,name)').eq('id',id).single();
+    var res = await db.from('projects').select('id,name,code,contact_email,category,received_at,project_code,drive_folder_id,drive_analisis_folder_id,project_statuses(code,name)').eq('id',id).single();
     ocProyecto = res.data;
     document.getElementById('oc-title').textContent = 'Oferta en curso - '+(ocProyecto.name||ocProyecto.code||'#'+id);
     document.getElementById('oc-name').textContent = (ocProyecto.project_code ? '['+ocProyecto.project_code+'] ' : '') + (ocProyecto.name||ocProyecto.code||'#'+id);
