@@ -4283,7 +4283,7 @@ async function verOfertaRecibida(reqId) {
       '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;">' +
       '<button class="btn" onclick="this.closest(\'[data-modal]\').remove()">Cerrar</button>' +
       '<button class="btn" onclick="guardarNotasOferta(' + r.id + ',' + reqId + ')">Guardar notas</button>' +
-      (!seleccionado ? '<button class="btn btn-primary" onclick="seleccionarOferta(' + r.id + ',' + reqId + ')">Seleccionar esta oferta</button>' : '') +
+      (seleccionado ? '<button class="btn" style="color:#c00;border-color:#c00;" onclick="deseleccionarOferta(' + r.id + ',' + reqId + ')">Quitar selección</button>' : '<button class="btn btn-primary" onclick="seleccionarOferta(' + r.id + ',' + reqId + ')">Seleccionar esta oferta</button>') +
       '</div>' +
       '</div>';
 
@@ -4350,6 +4350,20 @@ async function seleccionarOferta(responseId, reqId) {
     await db.from('offer_responses').update({selected:true}).eq('id', responseId);
     document.querySelector('[data-modal]').remove();
     alert('Oferta seleccionada correctamente.');
+    cargarOfertasRecibidas();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deseleccionarOferta(responseId, reqId) {
+  if (!confirm('¿Quitar la selección de esta oferta? El gremio quedará sin proveedor adjudicado hasta que selecciones uno nuevo.')) return;
+  try {
+    await db.from('offer_responses').update({selected: false}).eq('id', responseId);
+    document.querySelector('[data-modal]').remove();
+    var fb = document.createElement('div');
+    fb.style.cssText = 'position:fixed;top:20px;right:20px;background:#854F0B;color:white;padding:12px 18px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+    fb.textContent = 'Selección retirada. El gremio queda pendiente de adjudicar.';
+    document.body.appendChild(fb);
+    setTimeout(function(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }, 3500);
     cargarOfertasRecibidas();
   } catch(e) { alert('Error: ' + e.message); }
 }
