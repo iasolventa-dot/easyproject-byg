@@ -4377,7 +4377,7 @@ async function registrarOfertaManual(reqId, specialtyCode) {
     '</div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;margin-top:1.25rem;">' +
     '<button class="btn" onclick="this.closest(\'[data-modal-manual]\').remove()">Cancelar</button>' +
-    '<button class="btn btn-primary" id="btn-guardar-manual" onclick="guardarOfertaManual(' + reqId + ',\\'' + specialtyCode + '\\')">' + 'Guardar oferta</button>' +
+    '<button class="btn btn-primary" id="btn-guardar-manual" onclick="guardarOfertaManual(' + reqId + ',\''+specialtyCode+'\')\">Guardar oferta</button>' +
     '</div></div>';
 
   overlay.appendChild(box);
@@ -4868,7 +4868,7 @@ async function cargarMontajeOferta() {
       return '<tr style="opacity:0.5;">' +
         '<td><span class="badge b-default" style="font-size:9px;">' + gremioNombre + '</span></td>' +
         '<td colspan="4" style="font-size:12px;color:#888;">Pendiente de selección de proveedor</td>' +
-        '<td style="text-align:center;"><button class="btn btn-sm" style="font-size:10px;" onclick="showOcTab('ofertas',document.querySelector('.proj-tab:nth-child(2)'))">Ir a Ofertas</button></td>' +
+        '<td style="text-align:center;"><button class="btn btn-sm" style="font-size:10px;" onclick="showOcTab(\'ofertas\',document.querySelector(\'.proj-tab:nth-child(2)\'))">Ir a Ofertas</button></td>' +
         '</tr>';
     }).join('');
 
