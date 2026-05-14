@@ -4186,7 +4186,7 @@ async function cargarOfertasRecibidas() {
           '<td style="font-weight:500;">'+(p.suppliers?p.suppliers.commercial_name:'-')+'</td>' +
           '<td>'+statusBadge+'</td>' +
           '<td>'+deadline+'</td>' +
-          '<td>'+(p.status==='responded'?'<button class="btn btn-sm btn-primary" onclick="verOfertaRecibida('+p.id+')">Ver oferta</button>':'<span style="font-size:11px;color:#aaa;">Sin respuesta</span>')+'</td>' +
+          '<td>'+(p.status==='responded'?'<button class="btn btn-sm btn-primary" onclick="verOfertaRecibida('+p.id+')">Ver oferta</button>':p.status==='sent'?'<button class="btn btn-sm" style="color:#185FA5;border-color:#185FA5;" onclick="registrarOfertaManual('+p.id+',\''+p.specialty_code+'\')">'+'+ Registrar oferta</button>':'<span style="font-size:11px;color:#aaa;">Sin respuesta</span>')+'</td>' +
           '</tr>';
       }).join('');
 
@@ -4338,6 +4338,102 @@ async function seleccionarOferta(responseId, reqId) {
     alert('Oferta seleccionada correctamente.');
     cargarOfertasRecibidas();
   } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function registrarOfertaManual(reqId, specialtyCode) {
+  var reqRes = await db.from('offer_requests').select('*,suppliers(commercial_name)').eq('id', reqId).single();
+  if (!reqRes.data) { alert('No se encontró la petición.'); return; }
+  var req = reqRes.data;
+  var provNombre = req.suppliers ? req.suppliers.commercial_name : 'Proveedor';
+  var gremioNombre = MAPEO_GREMIOS[specialtyCode] ? MAPEO_GREMIOS[specialtyCode].gremio : specialtyCode;
+
+  var overlay = document.createElement('div');
+  overlay.setAttribute('data-modal-manual','1');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-width:520px;width:100%;max-height:90vh;overflow-y:auto;';
+
+  box.innerHTML =
+    '<div style="padding:1.5rem;">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">' +
+    '<h3 style="margin:0;font-size:15px;">Registrar oferta recibida</h3>' +
+    '<button onclick="this.closest('[data-modal-manual]').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;">\u2715</button>' +
+    '</div>' +
+    '<div style="background:#EEF4FF;border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:13px;">' +
+    '<strong>' + provNombre + '</strong> \u2014 ' + gremioNombre + '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:14px;">' +
+    '<div><label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:5px;">Importe total (\u20ac) <span style=\"color:#c00;\">*</span></label>' +
+    '<input type="number" id="man-importe" placeholder="0.00" step="0.01" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+    '<div><label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:5px;">Plazo entrega (d\u00edas)</label>' +
+    '<input type="number" id="man-plazo" placeholder="ej: 30" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>' +
+    '<div><label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:5px;">Cobertura (%)</label>' +
+    '<input type="number" id="man-cobertura" placeholder="ej: 100" min="0" max="100" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>' +
+    '</div>' +
+    '<div><label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:5px;">Alcance / Notas t\u00e9cnicas</label>' +
+    '<textarea id="man-notas" rows="3" placeholder="Qu\u00e9 incluye y excluye esta oferta, condiciones, partidas principales..." style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea></div>' +
+    '<div><label style="font-size:12px;font-weight:600;color:#444;display:block;margin-bottom:5px;">PDF / Excel de la oferta</label>' +
+    '<input type="file" id="man-pdf" accept=".pdf,.xlsx,.xls" style="font-size:12px;"></div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;margin-top:1.25rem;">' +
+    '<button class="btn" onclick="this.closest('[data-modal-manual]').remove()">Cancelar</button>' +
+    '<button class="btn btn-primary" id="btn-guardar-manual" onclick="guardarOfertaManual(' + reqId + ','' + specialtyCode + '')">Guardar oferta</button>' +
+    '</div></div>';
+
+  overlay.appendChild(box);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+  setTimeout(function(){ var el=document.getElementById('man-importe'); if(el) el.focus(); }, 100);
+}
+
+async function guardarOfertaManual(reqId, specialtyCode) {
+  var importe = parseFloat(document.getElementById('man-importe').value);
+  if (!importe || importe <= 0) { alert('El importe es obligatorio.'); return; }
+  var plazo = parseInt(document.getElementById('man-plazo').value) || null;
+  var cobertura = parseInt(document.getElementById('man-cobertura').value) || null;
+  var notas = document.getElementById('man-notas').value.trim();
+  var pdfInput = document.getElementById('man-pdf');
+  var btn = document.getElementById('btn-guardar-manual');
+
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  try {
+    var reqRes = await db.from('offer_requests').select('supplier_id').eq('id', reqId).single();
+    var supplierId = reqRes.data ? reqRes.data.supplier_id : null;
+
+    var insertRes = await db.from('offer_responses').insert({
+      offer_request_id: reqId,
+      project_id: ocProyecto.id,
+      specialty_code: specialtyCode,
+      supplier_id: supplierId,
+      total_amount: importe,
+      delivery_days: plazo,
+      coverage_pct: cobertura,
+      scope_notes: notas || null,
+      selected: false,
+      created_at: new Date().toISOString()
+    }).select().single();
+
+    var newResponseId = insertRes.data ? insertRes.data.id : null;
+
+    await db.from('offer_requests').update({ status: 'responded', updated_at: new Date().toISOString() }).eq('id', reqId);
+
+    if (pdfInput && pdfInput.files[0] && newResponseId) {
+      btn.textContent = 'Subiendo PDF...';
+      var file = pdfInput.files[0];
+      var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', 'Ofertas Proveedores', null);
+      if (driveRes) {
+        await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', newResponseId);
+      }
+    }
+
+    document.querySelector('[data-modal-manual]').remove();
+    var fb = document.createElement('div');
+    fb.style.cssText = 'position:fixed;top:20px;right:20px;background:#0F6E56;color:white;padding:12px 18px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+    fb.textContent = '\u2713 Oferta registrada correctamente';
+    document.body.appendChild(fb);
+    setTimeout(function(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }, 3000);
+    cargarOfertasRecibidas();
+  } catch(e) { alert('Error guardando la oferta: ' + e.message); btn.textContent = 'Guardar oferta'; btn.disabled = false; }
 }
 
 async function verComparativo(gremio) {
@@ -4699,78 +4795,132 @@ async function cargarMontajeOferta() {
   if (!ocProyecto) return;
   el.innerHTML = '<div class="loading">Cargando partidas...</div>';
 
-  // Datos simulados de partidas con coste de proveedor
-  var gremiosData2 = {
-    ELECTRICIDAD: [
-      {code:'E-001', desc:'Cuadro eléctrico general CGD', unit:'Ud', qty:1, cost:4200},
-      {code:'E-002', desc:'Línea alimentación fuerza desde CGD', unit:'m', qty:45, cost:1800},
-      {code:'E-003', desc:'Puntos de luz LED empotrado', unit:'Ud', qty:32, cost:3840},
-      {code:'E-004', desc:'Toma de corriente 16A', unit:'Ud', qty:18, cost:720}
-    ],
-    CLIMATIZACION: [
-      {code:'C-001', desc:'Unidad interior VRF cassette 4 vías', unit:'Ud', qty:3, cost:9600},
-      {code:'C-002', desc:'Unidad exterior VRF 10 HP', unit:'Ud', qty:1, cost:12400},
-      {code:'C-003', desc:'Red de tuberías refrigerantes', unit:'m', qty:28, cost:2800}
-    ]
-  };
+  try {
+    // Cargar gremios del proyecto
+    var gremsRes = await db.from('project_gremio_suppliers')
+      .select('specialty_code')
+      .eq('project_id', ocProyecto.id);
+    var todosGremios = [];
+    if (gremsRes.data) {
+      var gremsUnicos = [...new Set(gremsRes.data.map(function(g){ return g.specialty_code; }))];
+      todosGremios = gremsUnicos;
+    }
 
-  var todasPartidas = [];
-  ocGremios.forEach(function(g) {
-    var partidas = gremiosData2[g] || [];
-    partidas.forEach(function(p) {
-      p.gremio = g;
-      if (!ocMargenes[p.code]) ocMargenes[p.code] = 15;
-      todasPartidas.push(p);
-    });
-  });
+    // Cargar ofertas seleccionadas (offer_responses con selected=true)
+    var selRes = await db.from('offer_responses')
+      .select('*,suppliers(commercial_name)')
+      .eq('project_id', ocProyecto.id)
+      .eq('selected', true);
+    var seleccionadas = selRes.data || [];
 
-  if (!todasPartidas.length) {
-    el.innerHTML = '<div class="empty">No hay partidas disponibles. Asegúrate de haber recibido al menos una oferta de proveedor.</div>';
-    return;
+    // Cargar todos los requests para saber qué gremios tienen peticiones enviadas
+    var reqRes = await db.from('offer_requests')
+      .select('specialty_code,status')
+      .eq('project_id', ocProyecto.id);
+    var requests = reqRes.data || [];
+    var gremiosConPeticion = [...new Set(requests.map(function(r){ return r.specialty_code; }))];
+
+    // Indexar seleccionadas por gremio
+    var selPorGremio = {};
+    seleccionadas.forEach(function(s) { selPorGremio[s.specialty_code] = s; });
+
+    // Gremios adjudicados (tienen oferta seleccionada)
+    var gremiosAdjudicados = Object.keys(selPorGremio);
+    // Gremios pendientes (tienen petición pero no selección aún)
+    var gremiosPendientes = gremiosConPeticion.filter(function(g){ return !selPorGremio[g]; });
+
+    if (!gremiosAdjudicados.length && !gremiosPendientes.length) {
+      el.innerHTML = '<div class="empty">No hay peticiones de oferta enviadas para este proyecto. Ve a la pestaña A para enviar las peticiones.</div>';
+      return;
+    }
+
+    var totalCoste = 0;
+    var totalVenta = 0;
+
+    // --- SECCIÓN ADJUDICADOS ---
+    var filasAdj = gremiosAdjudicados.map(function(gremio) {
+      var s = selPorGremio[gremio];
+      var gremioNombre = MAPEO_GREMIOS[gremio] ? MAPEO_GREMIOS[gremio].gremio : gremio;
+      var provNombre = s.suppliers ? s.suppliers.commercial_name : '-';
+      var coste = parseFloat(s.total_amount) || 0;
+      var margenKey = 'gremio_' + gremio;
+      if (!ocMargenes[margenKey]) ocMargenes[margenKey] = 15;
+      var margen = ocMargenes[margenKey];
+      var precioVenta = coste * (1 + margen / 100);
+      totalCoste += coste;
+      totalVenta += precioVenta;
+      return '<tr>' +
+        '<td><span class="badge b-default" style="font-size:9px;">' + gremioNombre + '</span></td>' +
+        '<td style="font-weight:500;">' + provNombre + '</td>' +
+        '<td style="text-align:right;">' + coste.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
+        '<td style="text-align:center;width:90px;"><input type="number" value="' + margen + '" min="0" max="100" step="0.5" ' +
+        'onchange="actualizarMargen(this)" data-code="' + margenKey + '" ' +
+        'style="width:60px;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> %</td>' +
+        '<td style="text-align:right;font-weight:600;color:#3B6D11;">' + precioVenta.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
+        '<td style="text-align:center;font-size:11px;">' +
+        (s.delivery_days ? s.delivery_days + ' días' : '-') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    // --- SECCIÓN PENDIENTES ---
+    var filasPend = gremiosPendientes.map(function(gremio) {
+      var gremioNombre = MAPEO_GREMIOS[gremio] ? MAPEO_GREMIOS[gremio].gremio : gremio;
+      return '<tr style="opacity:0.5;">' +
+        '<td><span class="badge b-default" style="font-size:9px;">' + gremioNombre + '</span></td>' +
+        '<td colspan="4" style="font-size:12px;color:#888;">Pendiente de selección de proveedor</td>' +
+        '<td style="text-align:center;"><button class="btn btn-sm" style="font-size:10px;" onclick="showOcTab('ofertas',document.querySelector('.proj-tab:nth-child(2)'))">Ir a Ofertas</button></td>' +
+        '</tr>';
+    }).join('');
+
+    var aviso = gremiosPendientes.length > 0 ?
+      '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#854F0B;">' +
+      '⚠️ <strong>' + gremiosPendientes.length + ' gremio(s) pendiente(s)</strong> de adjudicar. Puedes seguir trabajando en el montaje mientras llegan las ofertas restantes.' +
+      '</div>' : '';
+
+    var botonSometer = gremiosPendientes.length > 0 ?
+      '<button class="btn btn-primary" onclick="confirmarSometerConPendientes(' + gremiosPendientes.length + ')">Someter a aprobación de márgenes</button>' :
+      '<button class="btn btn-primary" onclick="someterAprobaciónMargenes()">Someter a aprobación de márgenes ✔</button>';
+
+    el.innerHTML = aviso +
+      '<div style="overflow-x:auto;">' +
+      '<table class="data-table" style="min-width:680px;">' +
+      '<thead><tr>' +
+      '<th>Gremio</th><th>Proveedor adjudicado</th>' +
+      '<th style="text-align:right;">Coste prov.</th>' +
+      '<th style="text-align:center;">Margen %</th>' +
+      '<th style="text-align:right;">Precio venta</th>' +
+      '<th style="text-align:center;">Plazo</th>' +
+      '</tr></thead><tbody>' +
+      filasAdj +
+      (filasPend ? '<tr><td colspan="6" style="padding:6px 12px;font-size:11px;color:#aaa;border-top:2px dashed #e5e5e0;background:#fafaf8;">Pendientes de adjudicar</td></tr>' + filasPend : '') +
+      '</tbody>' +
+      (gremiosAdjudicados.length > 0 ?
+        '<tfoot><tr style="background:#f0f7e8;font-weight:600;">' +
+        '<td colspan="2" style="padding:10px 12px;font-size:13px;">TOTAL ADJUDICADO (' + gremiosAdjudicados.length + ' gremio(s))</td>' +
+        '<td style="text-align:right;padding:10px 12px;font-size:13px;">' + totalCoste.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
+        '<td></td>' +
+        '<td style="text-align:right;padding:10px 12px;font-size:13px;color:#3B6D11;">' + totalVenta.toLocaleString('es-ES',{minimumFractionDigits:2}) + '€</td>' +
+        '<td style="text-align:center;padding:10px 12px;font-size:11px;color:#888;">Margen medio: ' +
+        (totalCoste > 0 ? (((totalVenta - totalCoste) / totalCoste) * 100).toFixed(1) + '%' : '-') + '</td>' +
+        '</tr></tfoot>' : '') +
+      '</table></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">' +
+      '<button class="btn" onclick="cargarMontajeOferta()">Actualizar</button>' +
+      (gremiosAdjudicados.length > 0 ? botonSometer : '') +
+      '</div>';
+
+    document.getElementById('oc-aprobación-margenes').style.display = 'none';
+
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Error cargando montaje: ' + e.message + '</div>';
+    console.error('cargarMontajeOferta error:', e);
   }
+}
 
-  var totalCoste = 0;
-  var totalVenta = 0;
-
-  var filas = todasPartidas.map(function(p) {
-    var margen = ocMargenes[p.code] || 15;
-    var precioFinal = p.cost * (1 + margen/100);
-    totalCoste += p.cost;
-    totalVenta += precioFinal;
-    return '<tr>' +
-      '<td><span class="badge b-default" style="font-size:9px;">'+p.gremio+'</span></td>' +
-      '<td style="font-size:11px;color:#888;">'+p.code+'</td>' +
-      '<td>'+p.desc+'</td>' +
-      '<td style="text-align:center;">'+p.qty+' '+p.unit+'</td>' +
-      '<td style="text-align:right;">'+(p.cost).toLocaleString('es-ES',{minimumFractionDigits:2})+'€</td>' +
-      '<td style="text-align:center;width:80px;"><input type="number" value="'+margen+'" min="0" max="100" step="0.5" '+
-      'onchange="actualizarMargen(this)" data-code="'+p.code+'" '+
-      'style="width:60px;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;"> %</td>' +
-      '<td style="text-align:right;font-weight:500;color:#3B6D11;">'+(precioFinal).toLocaleString('es-ES',{minimumFractionDigits:2})+'€</td>' +
-      '</tr>';
-  }).join('');
-
-  el.innerHTML =
-    '<div style="overflow-x:auto;">' +
-    '<table class="data-table" style="min-width:700px;">' +
-    '<thead><tr>' +
-    '<th>Gremio</th><th>Código</th><th>Descripción</th><th style="text-align:center;">Cantidad</th>' +
-    '<th style="text-align:right;">Coste prov.</th><th style="text-align:center;">Margen %</th>' +
-    '<th style="text-align:right;">Precio venta</th>' +
-    '</tr></thead><tbody>'+filas+'</tbody>' +
-    '<tfoot><tr style="background:#f9f9f6;font-weight:500;">' +
-    '<td colspan="4" style="padding:10px 12px;font-size:13px;">TOTALES</td>' +
-    '<td style="text-align:right;padding:10px 12px;font-size:13px;">'+totalCoste.toLocaleString('es-ES',{minimumFractionDigits:2})+'€</td>' +
-    '<td></td>' +
-    '<td style="text-align:right;padding:10px 12px;font-size:13px;color:#3B6D11;">'+totalVenta.toLocaleString('es-ES',{minimumFractionDigits:2})+'€</td>' +
-    '</tr></tfoot>' +
-    '</table></div>' +
-    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">' +
-    '<button class="btn" onclick="cargarMontajeOferta()">Recalcular</button>' +
-    '<button class="btn btn-primary" onclick="someterAprobaciónMargenes()">Someter a aprobación de márgenes </button>' +
-    '</div>';
-
-  document.getElementById('oc-aprobación-margenes').style.display = 'none';
+function confirmarSometerConPendientes(numPendientes) {
+  if (confirm('Hay ' + numPendientes + ' gremio(s) pendientes de adjudicar. ¿Deseas someter a aprobación el montaje parcial con los gremios ya adjudicados?')) {
+    someterAprobaciónMargenes();
+  }
 }
 
 function actualizarMargen(input) {
