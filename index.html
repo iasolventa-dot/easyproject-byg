@@ -4171,29 +4171,43 @@ async function cargarOfertasRecibidas() {
       porGremio[p.specialty_code].push(p);
     });
 
+    // Cargar offer_responses para saber cuáles están seleccionadas
+    var selRes = await db.from('offer_responses').select('specialty_code,supplier_id,selected').eq('project_id',ocProyecto.id).eq('selected',true);
+    var seleccionadosPorGremio = {};
+    (selRes.data||[]).forEach(function(s){ seleccionadosPorGremio[s.specialty_code] = s.supplier_id; });
+
     var html = Object.keys(porGremio).map(function(gremio) {
       var provs = porGremio[gremio];
       var enviados = provs.filter(function(p){return p.status==='sent'||p.status==='responded';}).length;
       var respondidos = provs.filter(function(p){return p.status==='responded';}).length;
+      var tieneAdjudicado = seleccionadosPorGremio.hasOwnProperty(gremio);
+      var supplierIdAdjudicado = seleccionadosPorGremio[gremio];
 
       var filas = provs.map(function(p) {
+        var esAdjudicado = tieneAdjudicado && p.supplier_id === supplierIdAdjudicado;
         var statusBadge = p.status==='responded' ?
           '<span class="badge b-adjudicado">Recibida</span>' :
           p.status==='sent' ? '<span class="badge b-oferta_enviada">Esperando</span>' :
           '<span class="badge b-default">Pendiente</span>';
         var deadline = p.deadline_date ? new Date(p.deadline_date).toLocaleDateString('es-ES') : '-';
-        return '<tr>' +
-          '<td style="font-weight:500;">'+(p.suppliers?p.suppliers.commercial_name:'-')+'</td>' +
+        var rowStyle = esAdjudicado ? ' style="background:#F0FFF4;"' : '';
+        var adjBadge = esAdjudicado ? '<span style="margin-left:8px;font-size:10px;background:#3B6D11;color:white;padding:2px 7px;border-radius:4px;font-weight:500;">✓ Seleccionado</span>' : '';
+        return '<tr'+rowStyle+'>' +
+          '<td style="font-weight:500;">'+(p.suppliers?p.suppliers.commercial_name:'-')+adjBadge+'</td>' +
           '<td>'+statusBadge+'</td>' +
           '<td>'+deadline+'</td>' +
           '<td>'+(p.status==='responded'?'<button class="btn btn-sm btn-primary" onclick="verOfertaRecibida('+p.id+')">Ver oferta</button>':p.status==='sent'?'<button class="btn btn-sm" style="color:#185FA5;border-color:#185FA5;" onclick="registrarOfertaManual('+p.id+',\''+p.specialty_code+'\')">'+'+ Registrar oferta</button>':'<span style="font-size:11px;color:#aaa;">Sin respuesta</span>')+'</td>' +
           '</tr>';
       }).join('');
 
-      return '<div class="card" style="margin-bottom:1rem;" data-gremio="'+gremio+'">' +
+      var adjudicadoBadge = tieneAdjudicado ?
+        '<span style="font-size:11px;background:#EAF3DE;color:#3B6D11;border:1px solid #C0DD97;padding:2px 8px;border-radius:4px;font-weight:500;">✓ Adjudicado provisionalmente</span>' : '';
+
+      return '<div class="card" style="margin-bottom:1rem;'+(tieneAdjudicado?'border-left:3px solid #3B6D11;':'')+' " data-gremio="'+gremio+'">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f0f0ea;">' +
-        '<div style="display:flex;align-items:center;gap:8px;"><span class="badge b-default">'+(MAPEO_GREMIOS[gremio]?MAPEO_GREMIOS[gremio].gremio:gremio)+'</span>' +
-        '<span style="font-size:12px;color:#888;">'+respondidos+' de '+enviados+' ofertas recibidas</span></div>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span class="badge b-default">'+(MAPEO_GREMIOS[gremio]?MAPEO_GREMIOS[gremio].gremio:gremio)+'</span>' +
+        '<span style="font-size:12px;color:#888;">'+respondidos+' de '+enviados+' ofertas recibidas</span>' +
+        adjudicadoBadge + '</div>' +
         (respondidos >= 2 ? '<button class="btn btn-primary btn-sm" onclick="verComparativoGremio(this)">Ver comparativo IA</button>' : '') +
         '</div>' +
         '<table class="data-table"><thead><tr><th>Proveedor</th><th>Estado</th><th>Fecha límite</th><th>Acción</th></tr></thead>' +
@@ -4846,7 +4860,7 @@ async function cargarMontajeOferta() {
       var margenKey = 'gremio_' + gremio;
       if (!ocMargenes[margenKey]) ocMargenes[margenKey] = 15;
       var margen = ocMargenes[margenKey];
-      var precioVenta = coste * (1 + margen / 100);
+      var precioVenta = Math.round(coste * (1 + margen / 100) * 100) / 100;
       totalCoste += coste;
       totalVenta += precioVenta;
       return '<tr>' +
