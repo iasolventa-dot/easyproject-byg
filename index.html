@@ -4400,12 +4400,17 @@ async function verComparativo(gremio) {
       '<th style="padding:10px 12px;text-align:center;">Acción</th>' +
       '</tr></thead><tbody>'+filas+'</tbody></table></div>';
 
-    // Mostrar tabla mientras carga la IA
+    // Mostrar tabla mientras carga la IA — botones Seleccionar deshabilitados
     document.getElementById('comp-loading').innerHTML =
+      '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#854F0B;">' +
+      '⚠️ <strong>Espera a que se genere el análisis completo</strong> antes de seleccionar un proveedor.' +
+      '</div>' +
       tablaHtml +
       '<div style="background:#EEF4FF;border-radius:8px;padding:1rem;">' +
       '<div style="font-size:12px;font-weight:600;color:#185FA5;margin-bottom:6px;">🤖 Análisis IA</div>' +
       '<div id="comp-ia-texto" style="font-size:13px;color:#444;">⏳ Generando análisis...</div></div>';
+    // Deshabilitar botones Seleccionar mientras carga
+    document.querySelectorAll('[data-modal-comp] button').forEach(function(b){ if(b.textContent.trim()==='Seleccionar') { b.disabled=true; b.style.opacity='0.4'; b.title='Espera a que termine el análisis IA'; } });
 
     // Llamar a la IA
     var proyecto = ocProyecto.name || ocProyecto.code || 'el proyecto';
@@ -4463,6 +4468,10 @@ async function verComparativo(gremio) {
 
     var el = document.getElementById('comp-ia-texto');
     if (el) el.innerHTML = iaTexto;
+    // Habilitar botones Seleccionar y quitar aviso
+    document.querySelectorAll('[data-modal-comp] button').forEach(function(b){ if(b.textContent.trim()==='Seleccionar') { b.disabled=false; b.style.opacity='1'; b.title=''; } });
+    var avisoEl = document.querySelector('[data-modal-comp] div[style*="FEF3C7"]');
+    if (avisoEl) avisoEl.remove();
 
   } catch(e) {
     var el = document.getElementById('comp-loading');
@@ -4638,10 +4647,22 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
         var pdfFile = new File([pdfBlob], pdfFileName, {type:'application/pdf'});
         var projCode2 = ocProyecto.code || ocProyecto.name || ('Proyecto-' + ocProyecto.id);
         var projName2 = ocProyecto.name || ocProyecto.code || '';
-        // Usar folder_id guardado en BD para evitar crear carpetas duplicadas
-        var projDriveData = await db.from('projects').select('drive_folder_id').eq('id', ocProyecto.id).single();
-        var existingFolderId = projDriveData.data ? projDriveData.data.drive_folder_id : null;
-        var driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Proveedores', existingFolderId);
+        // Usar folder_id de subcarpeta si ya existe, o el folder_id del proyecto
+        var projDriveData = await db.from('projects').select('drive_folder_id,drive_analisis_folder_id').eq('id', ocProyecto.id).single();
+        var analisisFolderId = projDriveData.data ? projDriveData.data.drive_analisis_folder_id : null;
+        var proyectoFolderId = projDriveData.data ? projDriveData.data.drive_folder_id : null;
+        var driveRes;
+        if (analisisFolderId) {
+          // Subcarpeta ya existe — subir directamente sin buscar/crear
+          driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Ofertas de Proveedores', analisisFolderId);
+        } else {
+          // Primera vez — crear subcarpeta dentro de la carpeta del proyecto
+          driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Ofertas de Proveedores', proyectoFolderId);
+          // Guardar el folder_id de la subcarpeta para futuras subidas
+          if (driveRes && driveRes.folder_id) {
+            await db.from('projects').update({drive_analisis_folder_id: driveRes.folder_id}).eq('id', ocProyecto.id);
+          }
+        }
         if (driveRes) {
           await db.from('offer_analysis').update({pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId})
             .eq('project_id', ocProyecto.id).eq('specialty_code', gremio).order('created_at', {ascending: false}).limit(1);
