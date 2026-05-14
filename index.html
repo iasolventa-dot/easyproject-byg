@@ -4653,8 +4653,20 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
         var proyectoFolderId = projDriveData.data ? projDriveData.data.drive_folder_id : null;
         var driveRes;
         if (analisisFolderId) {
-          // Subcarpeta ya existe — subir directamente sin buscar/crear
-          driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Ofertas de Proveedores', analisisFolderId);
+          // Subcarpeta ya existe — subir DIRECTO a ella sin pasar subcarpeta al webhook
+          // Usamos el webhook de subida directa pasando el folder_id de la subcarpeta
+          var arrayBuffer2 = await pdfFile.arrayBuffer();
+          var bytes2 = new Uint8Array(arrayBuffer2);
+          var binary2 = ''; var chunk2 = 8192;
+          for (var i2=0; i2<bytes2.length; i2+=chunk2) binary2 += String.fromCharCode.apply(null, bytes2.subarray(i2,i2+chunk2));
+          var base642 = btoa(binary2);
+          var directRes = await fetch(STORAGE_N8N_WEBHOOK, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({file_base64:base642, file_name:pdfFile.name, mime_type:'application/pdf', folder_id:analisisFolderId, project_id:ocProyecto.id})
+          });
+          var directText = await directRes.text();
+          driveRes = directText && directText.trim() ? JSON.parse(directText) : null;
         } else {
           // Primera vez — crear subcarpeta dentro de la carpeta del proyecto
           driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Ofertas de Proveedores', proyectoFolderId);
