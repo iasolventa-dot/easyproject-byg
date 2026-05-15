@@ -4354,12 +4354,22 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
     // Si no hay cabecera clara, intentar por posición (col A=código, col K=precio, col L=importe como en Excel Xiaomi)
     if (filaHeader < 0) { colCodigo = 0; colPrecio = 10; colImporte = 11; filaHeader = 2; }
 
-    // Extraer precios por código
+    // Extraer precios por código — recorrer TODAS las filas desde filaHeader+1
     var preciosPorCodigo = {};
     for (var ri = filaHeader + 1; ri < filas.length; ri++) {
       var fila = filas[ri];
+      if (!fila || fila.every(function(v){ return v === null || v === undefined || v === ''; })) continue;
       var cod = String(fila[colCodigo]||'').trim();
-      var precio = parseFloat(fila[colPrecio]) || parseFloat(fila[colImporte]) || 0;
+      if (!cod) continue;
+      // Ignorar filas de capítulo (Nat. = 'Capítulo' o valor en col 1 es 'Capítulo')
+      var nat = String(fila[1]||'').trim().toLowerCase();
+      if (nat === 'capítulo' || nat === 'capitulo' || nat === 'capítulo'.toLowerCase()) continue;
+      // Buscar precio en varias columnas posibles
+      var precio = 0;
+      for (var pc = 9; pc <= 12; pc++) {
+        var v = parseFloat(fila[pc]);
+        if (v > 0) { precio = v; break; }
+      }
       if (cod && precio > 0) preciosPorCodigo[cod] = precio;
     }
 
