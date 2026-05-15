@@ -10368,11 +10368,29 @@ function verPartidasGremio(nombre, data, idx) {
   var btnConf = document.createElement('button');
   btnConf.className = 'btn btn-success btn-sm';
   btnConf.style.fontSize = '11px';
-  btnConf.textContent = '✓ Confirmar gremio';
-  btnConf.onclick = function(){ confirmarGremio(nombre, idx); };
+  btnConf.textContent = '✓ Partidas OK → Seleccionar proveedores';
+  btnConf.id = 'btn-confirmar-partidas-' + idx;
+  btnConf.onclick = function(){
+    // Marcar partidas como revisadas y hacer scroll a proveedores
+    btnConf.textContent = '\u2714 Partidas confirmadas';
+    btnConf.disabled = true;
+    btnConf.style.opacity = '0.7';
+    var provSection = document.getElementById('med-prov-section-' + idx);
+    if (provSection) {
+      provSection.style.display = 'block';
+      provSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  var btnSiguiente = document.createElement('button');
+  btnSiguiente.className = 'btn btn-primary btn-sm';
+  btnSiguiente.style.fontSize = '11px';
+  btnSiguiente.textContent = 'Confirmar y siguiente →';
+  btnSiguiente.onclick = function(){ confirmarGremio(nombre, idx); };
 
   btnsCont.appendChild(btnCerrar);
   btnsCont.appendChild(btnConf);
+  btnsCont.appendChild(btnSiguiente);
   titleHead.appendChild(titleText);
   titleHead.appendChild(btnsCont);
   titleBar.appendChild(titleHead);
@@ -10462,8 +10480,8 @@ function verPartidasGremio(nombre, data, idx) {
 
   // === PROVEEDORES DEL GREMIO ===
   var provSection = document.createElement('div');
-  provSection.id = 'med-proveedores-' + idx;
-  provSection.style.cssText = 'background:white;border:1px solid #e5e5e0;border-radius:10px;padding:1rem 1.25rem;margin-top:0;';
+  provSection.id = 'med-prov-section-' + idx;
+  provSection.style.cssText = 'background:white;border:1px solid #e5e5e0;border-radius:10px;padding:1rem 1.25rem;margin-top:0;display:none;';
   provSection.innerHTML = '<div style="font-size:12px;font-weight:600;color:#1a1a1a;margin-bottom:0.75rem;">🏢 Proveedores disponibles para ' + nombre + '</div>' +
     '<div id="med-prov-lista-' + idx + '" style="font-size:12px;color:#888;">Cargando proveedores...</div>';
   panel.appendChild(provSection);
