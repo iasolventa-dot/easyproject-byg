@@ -10191,9 +10191,24 @@ async function analizarMedicionesConIA(adj, projectId) {
     var _recIA = { file_path: adj.file_path, storage_provider: adj.storage_provider, drive_file_id: adj.drive_file_id };
     var _urlsIA = await storageGetUrl(_recIA);
     if (!_urlsIA) return null;
-    var response = await fetch(_urlsIA.downloadUrl);
-    var arrayBuffer = await response.arrayBuffer();
-    var base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(arrayBuffer)));
+
+    var base64;
+    var isDriveIA = adj.storage_provider === 'google_drive' || (adj.file_path && adj.file_path.startsWith('https://drive.google.com'));
+    if (isDriveIA && adj.drive_file_id) {
+      // Descargar via n8n proxy para evitar CORS
+      var proxyResIA = await fetch('https://n8n.solventaapi.com/webhook/descargar-drive-base64', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ fileId: adj.drive_file_id })
+      });
+      var proxyDataIA = await proxyResIA.json();
+      base64 = proxyDataIA.base64 || proxyDataIA.data || proxyDataIA.content || '';
+      if (!base64) return null;
+    } else {
+      var response = await fetch(_urlsIA.downloadUrl);
+      var arrayBuffer = await response.arrayBuffer();
+      base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(arrayBuffer)));
+    }
 
     var n8nUrl = 'https://n8n.solventaapi.com/webhook/gastos-ia';
     var prompt = 'Analiza este documento de mediciones de obra. Identifica los capítulos y partidas agrupados por gremio de trabajo (demoliciones, albañilería, electricidad, fontanería, climatización, pladur, contraincendios, etc.). Devuelve SOLO un JSON con esta estructura: {"gremios": [{"gremio": "nombre", "partidas": [{"descripcion": "...", "unidad": "m2", "cantidad": 10}]}], "obra": "nombre de la obra"}';
@@ -11495,9 +11510,26 @@ async function ejecutarAnalisisIA(projectId) {
           continue;
         }
 
-        // Fetch file as arrayBuffer for text extraction
-        var fileResp = await fetch(_urlsAnalisis.downloadUrl);
-        var arrayBuffer = await fileResp.arrayBuffer();
+        // Fetch file as arrayBuffer para text extraction
+        var arrayBuffer;
+        var isDriveAnalisis = a.storage_provider === 'google_drive' || (a.file_path && a.file_path.startsWith('https://drive.google.com'));
+        if (isDriveAnalisis && a.drive_file_id) {
+          var proxyResAn = await fetch('https://n8n.solventaapi.com/webhook/descargar-drive-base64', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ fileId: a.drive_file_id })
+          });
+          var proxyDataAn = await proxyResAn.json();
+          var b64An = proxyDataAn.base64 || proxyDataAn.data || proxyDataAn.content || '';
+          if (!b64An) { docsOmitidos.push(a.file_name + ' (no se pudo descargar desde Drive)'); continue; }
+          var binAn = atob(b64An);
+          var bytesAn = new Uint8Array(binAn.length);
+          for (var bi3=0;bi3<binAn.length;bi3++) bytesAn[bi3]=binAn.charCodeAt(bi3);
+          arrayBuffer = bytesAn.buffer;
+        } else {
+          var fileResp = await fetch(_urlsAnalisis.downloadUrl);
+          arrayBuffer = await fileResp.arrayBuffer();
+        }
 
         // Extract text based on file type
         var textoExtraido = '';
