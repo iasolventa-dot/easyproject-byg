@@ -10528,10 +10528,10 @@ async function cargarProveedoresGremio(nombreGremio, idx) {
 
   // Map gremio name to specialty_code
   var mapaEspecialidades = {
-    'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
+    'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'FALSO_TECHO',
     'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
-    'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
-    'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS', 'Seguridad y Salud': 'SEGURIDAD_SALUD',
+    'Contraincendios': 'PROTECCION_CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
+    'Varios': 'GESTION_LIMPIEZA', 'Gestión de Residuos': 'GESTION_RESIDUOS', 'Seguridad y Salud': 'SEGURIDAD_SALUD',
     'Soldadura': 'SOLDADURA', 'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
     'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
   };
@@ -10678,10 +10678,10 @@ var _medicionesConfirmados = {};
 function confirmarGremio(nombre, idx) {
   // Save selected suppliers for this gremio
   var mapaCodigosGremio3 = {
-    'Demoliciones':'DEMOLICION','Albañilería':'ALBANILERIA','Pladur':'PLADUR',
+    'Demoliciones':'DEMOLICION','Albañilería':'ALBANILERIA','Pladur':'FALSO_TECHO',
     'Climatización y ventilación':'CLIMATIZACION','Electricidad':'ELECTRICIDAD',
-    'Contraincendios':'CONTRAINCENDIOS','Fontanería':'FONTANERIA',
-    'Varios':'VARIOS','Gestión de Residuos':'GESTION_RESIDUOS','Seguridad y Salud':'SEGURIDAD_SALUD',
+    'Contraincendios':'PROTECCION_CONTRAINCENDIOS','Fontanería':'FONTANERIA',
+    'Varios':'GESTION_LIMPIEZA','Gestión de Residuos':'GESTION_RESIDUOS','Seguridad y Salud':'SEGURIDAD_SALUD',
     'Soldadura':'SOLDADURA','Falso techo':'FALSO_TECHO','Ferretería':'FERRETERIA',
     'CCTV y Datos':'CCTV_DATOS','Gestión y Limpieza':'GESTION_LIMPIEZA'
   };
@@ -10734,13 +10734,16 @@ async function confirmarMediciones() {
       var gremioNombre = gremiosArr[i];
       // Normalize gremio name to specialty_code
       var mapaCodigosGremio = {
-        'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
-        'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
-        'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
-        'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS',
+        'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'FALSO_TECHO',
+        'Climatización y ventilación': 'CLIMATIZACION', 'Climatización': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
+        'Contraincendios': 'PROTECCION_CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
+        'Varios': 'GESTION_LIMPIEZA', 'Gestión de Residuos': 'GESTION_LIMPIEZA',
         'Seguridad y Salud': 'SEGURIDAD_SALUD', 'Soldadura': 'SOLDADURA',
-        'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
-        'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
+        'Falso techo': 'FALSO_TECHO', 'Ferretería': 'CERRAJERIA',
+        'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA',
+        'Carpintería': 'CARPINTERIA', 'Carpintería metálica': 'CARPINTERIA_METALICA',
+        'Carpintería de madera': 'CARPINTERIA_MADERA', 'Pintura': 'PINTURA',
+        'Pavimentos': 'PAVIMENTOS_REVESTIMIENTOS', 'Cerrajería': 'CERRAJERIA'
       };
       var specialtyCode = mapaCodigosGremio[gremioNombre] || gremioNombre.toUpperCase().replace(/\s/g,'_').replace(/[ÁÉÍÓÚ]/g, function(c){ return {Á:'A',É:'E',Í:'I',Ó:'O',Ú:'U'}[c]||c; });
       await db.from('project_specialties').insert({
@@ -10774,13 +10777,16 @@ async function confirmarMediciones() {
       var itemsToInsert = [];
       var chapterOrder = 0;
       var mapaCodigosGremio2 = {
-        'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'PLADUR',
-        'Climatización y ventilación': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
-        'Contraincendios': 'CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
-        'Varios': 'VARIOS', 'Gestión de Residuos': 'GESTION_RESIDUOS',
+        'Demoliciones': 'DEMOLICION', 'Albañilería': 'ALBANILERIA', 'Pladur': 'FALSO_TECHO',
+        'Climatización y ventilación': 'CLIMATIZACION', 'Climatización': 'CLIMATIZACION', 'Electricidad': 'ELECTRICIDAD',
+        'Contraincendios': 'PROTECCION_CONTRAINCENDIOS', 'Fontanería': 'FONTANERIA',
+        'Varios': 'GESTION_LIMPIEZA', 'Gestión de Residuos': 'GESTION_LIMPIEZA',
         'Seguridad y Salud': 'SEGURIDAD_SALUD', 'Soldadura': 'SOLDADURA',
-        'Falso techo': 'FALSO_TECHO', 'Ferretería': 'FERRETERIA',
-        'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA'
+        'Falso techo': 'FALSO_TECHO', 'Ferretería': 'CERRAJERIA',
+        'CCTV y Datos': 'CCTV_DATOS', 'Gestión y Limpieza': 'GESTION_LIMPIEZA',
+        'Carpintería': 'CARPINTERIA', 'Carpintería metálica': 'CARPINTERIA_METALICA',
+        'Carpintería de madera': 'CARPINTERIA_MADERA', 'Pintura': 'PINTURA',
+        'Pavimentos': 'PAVIMENTOS_REVESTIMIENTOS', 'Cerrajería': 'CERRAJERIA'
       };
       Object.keys(_medicionesResultado.gremios).forEach(function(gremioNombre) {
         var gData = _medicionesResultado.gremios[gremioNombre];
