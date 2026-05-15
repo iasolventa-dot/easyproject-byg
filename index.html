@@ -4309,7 +4309,7 @@ async function verOfertaRecibida(reqId) {
       '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;">' +
       '<button class="btn" onclick="this.closest(\'[data-modal]\').remove()">Cerrar</button>' +
       '<button class="btn" onclick="guardarNotasOferta(' + r.id + ',' + reqId + ')">Guardar notas</button>' +
-      '<input type="file" id="input-excel-proveedor-' + r.id + '" accept=".xlsx,.xls,.csv" style="display:none;" onchange="cargarPreciosDesdeExcel(this,' + r.id + ',\''+specialtyCode+'\')">' +
+      '<input type="file" id="input-excel-proveedor-' + r.id + '" accept=".xlsx,.xls,.csv" style="display:none;" onchange="cargarPreciosDesdeExcel(this,' + r.id + ',\''+r.specialty_code+'\')">' +
       '<button class="btn" onclick="document.getElementById(\'input-excel-proveedor-' + r.id + '\').click()" title="Cargar precios partida a partida desde el Excel del proveedor" style="color:#185FA5;border-color:#185FA5;">\ud83d\udcc2 Cargar precios Excel</button>' +
       (seleccionado ? '<button class="btn" style="color:#c00;border-color:#c00;" onclick="deseleccionarOferta(' + r.id + ',' + reqId + ')">Quitar selección</button>' : '<button class="btn btn-primary" onclick="seleccionarOferta(' + r.id + ',' + reqId + ')">Seleccionar esta oferta</button>') +
       '</div>' +
