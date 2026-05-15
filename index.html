@@ -10013,7 +10013,7 @@ async function anAnalizarMediciones(projectId, adjuntoIds) {
       if (isDriveFile && adj.drive_file_id) {
         // Descargar via n8n proxy para evitar CORS de Drive
         loadingDiv.innerHTML = '<div style="font-size:13px;color:#185FA5;font-weight:500;">\ud83d\udcca Descargando Excel desde Drive...</div>';
-        var proxyRes = await fetch('https://n8n.solventaapi.com/webhook/descargar-enlace-drive', {
+        var proxyRes = await fetch('https://n8n.solventaapi.com/webhook/descargar-drive-base64', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ fileId: adj.drive_file_id, asBase64: true })
