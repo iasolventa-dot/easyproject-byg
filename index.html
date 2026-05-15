@@ -10705,7 +10705,6 @@ function confirmarGremio(nombre, idx) {
     var check = document.getElementById('med-check-' + idx);
     if (check) check.style.display = 'flex';
   }
-  cerrarRevisionGremio();
   var total = Object.keys(_medicionesResultado.gremios).length;
   var confirmados = Object.keys(_medicionesConfirmados).length;
   var countEl = document.getElementById('med-confirmados-count');
@@ -10714,6 +10713,28 @@ function confirmarGremio(nombre, idx) {
   if (btnGuardar && confirmados >= total) {
     btnGuardar.disabled = false;
     btnGuardar.style.opacity = '1';
+  }
+
+  // Avanzar automáticamente al siguiente gremio no confirmado
+  var gremiosArr = Object.keys(_medicionesResultado.gremios);
+  var siguienteIdx = -1;
+  var siguienteNombre = null;
+  var siguienteData = null;
+  for (var gi = 0; gi < gremiosArr.length; gi++) {
+    var gn = gremiosArr[gi];
+    if (!_medicionesConfirmados[gn]) {
+      siguienteIdx = gi;
+      siguienteNombre = gn;
+      siguienteData = _medicionesResultado.gremios[gn];
+      break;
+    }
+  }
+  if (siguienteNombre) {
+    // Hay siguiente gremio — abrir directamente
+    setTimeout(function(){ verPartidasGremio(siguienteNombre, siguienteData, siguienteIdx); }, 150);
+  } else {
+    // Todos confirmados — cerrar panel y mostrar botón guardar
+    cerrarRevisionGremio();
   }
 }
 
