@@ -4378,6 +4378,7 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
       .eq('project_id', ocProyecto.id)
       .eq('chapter_code', specialtyCode);
     var items = itemsRes.data || [];
+    alert('DEBUG2 - project_id: ' + ocProyecto.id + ' specialtyCode: ' + specialtyCode + ' items encontrados en BD: ' + items.length + (items.length>0?' primer cod: '+items[0].item_code:''));
 
     // Mapear y actualizar
     var actualizados = 0;
