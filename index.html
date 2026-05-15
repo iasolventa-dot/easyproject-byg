@@ -4382,9 +4382,12 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
     // Mapear y actualizar
     var actualizados = 0;
     var noEncontrados = [];
+    console.log('Códigos en BD:', items.map(function(i){return i.item_code;}));
+    console.log('Códigos en Excel:', Object.keys(preciosPorCodigo));
     for (var ii = 0; ii < items.length; ii++) {
       var item = items[ii];
       var precio2 = preciosPorCodigo[item.item_code];
+      console.log('Buscando', item.item_code, '→', precio2);
       if (precio2 > 0) {
         await db.from('project_items').update({
           supplier_price: precio2,
