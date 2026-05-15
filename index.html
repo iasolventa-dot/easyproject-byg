@@ -1557,12 +1557,12 @@
       <div class="alert-box-desc">Revisa las partidas selecciónadas, propón el margen de beneficio por partida y somete a aprobación de Comercial y Dirección antes de enviar al cliente.</div>
     </div>
     <div id="oc-montaje-content"><div class="loading">Cargando partidas...</div></div>
-    <div id="oc-aprobación-margenes" style="display:none;margin-top:1rem;">
+    <div id="oc-aprobacion-margenes" style="display:none;margin-top:1rem;">
       <div class="section-title">Aprobación de márgenes</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
         <div class="card" style="text-align:center;">
           <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Dept. Técnico</div>
-          <div id="aprov-técnico-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('tecnico')">Aprobar márgenes</button></div>
+          <div id="aprov-tecnico-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('tecnico')">Aprobar márgenes</button></div>
         </div>
         <div class="card" style="text-align:center;">
           <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Dept. Comercial</div>
@@ -1570,7 +1570,7 @@
         </div>
         <div class="card" style="text-align:center;">
           <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Dirección</div>
-          <div id="aprov-dirección-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('direccion')">Aprobar márgenes</button></div>
+          <div id="aprov-direccion-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('direccion')">Aprobar márgenes</button></div>
         </div>
       </div>
       <div id="oc-envio-final" style="display:none;">
@@ -4007,14 +4007,14 @@ function abrirDocumento(nombre) {
 var ocProyecto = null;
 var ocGremios = [];
 var ocMargenes = {};
-var ocAprobaciónes = {técnico:false, comercial:false, dirección:false};
+var ocAprobaciones = {técnico:false, comercial:false, dirección:false};
 
 async function abrirOfertaCurso(id, nameEnc) {
   var name = decodeURIComponent(nameEnc);
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
   document.getElementById('panel-oferta-curso').classList.add('active');
   showOcTab('peticiones', document.querySelector('.proj-tab'));
-  ocAprobaciónes = {técnico:false, comercial:false, dirección:false};
+  ocAprobaciones = {técnico:false, comercial:false, dirección:false};
 
   try {
     var res = await db.from('projects').select('id,name,code,contact_email,category,received_at,project_code,drive_folder_id,drive_analisis_folder_id,project_statuses(code,name)').eq('id',id).single();
@@ -5226,16 +5226,16 @@ function actualizarMargen(input) {
 }
 
 function someterAprobaciónMargenes() {
-  document.getElementById('oc-aprobación-margenes').style.display = 'block';
-  document.getElementById('oc-aprobación-margenes').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('oc-aprobacion-margenes').style.display = 'block';
+  document.getElementById('oc-aprobacion-margenes').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function aprobarMargenes(dept) {
-  ocAprobaciónes[dept] = true;
+  ocAprobaciones[dept] = true;
   var el = document.getElementById('aprov-'+dept+'-status');
-  if (el) el.innerHTML = '<div style="color:#3B6D11;font-size:13px;">OK Aprobado</div>';
+  if (el) el.innerHTML = '<div style="color:#3B6D11;font-size:13px;">\u2714 Aprobado</div>';
 
-  if (ocAprobaciónes.técnico && ocAprobaciónes.comercial && ocAprobaciónes.dirección) {
+  if (ocAprobaciones.tecnico && ocAprobaciones.comercial && ocAprobaciones.direccion) {
     document.getElementById('oc-envio-final').style.display = 'block';
     var emailCliente = 'Estimado cliente,\n\nNos complace presentarles nuestra propuesta económica para el proyecto ' +
       (ocProyecto?ocProyecto.name||ocProyecto.code:'') + '.\n\nAdjuntamos nuestra oferta detallada por partidas y gremios para su revisión.\n\nQuedamos a su disposición para cualquier aclaración o modificación que precisen.\n\nAtentamente,\nDepartamento Técnico\nBYG Soluciones S.L.';
