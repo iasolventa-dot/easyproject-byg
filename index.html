@@ -10005,12 +10005,30 @@ async function anAnalizarMediciones(projectId, adjuntoIds) {
       var _recSheetJS = { file_path: adj.file_path, storage_provider: adj.storage_provider, drive_file_id: adj.drive_file_id };
       var _urlsSheetJS = await storageGetUrl(_recSheetJS);
       if (!_urlsSheetJS || !_urlsSheetJS.downloadUrl) { alert('No se pudo acceder al archivo'); continue; }
-      var urlRes = { data: { signedUrl: _urlsSheetJS.downloadUrl } };
 
-      loadingDiv.innerHTML = '<div style="font-size:13px;color:#185FA5;font-weight:500;">📊 Leyendo Excel con SheetJS...</div>';
+      loadingDiv.innerHTML = '<div style="font-size:13px;color:#185FA5;font-weight:500;">\ud83d\udcca Leyendo Excel con SheetJS...</div>';
 
-      var response = await fetch(urlRes.data.signedUrl);
-      var arrayBuffer = await response.arrayBuffer();
+      var arrayBuffer;
+      var isDriveFile = adj.storage_provider === 'google_drive' || (adj.file_path && adj.file_path.startsWith('https://drive.google.com'));
+      if (isDriveFile && adj.drive_file_id) {
+        // Descargar via n8n proxy para evitar CORS de Drive
+        loadingDiv.innerHTML = '<div style="font-size:13px;color:#185FA5;font-weight:500;">\ud83d\udcca Descargando Excel desde Drive...</div>';
+        var proxyRes = await fetch('https://n8n.solventaapi.com/webhook/descargar-enlace-drive', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ fileId: adj.drive_file_id, asBase64: true })
+        });
+        var proxyData = await proxyRes.json();
+        var base64 = proxyData.base64 || proxyData.data || proxyData.content || '';
+        if (!base64) { alert('No se pudo descargar el archivo desde Drive'); continue; }
+        var binary = atob(base64);
+        var bytes = new Uint8Array(binary.length);
+        for (var bi2 = 0; bi2 < binary.length; bi2++) bytes[bi2] = binary.charCodeAt(bi2);
+        arrayBuffer = bytes.buffer;
+      } else {
+        var response = await fetch(_urlsSheetJS.downloadUrl);
+        arrayBuffer = await response.arrayBuffer();
+      }
       var data = new Uint8Array(arrayBuffer);
 
       // Parse with SheetJS
