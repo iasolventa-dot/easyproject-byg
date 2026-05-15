@@ -10085,15 +10085,10 @@ async function anAnalizarMediciones(projectId, adjuntoIds) {
         var proxyRes = await fetch('https://n8n.solventaapi.com/webhook/descargar-drive-base64', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ fileId: adj.drive_file_id, asBase64: true })
+          body: JSON.stringify({ fileId: adj.drive_file_id })
         });
-        var proxyData = await proxyRes.json();
-        var base64 = proxyData.base64 || proxyData.data || proxyData.content || '';
-        if (!base64) { alert('No se pudo descargar el archivo desde Drive'); continue; }
-        var binary = atob(base64);
-        var bytes = new Uint8Array(binary.length);
-        for (var bi2 = 0; bi2 < binary.length; bi2++) bytes[bi2] = binary.charCodeAt(bi2);
-        arrayBuffer = bytes.buffer;
+        arrayBuffer = await proxyRes.arrayBuffer();
+        if (!arrayBuffer || arrayBuffer.byteLength === 0) { alert('No se pudo descargar el archivo desde Drive'); continue; }
       } else {
         var response = await fetch(_urlsSheetJS.downloadUrl);
         arrayBuffer = await response.arrayBuffer();
@@ -10201,9 +10196,9 @@ async function analizarMedicionesConIA(adj, projectId) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ fileId: adj.drive_file_id })
       });
-      var proxyDataIA = await proxyResIA.json();
-      base64 = proxyDataIA.base64 || proxyDataIA.data || proxyDataIA.content || '';
-      if (!base64) return null;
+      var abIA = await proxyResIA.arrayBuffer();
+      if (!abIA || abIA.byteLength === 0) return null;
+      base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(abIA)));
     } else {
       var response = await fetch(_urlsIA.downloadUrl);
       var arrayBuffer = await response.arrayBuffer();
@@ -11519,13 +11514,8 @@ async function ejecutarAnalisisIA(projectId) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ fileId: a.drive_file_id })
           });
-          var proxyDataAn = await proxyResAn.json();
-          var b64An = proxyDataAn.base64 || proxyDataAn.data || proxyDataAn.content || '';
-          if (!b64An) { docsOmitidos.push(a.file_name + ' (no se pudo descargar desde Drive)'); continue; }
-          var binAn = atob(b64An);
-          var bytesAn = new Uint8Array(binAn.length);
-          for (var bi3=0;bi3<binAn.length;bi3++) bytesAn[bi3]=binAn.charCodeAt(bi3);
-          arrayBuffer = bytesAn.buffer;
+          arrayBuffer = await proxyResAn.arrayBuffer();
+          if (!arrayBuffer || arrayBuffer.byteLength === 0) { docsOmitidos.push(a.file_name + ' (no se pudo descargar desde Drive)'); continue; }
         } else {
           var fileResp = await fetch(_urlsAnalisis.downloadUrl);
           arrayBuffer = await fileResp.arrayBuffer();
