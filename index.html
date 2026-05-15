@@ -4364,7 +4364,6 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
     }
 
     var nEncontrados = Object.keys(preciosPorCodigo).length;
-    console.log('DEBUG - specialtyCode:', specialtyCode, 'Códigos Excel:', Object.keys(preciosPorCodigo));
     if (nEncontrados === 0) {
       overlay2.remove();
       alert('No se encontraron precios en el Excel. Verifica que el archivo tiene las columnas de Código y Precio.');
@@ -4377,17 +4376,14 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
       .eq('project_id', ocProyecto.id)
       .eq('chapter_code', specialtyCode);
     var items = itemsRes.data || [];
-    console.log('DEBUG2 - project_id:', ocProyecto.id, 'specialtyCode:', specialtyCode, 'items BD:', items.length, items.length>0?items[0].item_code:'');
 
     // Mapear y actualizar
     var actualizados = 0;
     var noEncontrados = [];
-    console.log('Códigos en BD:', items.map(function(i){return i.item_code;}));
-    console.log('Códigos en Excel:', Object.keys(preciosPorCodigo));
     for (var ii = 0; ii < items.length; ii++) {
       var item = items[ii];
-      var precio2 = preciosPorCodigo[item.item_code];
-      console.log('Buscando', item.item_code, '→', precio2);
+      var itemCode = (item.item_code || '').trim();
+      var precio2 = preciosPorCodigo[itemCode];
       if (precio2 > 0) {
         await db.from('project_items').update({
           supplier_price: precio2,
@@ -4395,7 +4391,7 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
         }).eq('id', item.id);
         actualizados++;
       } else {
-        noEncontrados.push(item.item_code);
+        noEncontrados.push(itemCode);
       }
     }
 
