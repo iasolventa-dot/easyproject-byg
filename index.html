@@ -10516,9 +10516,40 @@ function moverPartida(item, gremioOrigen) {
   if (!destino.capitulos[0].partidas) destino.capitulos[0].partidas = [];
   destino.capitulos[0].partidas.push(item.partida);
 
-  alert('✅ Partida movida a ' + destGremio);
+  // Refresh grid de tarjetas para mostrar el nuevo gremio si es nuevo
+  var grid = document.querySelector('#mediciones-resultado-wrap > div[style*="grid"]');
+  if (grid) {
+    var allGremios = Object.keys(_medicionesResultado.gremios);
+    allGremios.forEach(function(gn, gi) {
+      // Si la tarjeta no existe, crearla
+      if (!document.getElementById('med-card-' + gi)) {
+        var gData = _medicionesResultado.gremios[gn];
+        var nPartidas = gData.capitulos.reduce(function(s,c){ return s + (c.partidas ? c.partidas.length : 0); }, 0);
+        var card = document.createElement('div');
+        card.id = 'med-card-' + gi;
+        card.style.cssText = 'background:white;border:2px solid ' + (gData.color||'#ccc') + ';border-radius:8px;padding:12px;cursor:pointer;transition:all 0.2s;position:relative;';
+        card.innerHTML = '<div style="width:100%;height:5px;background:' + (gData.color||'#ccc') + ';border-radius:3px;margin-bottom:8px;"></div>' +
+          '<div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:3px;">' + gn + '</div>' +
+          '<div style="font-size:11px;color:#888;" id="med-count-' + gi + '">' + nPartidas + ' partida' + (nPartidas!==1?'s':'') + '</div>' +
+          '<div id="med-check-' + gi + '" style="display:none;position:absolute;top:8px;right:8px;width:20px;height:20px;background:#0F6E56;border-radius:50%;align-items:center;justify-content:center;color:white;font-size:11px;">✓</div>';
+        card.addEventListener('click', (function(n,d,i){ return function(){ verPartidasGremio(n,d,i); }; })(gn, gData, gi));
+        grid.appendChild(card);
+      } else {
+        // Actualizar contador de partidas en tarjeta existente
+        var gData = _medicionesResultado.gremios[gn];
+        var nPartidas = gData.capitulos.reduce(function(s,c){ return s + (c.partidas ? c.partidas.length : 0); }, 0);
+        var countEl2 = document.getElementById('med-count-' + gi);
+        if (countEl2) countEl2.textContent = nPartidas + ' partida' + (nPartidas!==1?'s':'');
+      }
+    });
+  }
 
-  // Refresh current view
+  // Actualizar total confirmados
+  var totalG = Object.keys(_medicionesResultado.gremios).length;
+  var countEl3 = document.getElementById('med-confirmados-count');
+  if (countEl3) countEl3.textContent = Object.keys(_medicionesConfirmados).length + ' / ' + totalG + ' confirmados';
+
+  // Refresh vista del gremio origen
   verPartidasGremio(gremioOrigen, origen, _medicionesGremioIdx);
 }
 
