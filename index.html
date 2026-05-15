@@ -5026,7 +5026,7 @@ async function cargarMontajeOferta() {
         '<td style="text-align:right;padding:10px 12px;color:#3B6D11;">' + totalVentaGlobal.toLocaleString('es-ES',{minimumFractionDigits:2}) + '\u20ac</td>' +
         '<td style="text-align:center;font-size:11px;color:#888;">Margen medio: ' + (totalCosteGlobal>0?(((totalVentaGlobal-totalCosteGlobal)/totalCosteGlobal)*100).toFixed(1)+'%':'-') + '</td></tr></tfoot></table></div>' +
         _renderMontajeFooter(gremiosPendientes.length);
-      document.getElementById('oc-aprobaci\u00f3n-margenes').style.display = 'none';
+      document.getElementById('oc-aprobacion-margenes').style.display = 'none';
       return;
     }
 
@@ -5136,7 +5136,7 @@ async function cargarMontajeOferta() {
       '</div></div>' +
       _renderMontajeFooter(gremiosPendientes.length);
 
-    document.getElementById('oc-aprobaci\u00f3n-margenes').style.display = 'none';
+    document.getElementById('oc-aprobacion-margenes').style.display = 'none';
 
   } catch(e) {
     el.innerHTML = '<div class="empty">Error cargando montaje: ' + e.message + '</div>';
