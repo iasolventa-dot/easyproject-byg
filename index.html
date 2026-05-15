@@ -4337,40 +4337,30 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
     var ws = workbook.Sheets[workbook.SheetNames[0]];
     var filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
 
-    // Detectar columnas: buscar fila de cabecera con Código/Precio/Importe
-    var colCodigo = -1, colPrecio = -1, colImporte = -1;
-    var filaHeader = -1;
-    for (var fi = 0; fi < Math.min(filas.length, 10); fi++) {
-      var row = filas[fi];
-      for (var ci = 0; ci < row.length; ci++) {
-        var v = String(row[ci]||'').toLowerCase();
-        if (v.includes('código') || v.includes('codigo') || v === 'cod') colCodigo = ci;
-        if (v.includes('precio') && !v.includes('importe')) colPrecio = ci;
-        if (v.includes('importe') || v.includes('total')) colImporte = ci;
-      }
-      if (colCodigo >= 0 && (colPrecio >= 0 || colImporte >= 0)) { filaHeader = fi; break; }
-    }
-
-    // Si no hay cabecera clara, intentar por posición (col A=código, col K=precio, col L=importe como en Excel Xiaomi)
-    if (filaHeader < 0) { colCodigo = 0; colPrecio = 10; colImporte = 11; filaHeader = 2; }
-
-    // Extraer precios por código — recorrer TODAS las filas desde filaHeader+1
+    // Extraer precios por código — recorrer TODAS las filas
     var preciosPorCodigo = {};
-    for (var ri = filaHeader + 1; ri < filas.length; ri++) {
+    for (var ri = 0; ri < filas.length; ri++) {
       var fila = filas[ri];
-      if (!fila || fila.every(function(v){ return v === null || v === undefined || v === ''; })) continue;
-      var cod = String(fila[colCodigo]||'').trim();
-      if (!cod) continue;
-      // Ignorar filas de capítulo (Nat. = 'Capítulo' o valor en col 1 es 'Capítulo')
+      if (!fila) continue;
+      var cod = String(fila[0]||'').trim();
+      if (!cod || cod === '' || cod.toLowerCase() === 'código' || cod.toLowerCase() === 'codigo') continue;
+      // Ignorar filas de capítulo
       var nat = String(fila[1]||'').trim().toLowerCase();
-      if (nat === 'capítulo' || nat === 'capitulo' || nat === 'capítulo'.toLowerCase()) continue;
-      // Buscar precio en varias columnas posibles
+      if (nat === 'cap\u00edtulo' || nat === 'capitulo' || nat === 'cap.' || nat === 'u') {
+        // Verificar si tiene precio — si no, es cabecera/capítulo
+        var tienePrecio = false;
+        for (var pc2 = 9; pc2 <= 12; pc2++) {
+          if (parseFloat(fila[pc2]) > 0) { tienePrecio = true; break; }
+        }
+        if (!tienePrecio) continue;
+      }
+      // Buscar precio en columnas 9-12 (J-M)
       var precio = 0;
       for (var pc = 9; pc <= 12; pc++) {
-        var v = parseFloat(fila[pc]);
-        if (v > 0) { precio = v; break; }
+        var pv = parseFloat(fila[pc]);
+        if (pv > 0) { precio = pv; break; }
       }
-      if (cod && precio > 0) preciosPorCodigo[cod] = precio;
+      if (precio > 0) preciosPorCodigo[cod] = precio;
     }
 
     var nEncontrados = Object.keys(preciosPorCodigo).length;
