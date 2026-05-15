@@ -11004,7 +11004,7 @@ async function confirmarMediciones() {
               chapter_code: specialtyCode,
               chapter_name: gremioNombre,
               chapter_order: chapterOrder,
-              item_code: partida.codigo || '',
+              item_code: (partida.codigo || '').trim(),
               item_description: (partida.descripcion || '').substring(0, 500),
               unit: partida.unidad || '',
               quantity: partida.cantidad || null,
