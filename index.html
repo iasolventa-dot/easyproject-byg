@@ -10538,8 +10538,15 @@ function moverPartida(item, gremioOrigen) {
         // Actualizar contador de partidas en tarjeta existente
         var gData = _medicionesResultado.gremios[gn];
         var nPartidas = gData.capitulos.reduce(function(s,c){ return s + (c.partidas ? c.partidas.length : 0); }, 0);
-        var countEl2 = document.getElementById('med-count-' + gi);
-        if (countEl2) countEl2.textContent = nPartidas + ' partida' + (nPartidas!==1?'s':'');
+        var cardEx = document.getElementById('med-card-' + gi);
+        if (nPartidas === 0 && cardEx) {
+          // Sin partidas — ocultar tarjeta
+          cardEx.style.display = 'none';
+        } else if (cardEx) {
+          cardEx.style.display = '';
+          var countEl2 = document.getElementById('med-count-' + gi);
+          if (countEl2) countEl2.textContent = nPartidas + ' partida' + (nPartidas!==1?'s':'');
+        }
       }
     });
   }
