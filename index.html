@@ -4364,6 +4364,8 @@ async function cargarPreciosDesdeExcel(input, responseId, specialtyCode) {
     }
 
     var nEncontrados = Object.keys(preciosPorCodigo).length;
+    // DEBUG temporal
+    alert('DEBUG - specialtyCode: ' + specialtyCode + '\nCódigos encontrados en Excel (' + nEncontrados + '): ' + Object.keys(preciosPorCodigo).slice(0,5).join(', '));
     if (nEncontrados === 0) {
       overlay2.remove();
       alert('No se encontraron precios en el Excel. Verifica que el archivo tiene las columnas de Código y Precio.');
