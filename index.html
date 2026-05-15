@@ -3813,6 +3813,32 @@ async function cargarDocumentosAnálisis(projectId, categoria) {
       ba.textContent='Analizar mediciones con IA';
       ba.onclick=(function(pid,aids){return function(){_medicionesProjectId=pid;anAnalizarMediciones(pid,aids);};})(projectId,archsMed.map(function(a){return a.id;}));
       mb.appendChild(ba);
+
+      // Botón alternativo: subir Excel local directamente
+      var sepLocal = document.createElement('span');
+      sepLocal.style.cssText = 'display:block;margin-top:8px;font-size:10px;color:#888;text-align:center;';
+      sepLocal.textContent = 'o';
+      mb.appendChild(sepLocal);
+
+      var inputLocal = document.createElement('input');
+      inputLocal.type = 'file';
+      inputLocal.accept = '.xlsx,.xls,.csv';
+      inputLocal.style.display = 'none';
+      inputLocal.id = 'input-excel-local-' + projectId;
+      inputLocal.onchange = (function(pid){ return function(e){
+        var file = e.target.files[0];
+        if (!file) return;
+        _medicionesProjectId = pid;
+        anAnalizarExcelLocal(file, pid);
+      }; })(projectId);
+      mb.appendChild(inputLocal);
+
+      var baLocal = document.createElement('button');
+      baLocal.className = 'btn btn-sm';
+      baLocal.style.cssText = 'margin-top:4px;width:100%;font-size:11px;';
+      baLocal.textContent = '📂 Analizar Excel desde mi ordenador';
+      baLocal.onclick = (function(pid){ return function(){ document.getElementById('input-excel-local-' + pid).click(); }; })(projectId);
+      mb.appendChild(baLocal);
       el.appendChild(mb);
     } else if(adj.length){
       var wb=document.createElement('div');
@@ -9964,6 +9990,49 @@ var MAPEO_GREMIOS = {
 };
 
 var _medicionesResultado = null; // Guarda resultado para confirmar
+
+async function anAnalizarExcelLocal(file, projectId) {
+  var el = document.getElementById('an-docs-list');
+  var loadingDiv = document.createElement('div');
+  loadingDiv.id = 'mediciones-loading';
+  loadingDiv.style.cssText = 'background:#E6F1FB;border:1px solid #B5D4F4;border-radius:8px;padding:1rem;margin-top:1rem;text-align:center;';
+  loadingDiv.innerHTML = '<div style="font-size:13px;color:#185FA5;font-weight:500;">\ud83d\udcca Leyendo Excel local con SheetJS...</div>' +
+    '<div style="font-size:11px;color:#888;margin-top:4px;">' + file.name + '</div>';
+  el.appendChild(loadingDiv);
+
+  try {
+    var arrayBuffer = await file.arrayBuffer();
+    var data = new Uint8Array(arrayBuffer);
+    var workbook = XLSX.read(data, { type: 'array', cellFormula: false });
+    var ws = workbook.Sheets[workbook.SheetNames[0]];
+    var filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+
+    var obraNombre = '';
+    if (filas[0] && filas[0][1]) obraNombre = String(filas[0][1]);
+
+    var estructura = detectarEstructura(filas);
+    var capitulos = [];
+
+    if (estructura === 'estructurado' || estructura === 'semi_estructurado') {
+      capitulos = parsearEstructurado(filas);
+    } else {
+      loadingDiv.innerHTML = '<div style="font-size:13px;color:#E67E22;font-weight:500;">\u26a0\ufe0f Estructura no reconocida. Verifica que el Excel tiene las columnas C\u00f3digo, Nat., Descripci\u00f3n.</div>';
+      return;
+    }
+
+    if (!capitulos.length) {
+      loadingDiv.innerHTML = '<div style="font-size:13px;color:#C0392B;">No se detectaron cap\u00edtulos en el archivo.</div>';
+      return;
+    }
+
+    var resultado = agruparPorGremio(capitulos, obraNombre || file.name);
+    mostrarResultadoMediciones(resultado, projectId, loadingDiv);
+
+  } catch(e) {
+    console.error(e);
+    if (loadingDiv) loadingDiv.innerHTML = '<div style="font-size:13px;color:#C0392B;">Error al leer el Excel: ' + e.message + '</div>';
+  }
+}
 
 async function anAnalizarMediciones(projectId, adjuntoIds) {
   var ids = Array.isArray(adjuntoIds) ? adjuntoIds : [adjuntoIds];
