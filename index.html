@@ -9936,11 +9936,29 @@ async function npGuardar() {
         }
         continue;
       }
-      var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Archivos Adjuntos al proyecto',driveFolderId);
+      var driveRes;
+      if (adjuntosFolderId) {
+        // Ya tenemos el folder_id de la subcarpeta — subir directamente sin crear subcarpeta
+        var ab2 = await arch.file.arrayBuffer();
+        var by2 = new Uint8Array(ab2);
+        var bi2 = ''; var ch2 = 8192;
+        for (var j2=0; j2<by2.length; j2+=ch2) bi2 += String.fromCharCode.apply(null, by2.subarray(j2,j2+ch2));
+        var b642 = btoa(bi2);
+        var dr2 = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({file_base64:b642, file_name:arch.nombre, mime_type:arch.file.type||'application/octet-stream', folder_id:adjuntosFolderId})
+        });
+        var dt2 = await dr2.text();
+        driveRes = dt2 && dt2.trim() ? JSON.parse(dt2) : null;
+      } else {
+        // Primera vez — usar storageUpload que crea la subcarpeta y devuelve su folder_id
+        driveRes = await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Archivos Adjuntos al proyecto',driveFolderId);
+        if(driveRes && driveRes.folder_id) {
+          adjuntosFolderId = driveRes.folder_id; // Guardar para siguientes archivos
+          if(!driveFolderId) driveFolderId = driveRes.folder_id;
+        }
+      }
       if(!driveRes){console.error('Error subiendo '+arch.nombre+' a Drive');continue;}
-      if(driveRes.folder_id && !driveFolderId) driveFolderId=driveRes.folder_id;
-      // Esperar 1.5s para que Drive indexe la subcarpeta antes de la siguiente subida
-      if(i < npArchivos.length - 1) await new Promise(function(r){ setTimeout(r, 1500); });
       await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:driveRes.viewUrl,
         file_size:arch.file.size,file_type:arch.tipo,mime_type:arch.file.type,is_measurements:arch.esMediciones,
         drive_file_id:driveRes.fileId,
