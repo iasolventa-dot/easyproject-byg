@@ -9913,10 +9913,9 @@ async function npGuardar() {
         }
         continue;
       }
-      var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Archivos Adjuntos al proyecto',adjuntosFolderId||driveFolderId);
+      var driveRes=await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Archivos Adjuntos al proyecto',driveFolderId);
       if(!driveRes){console.error('Error subiendo '+arch.nombre+' a Drive');continue;}
       if(driveRes.folder_id && !driveFolderId) driveFolderId=driveRes.folder_id;
-      if(driveRes.folder_id && !adjuntosFolderId) adjuntosFolderId=driveRes.folder_id; // Reutilizar subcarpeta Adjuntos
       await db.from('project_attachments').insert({project_id:proyectoId,file_name:arch.nombre,file_path:driveRes.viewUrl,
         file_size:arch.file.size,file_type:arch.tipo,mime_type:arch.file.type,is_measurements:arch.esMediciones,
         drive_file_id:driveRes.fileId,
@@ -12313,4 +12312,3 @@ function imprimirInformeTecnicoAnalisis() {
 </html>
 
 
- 
