@@ -4193,10 +4193,8 @@ async function cargarOfertasRecibidas() {
     // Agrupar por gremio
     var porGremio = {};
     peticiones.forEach(function(p) {
-      var sc = p.specialty_code || p.specialty || 'SIN_GREMIO';
-      p._sc = sc; // normalizar para uso posterior
-      if (!porGremio[sc]) porGremio[sc] = [];
-      porGremio[sc].push(p);
+      if (!porGremio[p.specialty_code]) porGremio[p.specialty_code] = [];
+      porGremio[p.specialty_code].push(p);
     });
 
     // Cargar offer_responses para saber cuáles están seleccionadas
@@ -4224,7 +4222,7 @@ async function cargarOfertasRecibidas() {
           '<td style="font-weight:500;">'+(p.suppliers?p.suppliers.commercial_name:'-')+adjBadge+'</td>' +
           '<td>'+statusBadge+'</td>' +
           '<td>'+deadline+'</td>' +
-          '<td>'+(p.status==='responded'?'<button class="btn btn-sm btn-primary" onclick="verOfertaRecibida('+p.id+')">Ver oferta</button>':p.status==='sent'?'<button class="btn btn-sm" style="color:#185FA5;border-color:#185FA5;" onclick="registrarOfertaManual('+p.id+',\''+(p._sc||p.specialty_code||p.specialty)+'\')">'+'+ Registrar oferta</button>':'<span style="font-size:11px;color:#aaa;">Sin respuesta</span>')+'</td>' +
+          '<td>'+(p.status==='responded'?'<button class="btn btn-sm btn-primary" onclick="verOfertaRecibida('+p.id+')">Ver oferta</button>':p.status==='sent'?'<button class="btn btn-sm" style="color:#185FA5;border-color:#185FA5;" onclick="registrarOfertaManual('+p.id+',\''+p.specialty_code+'\')">'+'+ Registrar oferta</button>':'<span style="font-size:11px;color:#aaa;">Sin respuesta</span>')+'</td>' +
           '</tr>';
       }).join('');
 
@@ -4961,8 +4959,8 @@ async function cargarMontajeOferta() {
     seleccionadas.forEach(function(s){ selPorGremio[s.specialty_code] = s; });
 
     // Cargar requests para saber gremios pendientes
-    var reqRes = await db.from('offer_requests').select('specialty_code,specialty,status').eq('project_id', ocProyecto.id);
-    var gremiosConPeticion = [...new Set((reqRes.data||[]).map(function(r){ return r.specialty_code || r.specialty; }))];
+    var reqRes = await db.from('offer_requests').select('specialty_code,status').eq('project_id', ocProyecto.id);
+    var gremiosConPeticion = [...new Set((reqRes.data||[]).map(function(r){ return r.specialty_code; }))];
     var gremiosPendientes = gremiosConPeticion.filter(function(g){ return !selPorGremio[g]; });
 
     // Margen global: si no está definido, 20%
@@ -10817,7 +10815,6 @@ async function enviarPeticionOferta() {
         project_id: _medicionesProjectId || (ejProyecto ? ejProyecto.id : null),
         supplier_id: parseInt(prov.id),
         specialty: _ofertaGremio,
-        specialty_code: _ofertaGremio,
         deadline: fecha,
         description: descripcion,
         notes: notas,
