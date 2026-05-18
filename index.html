@@ -4544,6 +4544,22 @@ async function guardarOfertaManual(reqId, specialtyCode) {
   var pdfInput = document.getElementById('man-pdf');
   var btn = document.getElementById('btn-guardar-manual');
 
+  // Aviso si no hay archivo adjunto
+  if (!pdfInput || !pdfInput.files[0]) {
+    var avisoEl = document.getElementById('man-aviso-sin-pdf');
+    if (!avisoEl) {
+      avisoEl = document.createElement('div');
+      avisoEl.id = 'man-aviso-sin-pdf';
+      avisoEl.style.cssText = 'background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#854F0B;';
+      avisoEl.innerHTML = '\u26a0\ufe0f No has adjuntado el archivo de oferta (Excel/PDF). Puedes añadirlo después desde "Ver oferta". ¿Deseas continuar sin adjunto?';
+      btn.parentNode.insertBefore(avisoEl, btn);
+      // Primera vez: no guardar, mostrar aviso
+      return;
+    }
+    // Segunda vez: el técnico ya vio el aviso y pulsa de nuevo — continuar
+    avisoEl.remove();
+  }
+
   btn.textContent = 'Guardando...'; btn.disabled = true;
   try {
     var reqRes = await db.from('offer_requests').select('supplier_id').eq('id', reqId).single();
