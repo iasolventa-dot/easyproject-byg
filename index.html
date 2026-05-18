@@ -1564,23 +1564,26 @@
     <div id="oc-aprobacion-margenes" style="display:none;margin-top:1rem;">
       <div class="section-title">Aprobación de márgenes</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
-        <div class="card" style="text-align:center;">
-          <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Dept. Técnico</div>
+        <div class="card" style="text-align:center;border:2px solid #C0DD97;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#1A6B3C;">✔ Dept. Técnico</div>
+          <div style="font-size:11px;color:#555;margin-bottom:8px;">Aprobación requerida</div>
           <div id="aprov-tecnico-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('tecnico')">Aprobar márgenes</button></div>
         </div>
-        <div class="card" style="text-align:center;">
-          <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Dept. Comercial</div>
-          <div id="aprov-comercial-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('comercial')">Aprobar márgenes</button></div>
+        <div class="card" style="text-align:center;background:#f9f9f6;">
+          <div style="font-size:12px;font-weight:500;margin-bottom:8px;color:#888;">Dept. Comercial</div>
+          <div style="font-size:11px;color:#888;margin-bottom:8px;">Será notificado automáticamente</div>
+          <div id="aprov-comercial-status"><span style="font-size:11px;color:#aaa;">📧 Pendiente notificación</span></div>
         </div>
-        <div class="card" style="text-align:center;">
-          <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Dirección</div>
-          <div id="aprov-direccion-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('direccion')">Aprobar márgenes</button></div>
+        <div class="card" style="text-align:center;background:#f9f9f6;">
+          <div style="font-size:12px;font-weight:500;margin-bottom:8px;color:#888;">Dirección</div>
+          <div style="font-size:11px;color:#888;margin-bottom:8px;">Será notificado automáticamente</div>
+          <div id="aprov-direccion-status"><span style="font-size:11px;color:#aaa;">📧 Pendiente notificación</span></div>
         </div>
       </div>
       <div id="oc-envio-final" style="display:none;">
         <div class="card" style="background:#EAF3DE;border:1px solid #C0DD97;">
-          <div style="font-size:13px;font-weight:500;color:#27500A;margin-bottom:8px;">Márgenes aprobados por los tres departamentos</div>
-          <div style="font-size:12px;color:#3B6D11;margin-bottom:1rem;">La oferta está lista para enviar al cliente. Revisa el email de envío y confirma.</div>
+          <div style="font-size:13px;font-weight:500;color:#27500A;margin-bottom:8px;">✅ Márgenes aprobados por Dept. Técnico</div>
+          <div style="font-size:12px;color:#3B6D11;margin-bottom:1rem;">Comercial y Dirección han sido notificados. La oferta está lista para enviar al cliente.</div>
           <textarea id="oc-email-cliente" style="width:100%;padding:10px;border:1px solid #C0DD97;border-radius:6px;font-size:12px;min-height:120px;resize:vertical;font-family:inherit;background:white;margin-bottom:10px;"></textarea>
           <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button class="btn btn-success" onclick="enviarOfertaCliente()">Enviar oferta al cliente y cerrar fase </button>
@@ -5437,17 +5440,23 @@ function someterAprobaciónMargenes() {
 }
 
 function aprobarMargenes(dept) {
-  ocAprobaciones[dept] = true;
-  var el = document.getElementById('aprov-'+dept+'-status');
-  if (el) el.innerHTML = '<div style="color:#3B6D11;font-size:13px;">\u2714 Aprobado</div>';
+  if (dept !== 'tecnico') return; // Solo el técnico aprueba
+  ocAprobaciones.tecnico = true;
+  var el = document.getElementById('aprov-tecnico-status');
+  if (el) el.innerHTML = '<div style="color:#1A6B3C;font-size:13px;font-weight:600;">\u2714 Aprobado</div>';
 
-  if (ocAprobaciones.tecnico && ocAprobaciones.comercial && ocAprobaciones.direccion) {
-    document.getElementById('oc-envio-final').style.display = 'block';
-    var emailCliente = 'Estimado cliente,\n\nNos complace presentarles nuestra propuesta económica para el proyecto ' +
-      (ocProyecto?ocProyecto.name||ocProyecto.code:'') + '.\n\nAdjuntamos nuestra oferta detallada por partidas y gremios para su revisión.\n\nQuedamos a su disposición para cualquier aclaración o modificación que precisen.\n\nAtentamente,\nDepartamento Técnico\nBYG Soluciones S.L.';
-    document.getElementById('oc-email-cliente').value = emailCliente;
-    document.getElementById('oc-envio-final').scrollIntoView({behavior:'smooth', block:'start'});
-  }
+  // Marcar Comercial y Dirección como notificados
+  var elCom = document.getElementById('aprov-comercial-status');
+  if (elCom) elCom.innerHTML = '<span style="font-size:11px;color:#185FA5;">\ud83d\udce7 Notificado</span>';
+  var elDir = document.getElementById('aprov-direccion-status');
+  if (elDir) elDir.innerHTML = '<span style="font-size:11px;color:#185FA5;">\ud83d\udce7 Notificado</span>';
+
+  // Desbloquear envío al cliente
+  document.getElementById('oc-envio-final').style.display = 'block';
+  var emailCliente = 'Estimado cliente,\n\nNos complace presentarles nuestra propuesta económica para el proyecto ' +
+    (ocProyecto?ocProyecto.name||ocProyecto.code:'') + '.\n\nAdjuntamos nuestra oferta detallada por partidas y gremios para su revisión.\n\nQuedamos a su disposición para cualquier aclaración o modificación que precisen.\n\nAtentamente,\nDepartamento Técnico\nBYG Soluciones S.L.';
+  document.getElementById('oc-email-cliente').value = emailCliente;
+  document.getElementById('oc-envio-final').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 async function guardarVersionInterna() {
