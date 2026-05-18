@@ -5706,7 +5706,11 @@ async function guardarVersionInterna() {
 
     // Convertir a base64 y subir a Drive
     var wbOut = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
-    var filename = 'Oferta_Interna_'+(ocProyecto.code||'BYG')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+    // Incrementar versión en BD y usar como sufijo del nombre
+    var versionRes = await db.from('projects').select('oferta_interna_version').eq('id', ocProyecto.id).single();
+    var nuevaVersion = ((versionRes.data && versionRes.data.oferta_interna_version) || 0) + 1;
+    await db.from('projects').update({oferta_interna_version: nuevaVersion}).eq('id', ocProyecto.id);
+    var filename = 'Oferta_Interna_'+(ocProyecto.code||'BYG')+'_v'+nuevaVersion+'.xlsx';
 
     var btn = document.querySelector('[onclick="guardarVersionInterna()"]'); if(btn){btn.textContent='Subiendo...';btn.disabled=true;}
     try {
@@ -12997,6 +13001,5 @@ function imprimirInformeTecnicoAnalisis() {
 </html>
 
 
-  
   
   
