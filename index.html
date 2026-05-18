@@ -5711,7 +5711,7 @@ async function guardarVersionInterna() {
     var btn = document.querySelector('[onclick="guardarVersionInterna()"]'); if(btn){btn.textContent='Subiendo...';btn.disabled=true;}
     try {
       // Patrón anti-duplicado: reusar folder_id si la subcarpeta ya existe
-      var internasSubcarpeta = 'Ofertas enviadas a Cliente versiones internas';
+      var internasSubcarpeta = 'Ofertas enviadas al Cliente (versiones INTERNAS con Factor)';
       var internasFolder = ocProyecto.drive_internas_folder_id || null;
       if (!internasFolder) {
         var bdChk = await db.from('projects').select('drive_internas_folder_id').eq('id', ocProyecto.id).single();
