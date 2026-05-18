@@ -5489,7 +5489,7 @@ async function guardarVersionInterna() {
     var wbOut = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
     var filename = 'Oferta_Interna_'+(ocProyecto.code||'BYG')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
 
-    var btn = event.target; btn.textContent = 'Subiendo...'; btn.disabled = true;
+    var btn = document.querySelector('[onclick="guardarVersionInterna()"]'); if(btn){btn.textContent='Subiendo...';btn.disabled=true;}
     try {
       var driveRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -5501,12 +5501,11 @@ async function guardarVersionInterna() {
           subcarpeta: 'Ofertas Internas'
         })
       });
-      btn.textContent = '✅ Versión interna guardada';
-      setTimeout(function(){ btn.textContent = '📅 Guardar versión interna'; btn.disabled = false; }, 3000);
+      if(btn){btn.textContent='\u2705 Guardado en Drive';setTimeout(function(){btn.textContent='\ud83d\udcc5 Guardar versi\u00f3n interna';btn.disabled=false;},3000);}
     } catch(de) {
       // Si falla Drive, al menos descargar localmente
       XLSX.writeFile(wb, filename);
-      btn.textContent = '📅 Guardar versión interna'; btn.disabled = false;
+      if(btn){btn.textContent='\ud83d\udcc5 Guardar versi\u00f3n interna';btn.disabled=false;}
     }
   } catch(e) { alert('Error: '+e.message); }
 }
@@ -5524,7 +5523,7 @@ async function descargarOfertaClientePDF() {
     // Logo
     try { doc.addImage(BYG_LOGO_B64, 'PNG', 14, 8, 22, 22); } catch(le) {}
     doc.setFontSize(16); doc.setFont('helvetica','bold');
-    doc.text('BYG Soluciones S.L. — OFERTA ECONÓMICA', 40, 16);
+    doc.text('BYG Soluciones S.L. — OFERTA ECONÓMICA DESGLOSADA POR PARTIDAS', 40, 16);
     doc.setFontSize(10); doc.setFont('helvetica','normal');
     doc.text('Proyecto: '+(ocProyecto.name||ocProyecto.code), 40, 23);
     doc.text('Código expediente: '+(ocProyecto.code||''), 40, 28);
