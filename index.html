@@ -5636,6 +5636,10 @@ async function guardarVersionInterna() {
     wsData.push([]);
     wsData.push(['Código','Descripción','Ud.','Cantidad','Precio unitario (€)','Coste total (€)','Margen %','Precio venta (€)']);
     var capActual = ''; var totalCoste = 0; var totalVenta = 0;
+    var primeraFilaItem = wsData.length + 1; // se actualizará al encontrar primera partida
+    var primerItemEncontrado = false;
+    var itemRows = []; // guardar índices de filas de partidas para añadir fórmulas
+
     items.forEach(function(item) {
       if (item.chapter_name !== capActual) {
         capActual = item.chapter_name;
@@ -5645,12 +5649,33 @@ async function guardarVersionInterna() {
       var qty = parseFloat(item.quantity)||1;
       var coste = Math.round(precioUnit*qty*100)/100;
       var margen = parseFloat(item.margin_pct)||20;
-      var venta = Math.round(coste*(1+margen/100)*100)/100;
-      totalCoste+=coste; totalVenta+=venta;
-      wsData.push([(item.item_code||'').trim(), item.item_description||'', item.unit||'', qty, precioUnit||'', coste||'', margen, coste>0?venta:'']);
+      totalCoste+=coste; totalVenta+=Math.round(coste*(1+margen/100)*100)/100;
+      var rowIdx = wsData.length + 1; // fila Excel (base 1)
+      itemRows.push(rowIdx);
+      wsData.push([(item.item_code||'').trim(), item.item_description||'', item.unit||'', qty, precioUnit||'', coste||'', margen, '']);
     });
-    wsData.push([]); wsData.push(['','TOTAL INTERNO','','','',totalCoste.toFixed(2),'',totalVenta.toFixed(2)]);
+
+    wsData.push([]);
+    var totalRowIdx = wsData.length + 1;
+    wsData.push(['','TOTAL INTERNO','','','',totalCoste.toFixed(2),'','']);
+
     var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Añadir fórmulas dinámicas en columna H (precio venta = coste × (1 + margen/100))
+    itemRows.forEach(function(rn) {
+      var cellAddr = XLSX.utils.encode_cell({r: rn-1, c: 7}); // columna H
+      ws[cellAddr] = { t: 'n', f: 'IF(F'+rn+'="","",F'+rn+'*(1+G'+rn+'/100))' };
+    });
+    // Total precio venta
+    if (itemRows.length > 0) {
+      var totalHAddr = XLSX.utils.encode_cell({r: totalRowIdx-1, c: 7});
+      ws[totalHAddr] = { t: 'n', f: 'SUM(H'+itemRows[0]+':H'+itemRows[itemRows.length-1]+')' };
+    }
+    // Actualizar rango
+    var rng = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    if (rng.e.c < 7) rng.e.c = 7;
+    ws['!ref'] = XLSX.utils.encode_range(rng);
+
     ws['!cols'] = [{wch:15},{wch:50},{wch:6},{wch:10},{wch:18},{wch:14},{wch:10},{wch:16}];
     XLSX.utils.book_append_sheet(wb, ws, 'Versión Interna');
 
