@@ -4691,7 +4691,7 @@ async function verComparativo(gremio) {
         if (iaText && iaText.trim()) {
           var iaData = JSON.parse(iaText);
           iaTexto = iaData.respuesta || iaData.text || iaData.output || iaData.result || null;
-          if (iaTexto) iaTexto = iaTexto.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          if (iaTexto) iaTexto = limpiarLatex(iaTexto).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         }
       }
     } catch(iaErr) { console.warn('IA no disponible, usando fallback:', iaErr.message); }
@@ -4795,7 +4795,7 @@ async function verAnalisisDetalle(id) {
     '<strong>Por:</strong> ' + (r.created_by || '-') +
     (r.pdf_url ? '<br><a href="' + r.pdf_url + '" target="_blank" style="color:#185FA5;">📄 Ver PDF en Drive</a>' : '') +
     '</div>' +
-    '<div style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#333;">' + (r.analysis_text || '') + '</div>';
+    '<div style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#333;">' + limpiarLatex(r.analysis_text || '') + '</div>';
   overlay.appendChild(box);
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
   document.body.appendChild(overlay);
@@ -5293,6 +5293,30 @@ async function descargarOfertaPDF() {
     doc.setTextColor(0,0,0);
     doc.save('Oferta_'+(ocProyecto.code||'BYG')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
   } catch(e) { alert('Error generando PDF: '+e.message); console.error(e); }
+}
+
+function limpiarLatex(texto) {
+  if (!texto) return '';
+  var t = texto;
+  // Eliminar delimitadores LaTeX
+  t = t.split('\\(').join('').split('\\)').join('');
+  t = t.split('\\[').join('').split('\\]').join('');
+  // \frac{a}{b} → a/b
+  t = t.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)');
+  // \left( \right) \left[ \right]
+  t = t.split('\\left(').join('(').split('\\right)').join(')');
+  t = t.split('\\left[').join('[').split('\\right]').join(']');
+  // \text{...}
+  t = t.replace(/\\text\{([^}]+)\}/g, '$1');
+  // Símbolos comunes
+  t = t.split('\\approx').join('≈');
+  t = t.split('\\times').join('×');
+  t = t.split('\\cdot').join('·');
+  // Eliminar backslashes dobles sueltos
+  t = t.replace(/\\\\/g, '');
+  // Limpiar espacios múltiples
+  t = t.replace(/  +/g, ' ').trim();
+  return t;
 }
 
 function aplicarMargenGlobal(valor) {
