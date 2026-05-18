@@ -4024,7 +4024,7 @@ async function abrirOfertaCurso(id, nameEnc) {
   ocAprobaciones = {técnico:false, comercial:false, dirección:false};
 
   try {
-    var res = await db.from('projects').select('id,name,code,contact_email,category,received_at,project_code,drive_folder_id,drive_analisis_folder_id,project_statuses(code,name)').eq('id',id).single();
+    var res = await db.from('projects').select('id,name,code,contact_email,category,received_at,project_code,drive_folder_id,drive_analisis_folder_id,drive_internas_folder_id,drive_proveedores_folder_id,drive_enviadas_folder_id,project_statuses(code,name)').eq('id',id).single();
     ocProyecto = res.data;
     document.getElementById('oc-title').textContent = 'Oferta en curso - '+(ocProyecto.name||ocProyecto.code||'#'+id);
     document.getElementById('oc-name').textContent = (ocProyecto.project_code ? '['+ocProyecto.project_code+'] ' : '') + (ocProyecto.name||ocProyecto.code||'#'+id);
@@ -4206,7 +4206,7 @@ async function descargarExcelPeticion(specialtyCode) {
     var filename = 'Peticion_' + specialtyCode + '_' + (ocProyecto.code||'BYG') + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
     XLSX.writeFile(wb, filename);
 
-    // Subir a Drive subcarpeta "Ofertas para enviar a Proveedores"
+    // Subir a Drive subcarpeta "Peticiones de Oferta para enviar a proveedores"
     if (ocProyecto.drive_folder_id) {
       try {
         var wbOut2 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
@@ -4220,7 +4220,7 @@ async function descargarExcelPeticion(specialtyCode) {
             project_id: ocProyecto.id,
             project_code: ocProyecto.code||'',
             project_name: ocProyecto.name||'',
-            subcarpeta: 'Ofertas para enviar a Proveedores'
+            subcarpeta: 'Peticiones de Oferta para enviar a proveedores'
           })
         });
         console.log('Excel petición subido a Drive');
@@ -4546,7 +4546,20 @@ async function subirPdfOferta(responseId) {
     // Obtener datos del proyecto para la carpeta
     var projCode = ocProyecto ? (ocProyecto.code || '') : '';
     var projName = ocProyecto ? (ocProyecto.name || '') : '';
-    var driveRes = await storageUpload(file, ocProyecto ? ocProyecto.id : null, projCode, projName, 'Ofertas Proveedores', ocProyecto ? ocProyecto.drive_folder_id : null);
+    // Patrón anti-duplicado: reusar folder_id de Ofertas Proveedores si ya existe
+    var provFolderA = (ocProyecto && ocProyecto.drive_proveedores_folder_id) ? ocProyecto.drive_proveedores_folder_id : null;
+    if (!provFolderA && ocProyecto) {
+      var bdChkA = await db.from('projects').select('drive_proveedores_folder_id').eq('id', ocProyecto.id).single();
+      if (bdChkA.data && bdChkA.data.drive_proveedores_folder_id) {
+        provFolderA = bdChkA.data.drive_proveedores_folder_id;
+        ocProyecto.drive_proveedores_folder_id = provFolderA;
+      }
+    }
+    var driveRes = await storageUpload(file, ocProyecto ? ocProyecto.id : null, projCode, projName, 'Ofertas recibidas de los proveedores', provFolderA || (ocProyecto ? ocProyecto.drive_folder_id : null));
+    if (driveRes && driveRes.folder_id && ocProyecto && !ocProyecto.drive_proveedores_folder_id) {
+      ocProyecto.drive_proveedores_folder_id = driveRes.folder_id;
+      await db.from('projects').update({drive_proveedores_folder_id: driveRes.folder_id}).eq('id', ocProyecto.id);
+    }
     if (!driveRes) { alert('Error subiendo el PDF.'); if(btn){btn.textContent='Subir PDF';btn.disabled=false;} return; }
     await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', responseId);
     document.querySelector('[data-modal]').remove();
@@ -4693,11 +4706,23 @@ async function guardarOfertaManual(reqId, specialtyCode) {
       var file = pdfInput.files[0];
       var esExcel = file.name.match(/\.xlsx?$/i);
 
-      // Subir archivo a Drive
+      // Subir archivo a Drive — patrón anti-duplicado para Ofertas Proveedores
       btn.textContent = 'Subiendo archivo...';
-      var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', 'Ofertas Proveedores', ocProyecto.drive_folder_id||null);
+      var provFolderB = ocProyecto.drive_proveedores_folder_id || null;
+      if (!provFolderB) {
+        var bdChkB = await db.from('projects').select('drive_proveedores_folder_id').eq('id', ocProyecto.id).single();
+        if (bdChkB.data && bdChkB.data.drive_proveedores_folder_id) {
+          provFolderB = bdChkB.data.drive_proveedores_folder_id;
+          ocProyecto.drive_proveedores_folder_id = provFolderB;
+        }
+      }
+      var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', 'Ofertas recibidas de los proveedores', provFolderB || ocProyecto.drive_folder_id||null);
       if (driveRes) {
         await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', newResponseId);
+        if (driveRes.folder_id && !ocProyecto.drive_proveedores_folder_id) {
+          ocProyecto.drive_proveedores_folder_id = driveRes.folder_id;
+          await db.from('projects').update({drive_proveedores_folder_id: driveRes.folder_id}).eq('id', ocProyecto.id);
+        }
       }
 
       // Si es Excel, cargar precios automáticamente en project_items
@@ -5068,7 +5093,7 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
           driveRes = directText && directText.trim() ? JSON.parse(directText) : null;
         } else {
           // Primera vez — crear subcarpeta dentro de la carpeta del proyecto
-          driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis de Ofertas de Proveedores', proyectoFolderId);
+          driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis IA de Ofertas recibidas de proveedores', proyectoFolderId);
           // Guardar el folder_id de la subcarpeta para futuras subidas
           if (driveRes && driveRes.folder_id) {
             await db.from('projects').update({drive_analisis_folder_id: driveRes.folder_id}).eq('id', ocProyecto.id);
@@ -5685,19 +5710,42 @@ async function guardarVersionInterna() {
 
     var btn = document.querySelector('[onclick="guardarVersionInterna()"]'); if(btn){btn.textContent='Subiendo...';btn.disabled=true;}
     try {
-      var driveRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-drive', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          file_base64: wbOut,
-          file_name: filename,
-          mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          folder_id: ocProyecto.drive_folder_id,
-          project_id: ocProyecto.id,
-          project_code: ocProyecto.code||'',
-          project_name: ocProyecto.name||'',
-          subcarpeta: 'Ofertas Internas'
-        })
-      });
+      // Patrón anti-duplicado: reusar folder_id si la subcarpeta ya existe
+      var internasSubcarpeta = 'Ofertas enviadas a Cliente versiones internas';
+      var internasFolder = ocProyecto.drive_internas_folder_id || null;
+      if (!internasFolder) {
+        var bdChk = await db.from('projects').select('drive_internas_folder_id').eq('id', ocProyecto.id).single();
+        if (bdChk.data && bdChk.data.drive_internas_folder_id) {
+          internasFolder = bdChk.data.drive_internas_folder_id;
+          ocProyecto.drive_internas_folder_id = internasFolder;
+        }
+      }
+      if (internasFolder) {
+        // Subcarpeta ya existe — subir directamente sin crear nueva carpeta
+        await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({file_base64: wbOut, file_name: filename, mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', folder_id: internasFolder})
+        });
+      } else {
+        // Primera vez — crear subcarpeta y guardar su folder_id
+        var driveRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-drive', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            file_base64: wbOut, file_name: filename,
+            mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            folder_id: ocProyecto.drive_folder_id,
+            project_id: ocProyecto.id, project_code: ocProyecto.code||'', project_name: ocProyecto.name||'',
+            subcarpeta: internasSubcarpeta
+          })
+        });
+        if (driveRes.ok) {
+          var driveData = await driveRes.json();
+          if (driveData.folder_id) {
+            ocProyecto.drive_internas_folder_id = driveData.folder_id;
+            await db.from('projects').update({drive_internas_folder_id: driveData.folder_id}).eq('id', ocProyecto.id);
+          }
+        }
+      }
       if(btn){btn.textContent='\u2705 Guardado en Drive';setTimeout(function(){btn.textContent='\ud83d\udcc5 Guardar versi\u00f3n interna';btn.disabled=false;},3000);}
     } catch(de) {
       // Si falla Drive, al menos descargar localmente
@@ -5794,19 +5842,38 @@ async function enviarOfertaCliente() {
         await descargarOfertaClientePDF(); // genera el PDF y lo guarda en window._ofertaClientePDFDoc
         if (window._ofertaClientePDFDoc && ocProyecto.drive_folder_id) {
           var pdfBase64 = window._ofertaClientePDFDoc.output('datauristring').split(',')[1];
-          await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-drive', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-              file_base64: pdfBase64,
-              file_name: window._ofertaClientePDFNombre || ('Oferta_Cliente_'+(ocProyecto.code||'BYG')+'.pdf'),
-              mime_type: 'application/pdf',
-              folder_id: ocProyecto.drive_folder_id,
-              project_id: ocProyecto.id,
-              project_code: ocProyecto.code||'',
-              project_name: ocProyecto.name||'',
-              subcarpeta: 'Ofertas Enviadas al Cliente'
-            })
-          });
+          var pdfFilename = window._ofertaClientePDFNombre || ('Oferta_Cliente_'+(ocProyecto.code||'BYG')+'.pdf');
+          // Patrón anti-duplicado: reusar folder_id si la subcarpeta ya existe
+          var enviadasSubcarpeta = 'Ofertas enviadas al Cliente';
+          var enviadasFolder = ocProyecto.drive_enviadas_folder_id || null;
+          if (!enviadasFolder) {
+            var bdChkE = await db.from('projects').select('drive_enviadas_folder_id').eq('id', ocProyecto.id).single();
+            if (bdChkE.data && bdChkE.data.drive_enviadas_folder_id) {
+              enviadasFolder = bdChkE.data.drive_enviadas_folder_id;
+            }
+          }
+          if (enviadasFolder) {
+            await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({file_base64: pdfBase64, file_name: pdfFilename, mime_type: 'application/pdf', folder_id: enviadasFolder})
+            });
+          } else {
+            var driveResE = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-drive', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({
+                file_base64: pdfBase64, file_name: pdfFilename, mime_type: 'application/pdf',
+                folder_id: ocProyecto.drive_folder_id,
+                project_id: ocProyecto.id, project_code: ocProyecto.code||'', project_name: ocProyecto.name||'',
+                subcarpeta: enviadasSubcarpeta
+              })
+            });
+            if (driveResE.ok) {
+              var driveDataE = await driveResE.json();
+              if (driveDataE.folder_id) {
+                await db.from('projects').update({drive_enviadas_folder_id: driveDataE.folder_id}).eq('id', ocProyecto.id);
+              }
+            }
+          }
         }
       } catch(pe) { console.warn('Error subiendo PDF a Drive:', pe); }
 
@@ -9894,7 +9961,7 @@ async function storageUpload(file, projectId, projectCode, projectName, subcarpe
       project_id:   projectId   || null,
       project_code: projectCode || null,
       project_name: projectName || null,
-      subcarpeta:   subcarpeta  || 'Archivos Adjuntos al proyecto',
+      subcarpeta:   subcarpeta  || 'Archivos recibidos adjuntos al proyecto',
       folder_id:    folderIdKnown || null
     };
 
@@ -10458,7 +10525,7 @@ async function npGuardar() {
               // Subir cada archivo descomprimido individualmente
               for (var z=0; z<archivosZip.length; z++) {
                 var za = archivosZip[z];
-                var zaRes = await storageUpload(za.file, proyectoId, projCode, newProj.name, 'Archivos Adjuntos al proyecto', driveFolderId);
+                var zaRes = await storageUpload(za.file, proyectoId, projCode, newProj.name, 'Archivos recibidos adjuntos al proyecto', driveFolderId);
                 if (!zaRes) { console.error('Error subiendo archivo del ZIP:', za.nombre); continue; }
                 if (zaRes.folder_id && !driveFolderId) driveFolderId = zaRes.folder_id;
                 if (zaRes.folder_id && !adjuntosFolderId) adjuntosFolderId = zaRes.folder_id;
@@ -10513,7 +10580,7 @@ async function npGuardar() {
         driveRes = dt2 && dt2.trim() ? JSON.parse(dt2) : null;
       } else {
         // Primera vez — usar storageUpload que crea la subcarpeta y devuelve su folder_id
-        driveRes = await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Archivos Adjuntos al proyecto',driveFolderId);
+        driveRes = await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Archivos recibidos adjuntos al proyecto',driveFolderId);
         if(driveRes && driveRes.folder_id) {
           adjuntosFolderId = driveRes.folder_id; // Guardar para siguientes archivos
           if(!driveFolderId) driveFolderId = driveRes.folder_id;
@@ -12930,4 +12997,5 @@ function imprimirInformeTecnicoAnalisis() {
 </html>
 
 
+  
   
