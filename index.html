@@ -4117,7 +4117,8 @@ async function cargarPeticionesGremios(peticionesExistentes) {
 
         (yaEnviado ?
           '<div style="background:#EAF3DE;border-radius:6px;padding:8px 12px;font-size:12px;color:#3B6D11;">Petición enviada el '+(petExistente.sent_at?new Date(petExistente.sent_at).toLocaleDateString('es-ES'):'-')+'</div>' :
-          '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+          '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;">' +
+          '<button class="btn btn-sm" onclick="descargarExcelPeticion(\'' + gremio + '\')" style="color:#1A6B3C;border-color:#1A6B3C;">\u2b07\ufe0f Excel petición</button>' +
           '<button class="btn btn-sm" onclick="guardarBorradorGremio(this)">Guardar borrador</button>' +
           '<button class="btn btn-primary btn-sm" onclick="enviarPeticionGremio(this)">Enviar petición de oferta</button></div>' 
         ) +
@@ -4126,6 +4127,74 @@ async function cargarPeticionesGremios(peticionesExistentes) {
 
     el.innerHTML = html;
   } catch(e) { console.error('Error cargando peticiones:',e); }
+}
+
+async function descargarExcelPeticion(specialtyCode) {
+  if (!ocProyecto) return;
+  try {
+    // Cargar partidas del gremio
+    var itemsRes = await db.from('project_items')
+      .select('item_code, item_description, unit, quantity')
+      .eq('project_id', ocProyecto.id)
+      .eq('chapter_code', specialtyCode)
+      .order('id');
+    var items = itemsRes.data || [];
+
+    if (!items.length) {
+      alert('No hay partidas cargadas para este gremio. Analiza el Excel de mediciones primero.');
+      return;
+    }
+
+    var wb = XLSX.utils.book_new();
+    var wsData = [];
+
+    // Cabecera del proyecto
+    wsData.push(['PETICIÓN DE OFERTA — ' + specialtyCode]);
+    wsData.push(['Proyecto: ' + (ocProyecto.name||ocProyecto.code)]);
+    wsData.push(['Código expediente: ' + (ocProyecto.code||'')]);
+    wsData.push(['Fecha: ' + new Date().toLocaleDateString('es-ES')]);
+    wsData.push([]);
+    wsData.push(['Por favor, complete la columna PRECIO UNITARIO (€) para cada partida y devuelva este archivo.']);
+    wsData.push([]);
+
+    // Cabecera tabla
+    wsData.push(['Código', 'Nat.', 'Ud.', 'Descripción', 'Ud.', 'Largo', 'Ancho', 'Alto', 'Medición', 'Cantidad', 'Precio unitario (€)', 'Importe (€)']);
+
+    // Fila de capítulo
+    wsData.push([specialtyCode, 'Capítulo', 'U', specialtyCode, '', '', '', '', '', 1, '', '']);
+
+    // Partidas
+    items.forEach(function(item) {
+      wsData.push([
+        (item.item_code||'').trim(),
+        'Partida',
+        item.unit||'',
+        item.item_description||'',
+        item.unit||'',
+        '', '', '', '',
+        item.quantity||'',
+        '', // precio unitario — a rellenar por proveedor
+        ''  // importe — a rellenar por proveedor
+      ]);
+    });
+
+    wsData.push([]);
+    wsData.push(['', 'TOTAL', '', '', '', '', '', '', '', '', '', '']);
+
+    var ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [
+      {wch:16},{wch:10},{wch:6},{wch:50},{wch:6},{wch:8},{wch:8},{wch:8},{wch:10},{wch:10},{wch:18},{wch:14}
+    ];
+
+    // Resaltar columna precio unitario (columna K = índice 10)
+    XLSX.utils.book_append_sheet(wb, ws, specialtyCode.substring(0,31));
+
+    var filename = 'Peticion_' + specialtyCode + '_' + (ocProyecto.code||'BYG') + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    XLSX.writeFile(wb, filename);
+  } catch(e) {
+    alert('Error generando Excel: ' + e.message);
+    console.error(e);
+  }
 }
 
 function guardarBorradorGremio(btn) {
