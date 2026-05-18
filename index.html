@@ -4154,7 +4154,7 @@ async function descargarExcelPeticion(specialtyCode) {
     wsData.push(['Código expediente: ' + (ocProyecto.code||'')]);
     wsData.push(['Fecha: ' + new Date().toLocaleDateString('es-ES')]);
     wsData.push([]);
-    wsData.push(['Por favor, complete la columna PRECIO UNITARIO (€) para cada partida y devuelva este archivo.']);
+    wsData.push(['INSTRUCCIONES: Complete la columna "Precio unitario (€)" para cada partida. El importe se calculará automáticamente como Cantidad × Precio unitario.']);
     wsData.push([]);
 
     // Cabecera tabla
@@ -4163,7 +4163,8 @@ async function descargarExcelPeticion(specialtyCode) {
     // Fila de capítulo
     wsData.push([specialtyCode, 'Capítulo', 'U', specialtyCode, '', '', '', '', '', 1, '', '']);
 
-    // Partidas
+    // Partidas — sin fórmulas en wsData, las añadimos celda a celda después
+    var primerFilaPartida = wsData.length + 1; // base-1 de Excel
     items.forEach(function(item) {
       wsData.push([
         (item.item_code||'').trim(),
@@ -4173,8 +4174,8 @@ async function descargarExcelPeticion(specialtyCode) {
         item.unit||'',
         '', '', '', '',
         item.quantity||'',
-        '', // precio unitario — a rellenar por proveedor
-        ''  // importe — a rellenar por proveedor
+        '', // precio unitario — a rellenar por proveedor (columna K)
+        ''  // importe — fórmula se añade después
       ]);
     });
 
@@ -4182,15 +4183,49 @@ async function descargarExcelPeticion(specialtyCode) {
     wsData.push(['', 'TOTAL', '', '', '', '', '', '', '', '', '', '']);
 
     var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Añadir fórmulas celda a celda (columna L = importe)
+    var totalRow = primerFilaPartida + items.length;
+    for (var fi = 0; fi < items.length; fi++) {
+      var rn = primerFilaPartida + fi;
+      var cellAddr = XLSX.utils.encode_cell({r: rn-1, c: 11}); // columna L (índice 11)
+      ws[cellAddr] = { t: 'n', f: 'IF(K'+rn+'="","",J'+rn+'*K'+rn+')' };
+    }
+    // Fila total
+    var totalAddr = XLSX.utils.encode_cell({r: totalRow, c: 11});
+    ws[totalAddr] = { t: 'n', f: 'SUM(L'+primerFilaPartida+':L'+(totalRow-1)+')' };
+    // Actualizar rango de la hoja
+    var range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    if (range.e.c < 11) range.e.c = 11;
+    ws['!ref'] = XLSX.utils.encode_range(range);
     ws['!cols'] = [
       {wch:16},{wch:10},{wch:6},{wch:50},{wch:6},{wch:8},{wch:8},{wch:8},{wch:10},{wch:10},{wch:18},{wch:14}
     ];
-
-    // Resaltar columna precio unitario (columna K = índice 10)
     XLSX.utils.book_append_sheet(wb, ws, specialtyCode.substring(0,31));
 
     var filename = 'Peticion_' + specialtyCode + '_' + (ocProyecto.code||'BYG') + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
     XLSX.writeFile(wb, filename);
+
+    // Subir a Drive subcarpeta "Ofertas para enviar a Proveedores"
+    if (ocProyecto.drive_folder_id) {
+      try {
+        var wbOut2 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+        await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-drive', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            file_base64: wbOut2,
+            file_name: filename,
+            mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            folder_id: ocProyecto.drive_folder_id,
+            project_id: ocProyecto.id,
+            project_code: ocProyecto.code||'',
+            project_name: ocProyecto.name||'',
+            subcarpeta: 'Ofertas para enviar a Proveedores'
+          })
+        });
+        console.log('Excel petición subido a Drive');
+      } catch(de) { console.error('Error subiendo a Drive:', de); }
+    }
   } catch(e) {
     alert('Error generando Excel: ' + e.message);
     console.error(e);
@@ -12856,7 +12891,4 @@ function imprimirInformeTecnicoAnalisis() {
 </html>
 
 
-  
-  
-  
   
