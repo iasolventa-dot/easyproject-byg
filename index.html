@@ -4435,7 +4435,7 @@ async function subirPdfOferta(responseId) {
     // Obtener datos del proyecto para la carpeta
     var projCode = ocProyecto ? (ocProyecto.code || '') : '';
     var projName = ocProyecto ? (ocProyecto.name || '') : '';
-    var driveRes = await storageUpload(file, ocProyecto ? ocProyecto.id : null, projCode, projName, 'Ofertas Proveedores', null);
+    var driveRes = await storageUpload(file, ocProyecto ? ocProyecto.id : null, projCode, projName, 'Ofertas Proveedores', ocProyecto ? ocProyecto.drive_folder_id : null);
     if (!driveRes) { alert('Error subiendo el PDF.'); if(btn){btn.textContent='Subir PDF';btn.disabled=false;} return; }
     await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', responseId);
     document.querySelector('[data-modal]').remove();
@@ -4565,7 +4565,7 @@ async function guardarOfertaManual(reqId, specialtyCode) {
     if (pdfInput && pdfInput.files[0] && newResponseId) {
       btn.textContent = 'Subiendo PDF...';
       var file = pdfInput.files[0];
-      var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', 'Ofertas Proveedores', null);
+      var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', 'Ofertas Proveedores', ocProyecto.drive_folder_id||null);
       if (driveRes) {
         await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', newResponseId);
       }
