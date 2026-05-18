@@ -5491,13 +5491,16 @@ async function guardarVersionInterna() {
 
     var btn = document.querySelector('[onclick="guardarVersionInterna()"]'); if(btn){btn.textContent='Subiendo...';btn.disabled=true;}
     try {
-      var driveRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+      var driveRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-drive', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           file_base64: wbOut,
           file_name: filename,
           mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           folder_id: ocProyecto.drive_folder_id,
+          project_id: ocProyecto.id,
+          project_code: ocProyecto.code||'',
+          project_name: ocProyecto.name||'',
           subcarpeta: 'Ofertas Internas'
         })
       });
@@ -5597,13 +5600,16 @@ async function enviarOfertaCliente() {
         await descargarOfertaClientePDF(); // genera el PDF y lo guarda en window._ofertaClientePDFDoc
         if (window._ofertaClientePDFDoc && ocProyecto.drive_folder_id) {
           var pdfBase64 = window._ofertaClientePDFDoc.output('datauristring').split(',')[1];
-          await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+          await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-drive', {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
               file_base64: pdfBase64,
               file_name: window._ofertaClientePDFNombre || ('Oferta_Cliente_'+(ocProyecto.code||'BYG')+'.pdf'),
               mime_type: 'application/pdf',
               folder_id: ocProyecto.drive_folder_id,
+              project_id: ocProyecto.id,
+              project_code: ocProyecto.code||'',
+              project_name: ocProyecto.name||'',
               subcarpeta: 'Ofertas Enviadas al Cliente'
             })
           });
