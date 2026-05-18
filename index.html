@@ -5079,7 +5079,9 @@ async function cargarMontajeOferta() {
         var margenEfectivo = (margenPartida !== null) ? margenPartida : margenGremio;
         var esHeredado = margenPartida === null;
 
-        var coste = parseFloat(item.supplier_price) || 0;
+        var precioUnitItem = parseFloat(item.supplier_price) || 0;
+        var qtyItem = parseFloat(item.quantity) || 1;
+        var coste = Math.round(precioUnitItem * qtyItem * 100) / 100;
         var venta = Math.round(coste * (1 + margenEfectivo/100) * 100) / 100;
         totalCapCoste += coste;
         totalCapVenta += venta;
@@ -5231,11 +5233,12 @@ async function descargarOfertaExcel() {
         wsData.push([]);
         wsData.push([item.chapter_code, (item.chapter_name||'').toUpperCase(), '', '', '', '', '', '']);
       }
-      var coste = parseFloat(item.supplier_price) || 0;
+      var precioUnit2 = parseFloat(item.supplier_price) || 0;
+      var qty = parseFloat(item.quantity) || 1;
+      var coste = Math.round(precioUnit2 * qty * 100) / 100;
       var margen = parseFloat(item.margin_pct) || 20;
       var venta = Math.round(coste*(1+margen/100)*100)/100;
-      var qty = parseFloat(item.quantity) || 1;
-      var precioUnit = coste > 0 ? Math.round(coste/qty*100)/100 : '';
+      var precioUnit = precioUnit2 > 0 ? precioUnit2 : '';
       totalCoste += coste; totalVenta += venta;
       wsData.push([(item.item_code||'').trim(), item.item_description||'', item.unit||'', qty, precioUnit, coste||'', margen, coste>0?venta:'']);
     });
@@ -5288,7 +5291,9 @@ async function descargarOfertaPDF() {
         doc.setFont('helvetica','normal'); y+=7;
       }
       if (y > pageH) { doc.addPage(); y=14; drawHeader(); }
-      var coste = parseFloat(item.supplier_price)||0;
+      var precioUnit3 = parseFloat(item.supplier_price)||0;
+      var qty3 = parseFloat(item.quantity)||1;
+      var coste = Math.round(precioUnit3*qty3*100)/100;
       var margen = parseFloat(item.margin_pct)||20;
       var venta = Math.round(coste*(1+margen/100)*100)/100;
       totalCoste+=coste; totalVenta+=venta;
