@@ -5178,10 +5178,12 @@ function _renderMontajeHeader(margenGlobal) {
 }
 
 function _renderMontajeFooter(numPendientes) {
-  return '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap;">' +
+  return '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap;align-items:center;">' +
     '<button class="btn" onclick="cargarMontajeOferta()">Actualizar</button>' +
-    '<button class="btn" onclick="descargarOfertaExcel()" style="color:#1A6B3C;border-color:#1A6B3C;">\ud83d\udcc5 Descargar Excel</button>' +
-    '<button class="btn" onclick="descargarOfertaPDF()" style="color:#C0392B;border-color:#C0392B;">\ud83d\udcc4 Descargar PDF</button>' +
+    '<span style="font-size:10px;color:#888;padding:0 4px;">Interno:</span>' +
+    '<button class="btn" onclick="guardarVersionInterna()" style="color:#1A6B3C;border-color:#1A6B3C;" title="Excel con m\u00e1rgenes \u2192 Drive">\ud83d\udcc5 Guardar versi\u00f3n interna</button>' +
+    '<span style="font-size:10px;color:#888;padding:0 4px;">Cliente:</span>' +
+    '<button class="btn" onclick="descargarOfertaClientePDF()" style="color:#185FA5;border-color:#185FA5;" title="PDF sin m\u00e1rgenes para el cliente">\ud83d\udc41 Vista previa cliente</button>' +
     (numPendientes > 0 ?
       '<button class="btn btn-primary" onclick="confirmarSometerConPendientes(' + numPendientes + ')">Someter a aprobaci\u00f3n de m\u00e1rgenes</button>' :
       '<button class="btn btn-primary" onclick="someterAprobaci\u00f3nMargenes()">Someter a aprobaci\u00f3n de m\u00e1rgenes \u2714</button>') +
@@ -5276,7 +5278,7 @@ async function descargarOfertaPDF() {
     var drawHeader = function() {
       doc.setFillColor(30,80,50); doc.setTextColor(255,255,255);
       doc.rect(14,y,269,7,'F'); doc.setFontSize(8); doc.setFont('helvetica','bold');
-      doc.text('Código',16,y+5); doc.text('Descripción',35,y+5); doc.text('Ud.',168,y+5);
+      doc.text('Código',16,y+5); doc.text('Descripción',50,y+5); doc.text('Ud.',168,y+5);
       doc.text('Cant.',178,y+5); doc.text('Coste',200,y+5); doc.text('Mrg%',222,y+5); doc.text('P.Venta',245,y+5);
       doc.setTextColor(0,0,0); y+=8;
     };
@@ -5299,8 +5301,8 @@ async function descargarOfertaPDF() {
       totalCoste+=coste; totalVenta+=venta;
       if (idx%2===0) { doc.setFillColor(250,250,248); doc.rect(14,y,269,5.5,'F'); }
       doc.setFontSize(7); doc.setFont('helvetica','normal');
-      doc.text((item.item_code||'').trim().substring(0,13),16,y+4);
-      doc.text((item.item_description||'').substring(0,62),35,y+4);
+      doc.text((item.item_code||'').trim().substring(0,16),16,y+4);
+      doc.text((item.item_description||'').substring(0,55),50,y+4);
       doc.text(item.unit||'',168,y+4);
       doc.text(String(item.quantity||''),180,y+4);
       doc.text(coste>0?coste.toFixed(2)+'€':'-',200,y+4);
@@ -5448,14 +5450,170 @@ function aprobarMargenes(dept) {
   }
 }
 
+async function guardarVersionInterna() {
+  if (!ocProyecto) return;
+  try {
+    // Generar Excel con márgenes
+    var itemsRes = await db.from('project_items').select('*').eq('project_id', ocProyecto.id).order('chapter_order').order('id');
+    var items = itemsRes.data || [];
+    if (!items.length) { alert('No hay partidas cargadas.'); return; }
+
+    var wb = XLSX.utils.book_new();
+    var wsData = [];
+    wsData.push(['BYG Soluciones S.L. — VERSIÓN INTERNA (CONFIDENCIAL)']);
+    wsData.push(['Proyecto: ' + (ocProyecto.name||ocProyecto.code)]);
+    wsData.push(['Código: ' + (ocProyecto.code||'')]);
+    wsData.push(['Fecha: ' + new Date().toLocaleDateString('es-ES')]);
+    wsData.push([]);
+    wsData.push(['Código','Descripción','Ud.','Cantidad','Precio unitario (€)','Coste total (€)','Margen %','Precio venta (€)']);
+    var capActual = ''; var totalCoste = 0; var totalVenta = 0;
+    items.forEach(function(item) {
+      if (item.chapter_name !== capActual) {
+        capActual = item.chapter_name;
+        wsData.push([]); wsData.push([item.chapter_code, (item.chapter_name||'').toUpperCase(),'','','','','','']);
+      }
+      var precioUnit = parseFloat(item.supplier_price)||0;
+      var qty = parseFloat(item.quantity)||1;
+      var coste = Math.round(precioUnit*qty*100)/100;
+      var margen = parseFloat(item.margin_pct)||20;
+      var venta = Math.round(coste*(1+margen/100)*100)/100;
+      totalCoste+=coste; totalVenta+=venta;
+      wsData.push([(item.item_code||'').trim(), item.item_description||'', item.unit||'', qty, precioUnit||'', coste||'', margen, coste>0?venta:'']);
+    });
+    wsData.push([]); wsData.push(['','TOTAL INTERNO','','','',totalCoste.toFixed(2),'',totalVenta.toFixed(2)]);
+    var ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{wch:15},{wch:50},{wch:6},{wch:10},{wch:18},{wch:14},{wch:10},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Versión Interna');
+
+    // Convertir a base64 y subir a Drive
+    var wbOut = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+    var filename = 'Oferta_Interna_'+(ocProyecto.code||'BYG')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+
+    var btn = event.target; btn.textContent = 'Subiendo...'; btn.disabled = true;
+    try {
+      var driveRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          file_base64: wbOut,
+          file_name: filename,
+          mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          folder_id: ocProyecto.drive_folder_id,
+          subcarpeta: 'Ofertas Internas'
+        })
+      });
+      btn.textContent = '✅ Versión interna guardada';
+      setTimeout(function(){ btn.textContent = '📅 Guardar versión interna'; btn.disabled = false; }, 3000);
+    } catch(de) {
+      // Si falla Drive, al menos descargar localmente
+      XLSX.writeFile(wb, filename);
+      btn.textContent = '📅 Guardar versión interna'; btn.disabled = false;
+    }
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function descargarOfertaClientePDF() {
+  if (!ocProyecto) return;
+  try {
+    var itemsRes = await db.from('project_items').select('*').eq('project_id', ocProyecto.id).order('chapter_order').order('id');
+    var items = itemsRes.data || [];
+    if (!items.length) { alert('No hay partidas cargadas.'); return; }
+
+    var JsPDF3 = (typeof jsPDF !== 'undefined') ? jsPDF : window.jspdf.jsPDF;
+    var doc = new JsPDF3({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    // Logo
+    try { doc.addImage(BYG_LOGO_B64, 'PNG', 14, 8, 22, 22); } catch(le) {}
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    doc.text('BYG Soluciones S.L. — OFERTA ECONÓMICA', 40, 16);
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.text('Proyecto: '+(ocProyecto.name||ocProyecto.code), 40, 23);
+    doc.text('Código expediente: '+(ocProyecto.code||''), 40, 28);
+    doc.text('Fecha: '+new Date().toLocaleDateString('es-ES'), 40, 33);
+    doc.setDrawColor(30,80,50); doc.setLineWidth(0.5); doc.line(14,36,283,36);
+
+    var y = 42; var pageH = 195; var totalVenta = 0; var capActual = '';
+    var drawHeader = function() {
+      doc.setFillColor(30,80,50); doc.setTextColor(255,255,255);
+      doc.rect(14,y,269,7,'F'); doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('Código',16,y+5); doc.text('Descripción',50,y+5); doc.text('Ud.',168,y+5);
+      doc.text('Cant.',178,y+5); doc.text('P.Unitario',200,y+5); doc.text('Importe',245,y+5);
+      doc.setTextColor(0,0,0); y+=8;
+    };
+    drawHeader();
+
+    items.forEach(function(item, idx) {
+      if (y > pageH) { doc.addPage(); y=14; drawHeader(); }
+      if (item.chapter_name !== capActual) {
+        capActual = item.chapter_name;
+        doc.setFillColor(234,243,222); doc.rect(14,y,269,6,'F');
+        doc.setFontSize(8); doc.setFont('helvetica','bold');
+        doc.text((item.chapter_code||'')+' — '+(item.chapter_name||'').toUpperCase(),16,y+4.5);
+        doc.setFont('helvetica','normal'); y+=7;
+      }
+      if (y > pageH) { doc.addPage(); y=14; drawHeader(); }
+      var precioUnit = parseFloat(item.supplier_price)||0;
+      var qty = parseFloat(item.quantity)||1;
+      var coste = Math.round(precioUnit*qty*100)/100;
+      var margen = parseFloat(item.margin_pct)||20;
+      var venta = Math.round(coste*(1+margen/100)*100)/100;
+      var ventaUnit = coste>0 ? Math.round(venta/qty*100)/100 : 0;
+      totalVenta += venta;
+      if (idx%2===0) { doc.setFillColor(250,250,248); doc.rect(14,y,269,5.5,'F'); }
+      doc.setFontSize(7); doc.setFont('helvetica','normal');
+      doc.text((item.item_code||'').trim().substring(0,16),16,y+4);
+      doc.text((item.item_description||'').substring(0,55),50,y+4);
+      doc.text(item.unit||'',168,y+4);
+      doc.text(String(qty),180,y+4);
+      doc.text(coste>0?ventaUnit.toFixed(2)+'€':'-',200,y+4);
+      doc.text(coste>0?venta.toFixed(2)+'€':'-',245,y+4);
+      y+=6;
+    });
+
+    y+=4;
+    if (y>pageH) { doc.addPage(); y=14; }
+    doc.setFillColor(30,80,50); doc.setTextColor(255,255,255);
+    doc.rect(14,y,269,8,'F'); doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('TOTAL OFERTA BYG SOLUCIONES S.L.',16,y+5.5);
+    doc.text(totalVenta.toFixed(2)+'€',245,y+5.5);
+    doc.setTextColor(0,0,0);
+
+    var filename = 'Oferta_Cliente_'+(ocProyecto.code||'BYG')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+    doc.save(filename);
+
+    // Guardar en variable global para adjuntar al envío
+    window._ofertaClientePDFDoc = doc;
+    window._ofertaClientePDFNombre = filename;
+  } catch(e) { alert('Error generando PDF cliente: '+e.message); console.error(e); }
+}
+
 async function enviarOfertaCliente() {
   if (!ocProyecto) return;
   try {
     var stRes = await db.from('project_statuses').select('id').eq('code','oferta_enviada').single();
     if (stRes.data) {
       await db.from('projects').update({project_status_id:stRes.data.id, updated_at:new Date().toISOString()}).eq('id',ocProyecto.id);
-      alert('Oferta enviada al cliente correctamente.\n\nEl proyecto pasa a estado Oferta enviada.\n\n(En producción se enviará por Outlook con el PDF/Excel adjunto)');
+
+      // Generar y subir PDF cliente a Drive "Ofertas Enviadas al Cliente"
+      try {
+        await descargarOfertaClientePDF(); // genera el PDF y lo guarda en window._ofertaClientePDFDoc
+        if (window._ofertaClientePDFDoc && ocProyecto.drive_folder_id) {
+          var pdfBase64 = window._ofertaClientePDFDoc.output('datauristring').split(',')[1];
+          await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              file_base64: pdfBase64,
+              file_name: window._ofertaClientePDFNombre || ('Oferta_Cliente_'+(ocProyecto.code||'BYG')+'.pdf'),
+              mime_type: 'application/pdf',
+              folder_id: ocProyecto.drive_folder_id,
+              subcarpeta: 'Ofertas Enviadas al Cliente'
+            })
+          });
+        }
+      } catch(pe) { console.warn('Error subiendo PDF a Drive:', pe); }
+
+      alert('Oferta enviada al cliente correctamente.\n\nEl proyecto pasa a estado Oferta enviada.\n\n(En producción se enviará por Outlook con el PDF adjunto)');
       ocProyecto = null;
+      window._ofertaClientePDFDoc = null;
       await showProyectosFase('oferta_en_curso');
       loadDashboard();
     }
@@ -12559,5 +12717,4 @@ function imprimirInformeTecnicoAnalisis() {
 </html>
 
 
-  
   
