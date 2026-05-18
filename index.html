@@ -5510,7 +5510,7 @@ function aprobarMargenes(dept) {
   // Desbloquear envío al cliente
   document.getElementById('oc-envio-final').style.display = 'block';
   var emailCliente = 'Estimado cliente,\n\nNos complace presentarles nuestra propuesta económica para el proyecto ' +
-    (ocProyecto?ocProyecto.name||ocProyecto.code:'') + '.\n\nAdjuntamos nuestra oferta detallada por partidas y gremios para su revisión.\n\nQuedamos a su disposición para cualquier aclaración o modificación que precisen.\n\nAtentamente,\nDepartamento Técnico\nBYG Soluciones S.L.';
+    (ocProyecto?ocProyecto.name||ocProyecto.code:'') + '.\n\nAdjuntamos nuestra oferta detallada por tipos de trabajo y partidas para su revisión.\n\nQuedamos a su disposición para cualquier aclaración o modificación que precisen.\n\nAtentamente,\nDepartamento Técnico\nBYG Soluciones S.L.';
   document.getElementById('oc-email-cliente').value = emailCliente;
   document.getElementById('oc-envio-final').scrollIntoView({behavior:'smooth', block:'start'});
 }
