@@ -4586,11 +4586,42 @@ async function guardarOfertaManual(reqId, specialtyCode) {
     await db.from('offer_requests').update({ status: 'responded', updated_at: new Date().toISOString() }).eq('id', reqId);
 
     if (pdfInput && pdfInput.files[0] && newResponseId) {
-      btn.textContent = 'Subiendo PDF...';
       var file = pdfInput.files[0];
+      var esExcel = file.name.match(/\.xlsx?$/i);
+
+      // Subir archivo a Drive
+      btn.textContent = 'Subiendo archivo...';
       var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', 'Ofertas Proveedores', ocProyecto.drive_folder_id||null);
       if (driveRes) {
         await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', newResponseId);
+      }
+
+      // Si es Excel, cargar precios automáticamente en project_items
+      if (esExcel) {
+        btn.textContent = 'Cargando precios...';
+        try {
+          var preciosPorCodigo = await _parsearExcelPrecios(file);
+          if (Object.keys(preciosPorCodigo).length > 0) {
+            var itemsRes2 = await db.from('project_items')
+              .select('id, item_code')
+              .eq('project_id', ocProyecto.id)
+              .eq('chapter_code', specialtyCode);
+            var items2 = itemsRes2.data || [];
+            var actualizados2 = 0;
+            for (var ii2 = 0; ii2 < items2.length; ii2++) {
+              var itemCode2 = (items2[ii2].item_code || '').trim();
+              var precio2 = preciosPorCodigo[itemCode2];
+              if (precio2 > 0) {
+                await db.from('project_items').update({
+                  supplier_price: precio2,
+                  updated_at: new Date().toISOString()
+                }).eq('id', items2[ii2].id);
+                actualizados2++;
+              }
+            }
+            if (actualizados2 > 0) console.log('Precios auto-cargados: ' + actualizados2 + ' partidas de ' + specialtyCode);
+          }
+        } catch(pe) { console.warn('Error cargando precios:', pe); }
       }
     }
 
@@ -5371,6 +5402,31 @@ async function mostrarAnalisisDocumentalOC() {
   } catch(e) {
     panel.innerHTML = '<div style="color:#c00;font-size:12px;">Error cargando análisis: ' + e.message + '</div>';
   }
+}
+
+async function _parsearExcelPrecios(file) {
+  var arrayBuffer = await file.arrayBuffer();
+  var data = new Uint8Array(arrayBuffer);
+  var workbook = XLSX.read(data, { type: 'array', cellFormula: false });
+  var ws = workbook.Sheets[workbook.SheetNames[0]];
+  var filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  var preciosPorCodigo = {};
+  for (var ri = 0; ri < filas.length; ri++) {
+    var fila = filas[ri];
+    if (!fila) continue;
+    var cod = String(fila[0]||'').trim();
+    if (!cod || cod.toLowerCase() === 'código' || cod.toLowerCase() === 'codigo') continue;
+    var nat = String(fila[1]||'').trim().toLowerCase();
+    if (nat === 'capítulo' || nat === 'capitulo' || nat === 'cap.' || nat === 'u') {
+      var tienePrecio = false;
+      for (var pc2 = 9; pc2 <= 12; pc2++) { if (parseFloat(fila[pc2]) > 0) { tienePrecio = true; break; } }
+      if (!tienePrecio) continue;
+    }
+    var precio = 0;
+    for (var pc = 9; pc <= 12; pc++) { var pv = parseFloat(fila[pc]); if (pv > 0) { precio = pv; break; } }
+    if (precio > 0) preciosPorCodigo[cod] = precio;
+  }
+  return preciosPorCodigo;
 }
 
 function limpiarLatex(texto) {
