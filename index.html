@@ -365,9 +365,9 @@
       </div>
     </div>
     <div style="display:flex;gap:8px;">
-      <button class="btn-refresh" onclick="loadDashboardJefeObra()" style="font-size:12px;">↻ Actualizar</button>
-      <button id="btn-volver-superadmin" onclick="volverASuperadmin()" style="display:none;padding:6px 14px;border-radius:7px;border:1px solid #0F6E56;background:white;font-size:12px;cursor:pointer;color:#0F6E56;">← Volver a Superadmin</button>
-      <button onclick="doLogout()" style="padding:6px 14px;border-radius:7px;border:1px solid #ddd;background:white;font-size:12px;cursor:pointer;color:#666;">Cerrar sesión</button>
+      <button class="btn-refresh" onclick="loadDashboardJefeObra()" style="font-size:12px;" title="Recargar el dashboard con los datos más recientes">↻ Actualizar</button>
+      <button id="btn-volver-superadmin" onclick="volverASuperadmin()" style="display:none;padding:6px 14px;border-radius:7px;border:1px solid #0F6E56;background:white;font-size:12px;cursor:pointer;color:#0F6E56;" title="Volver a la vista de Superadmin">← Volver a Superadmin</button>
+      <button onclick="doLogout()" style="padding:6px 14px;border-radius:7px;border:1px solid #ddd;background:white;font-size:12px;cursor:pointer;color:#666;" title="Cerrar la sesión actual">Cerrar sesión</button>
     </div>
   </div>
   <div id="jo-alerta-banner" style="display:none;"></div>
@@ -411,7 +411,7 @@
             </div>
           </div>
         </div>
-        <button onclick="doLogin()" id="login-btn" style="width:100%;padding:11px;background:#1976D2;color:white;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;margin-top:4px;">Entrar</button>
+        <button onclick="doLogin()" id="login-btn" style="width:100%;padding:11px;background:#1976D2;color:white;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;margin-top:4px;" title="Iniciar sesión con tus credenciales corporativas">Entrar</button>
       </div>
       <div style="text-align:center;margin-top:1.5rem;font-size:11px;color:#aaa;">powered by Solventa IA</div>
     </div>
@@ -432,8 +432,8 @@
           <label style="font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;">Tu email corporativo</label>
           <input type="email" id="recuperar-email" placeholder="usuario@bygsoluciones.es" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#1a1a1a;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doRecuperar()">
         </div>
-        <button onclick="doRecuperar()" id="recuperar-btn" style="width:100%;padding:11px;background:#1976D2;color:white;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">Enviar enlace</button>
-        <button onclick="volverALogin()" style="width:100%;padding:9px;background:white;color:#666;border:1px solid #ddd;border-radius:8px;font-size:12px;cursor:pointer;">← Volver al inicio de sesión</button>
+        <button onclick="doRecuperar()" id="recuperar-btn" style="width:100%;padding:11px;background:#1976D2;color:white;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;" title="Enviar un email de recuperación de contraseña">Enviar enlace</button>
+        <button onclick="volverALogin()" style="width:100%;padding:9px;background:white;color:#666;border:1px solid #ddd;border-radius:8px;font-size:12px;cursor:pointer;" title="Volver a la pantalla de inicio de sesión">← Volver al inicio de sesión</button>
       </div>
     </div>
 
@@ -498,18 +498,18 @@
   <div class="topbar">
     <h1><span class="live-dot"></span>Dashboard<span class="last-update" id="last-update"></span></h1>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <button class="btn-refresh" onclick="loadDashboard()">Actualizar</button>
-      <button id="btn-nuevo-proyecto" class="btn-refresh" style="background:#3B6D11;" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button>
+      <button class="btn-refresh" onclick="loadDashboard()" title="Recargar el dashboard con los datos más recientes">Actualizar</button>
+      <button id="btn-nuevo-proyecto" class="btn-refresh" style="background:#3B6D11;" onclick="abrirNuevoProyecto()" title="Registrar una nueva solicitud de cliente en el sistema">+ Nuevo proyecto</button>
       <div class="dept-select" id="dept-select-wrap">
         <div id="dept-btns-container" style="display:none;gap:6px;align-items:center;">
           <span style="font-size:10px;color:#aaa;margin-right:2px;">SUPERADMIN:</span>
-          <button class="dept-btn active-tecnico" onclick="setDept('tecnico',this)">Técnico</button>
-          <button class="dept-btn" onclick="setDept('direccion',this)">Dirección</button>
-          <button class="dept-btn" onclick="setDept('comercial',this)">Comercial</button>
-          <button class="dept-btn" onclick="setDept('jefe_obra',this)">Jefe de Obra</button>
-          <button class="dept-btn" onclick="setDept('prl',this)">PRL</button>
-          <button class="dept-btn" onclick="setDept('admin',this)">Admin</button>
-          <button class="dept-btn" onclick="volverSuperadmin(this)" style="background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-size:10px;">↩ Superadmin</button>
+          <button class="dept-btn active-tecnico" onclick="setDept('tecnico',this)" title="Ver la vista del Departamento Técnico">Técnico</button>
+          <button class="dept-btn" onclick="setDept('direccion',this)" title="Ver la vista de Dirección">Dirección</button>
+          <button class="dept-btn" onclick="setDept('comercial',this)" title="Ver la vista del Departamento Comercial">Comercial</button>
+          <button class="dept-btn" onclick="setDept('jefe_obra',this)" title="Seleccionar un Jefe de Obra para simular su vista">Jefe de Obra</button>
+          <button class="dept-btn" onclick="setDept('prl',this)" title="Ver la vista de Prevención de Riesgos Laborales">PRL</button>
+          <button class="dept-btn" onclick="setDept('admin',this)" title="Ver la vista de Administración (datos maestros)">Admin</button>
+          <button class="dept-btn" onclick="volverSuperadmin(this)" style="background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-size:10px;" title="Volver a la vista completa de Superadmin">↩ Superadmin</button>
         </div>
       </div>
     </div>
@@ -555,7 +555,7 @@
 <div id="panel-proyectos" class="panel">
   <div class="topbar">
     <h1 id="proyectos-title">Proyectos</h1>
-    <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button><button class="btn btn-back" onclick="showPanel('dashboard')">Volver al dashboard</button></div>
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="abrirNuevoProyecto()" title="Registrar una nueva solicitud de cliente en el sistema">+ Nuevo proyecto</button><button class="btn btn-back" onclick="showPanel('dashboard')" title="Volver al dashboard principal">Volver al dashboard</button></div>
   </div>
   <div class="card">
     <table class="data-table" id="proyectos-table">
@@ -569,7 +569,7 @@
 <div id="panel-proyecto-detalle" class="panel">
   <div class="topbar">
     <h1 id="det-title">Proyecto</h1>
-    <button class="btn btn-back" onclick="volverAProyectos()">Volver</button>
+    <button class="btn btn-back" onclick="volverAProyectos()" title="Volver al listado de proyectos">Volver</button>
   </div>
   <div class="wizard-track" id="wizard-track"></div>
   <div class="proj-tabs">
@@ -598,7 +598,7 @@
     <div id="gremio-container"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;">
       <button class="btn" onclick="alert('Cambios guardados.')">Guardar cambios</button>
-      <button class="btn btn-primary" onclick="enviarAprobación()">Enviar a aprobación</button>
+      <button class="btn btn-primary" onclick="enviarAprobación()" title="Enviar este documento a aprobación">Enviar a aprobación</button>
     </div>
   </div>
   <div id="proj-tab-aprobación" class="proj-tab-content" style="display:none;">
@@ -650,8 +650,8 @@
   <div class="topbar">
     <h1>Clientes</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn" onclick="imprimirListadoClientes()">Imprimir listado</button>
-      <button class="btn btn-primary" onclick="abrirFichaClienteEditar(null)">+ Nuevo cliente</button>
+      <button class="btn" onclick="imprimirListadoClientes()" title="Imprimir o exportar a PDF el listado de clientes">Imprimir listado</button>
+      <button class="btn btn-primary" onclick="abrirFichaClienteEditar(null)" title="Crear un nuevo cliente en el sistema">+ Nuevo cliente</button>
     </div>
   </div>
   <div class="card">
@@ -667,11 +667,11 @@
   <div class="topbar">
     <h1 id="cliente-det-title">Ficha de cliente</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn" onclick="imprimirFichaCliente()">Imprimir ficha</button>
-      <button class="btn btn-success" id="btn-confirmar-cli" onclick="confirmarClienteLead()" style="display:none;">✓ Confirmar como cliente</button>
-      <button class="btn" id="btn-editar-cli" onclick="toggleEditarCliente()" style="display:none;">Editar</button>
-      <button class="btn btn-success" id="btn-guardar-cli" onclick="guardarCliente()" style="display:none;">Guardar</button>
-      <button class="btn btn-back" onclick="showPanel('clientes')">Volver al listado</button>
+      <button class="btn" onclick="imprimirFichaCliente()" title="Imprimir la ficha de este cliente">Imprimir ficha</button>
+      <button class="btn btn-success" id="btn-confirmar-cli" onclick="confirmarClienteLead()" style="display:none;" title="Convertir este lead en cliente confirmado (añade datos fiscales)">✓ Confirmar como cliente</button>
+      <button class="btn" id="btn-editar-cli" onclick="toggleEditarCliente()" style="display:none;" title="Editar los datos de este cliente">Editar</button>
+      <button class="btn btn-success" id="btn-guardar-cli" onclick="guardarCliente()" style="display:none;" title="Guardar los cambios realizados en la ficha del cliente">Guardar</button>
+      <button class="btn btn-back" onclick="showPanel('clientes')" title="Volver al listado de clientes">Volver al listado</button>
     </div>
   </div>
   <div class="card" id="cliente-ficha-content" style="max-width:700px;">
@@ -684,8 +684,8 @@
   <div class="topbar">
     <h1>Proveedores / Subcontratistas</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn" onclick="imprimirListadoProveedores()">Imprimir listado</button>
-      <button class="btn btn-primary" onclick="abrirFichaProveedor(null)">+ Nuevo proveedor</button>
+      <button class="btn" onclick="imprimirListadoProveedores()" title="Imprimir o exportar a PDF el listado de proveedores">Imprimir listado</button>
+      <button class="btn btn-primary" onclick="abrirFichaProveedor(null)" title="Dar de alta un nuevo proveedor o subcontratista">+ Nuevo proveedor</button>
     </div>
   </div>
   <div class="card" style="margin-bottom:1rem;">
@@ -706,10 +706,10 @@
   <div class="topbar">
     <h1 id="prov-det-title">Ficha de proveedor</h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn" onclick="imprimirFichaProveedor()">Imprimir ficha</button>
-      <button class="btn btn-primary" id="btn-editar-prov" onclick="toggleEditarProveedor()">Editar</button>
-      <button class="btn btn-success" id="btn-guardar-prov" style="display:none;" onclick="guardarProveedor()">Guardar</button>
-      <button class="btn btn-back" onclick="showPanel('proveedores')">Volver</button>
+      <button class="btn" onclick="imprimirFichaProveedor()" title="Imprimir la ficha de este proveedor">Imprimir ficha</button>
+      <button class="btn btn-primary" id="btn-editar-prov" onclick="toggleEditarProveedor()" title="Editar los datos de este proveedor">Editar</button>
+      <button class="btn btn-success" id="btn-guardar-prov" style="display:none;" onclick="guardarProveedor()" title="Guardar los cambios realizados en la ficha del proveedor">Guardar</button>
+      <button class="btn btn-back" onclick="showPanel('proveedores')" title="Volver al listado de proveedores">Volver</button>
     </div>
   </div>
   <div class="card" id="prov-ficha-content" style="max-width:800px;">
@@ -722,8 +722,8 @@
   <div class="topbar">
     <h1>Jefes de obra</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn" onclick="imprimirListadoJefes()">Imprimir listado</button>
-      <button class="btn btn-primary" onclick="abrirFichaJefe(null)">+ Nuevo jefe de obra</button>
+      <button class="btn" onclick="imprimirListadoJefes()" title="Imprimir el listado de jefes de obra">Imprimir listado</button>
+      <button class="btn btn-primary" onclick="abrirFichaJefe(null)" title="Dar de alta un nuevo jefe de obra">+ Nuevo jefe de obra</button>
     </div>
   </div>
   <div class="card" style="margin-bottom:1rem;">
@@ -744,10 +744,10 @@
   <div class="topbar">
     <h1 id="jefe-det-title">Ficha de jefe de obra</h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn" onclick="imprimirFichaJefe()">Imprimir ficha</button>
-      <button class="btn btn-primary" id="btn-editar-jefe" onclick="toggleEditarJefe()">Editar</button>
-      <button class="btn btn-success" id="btn-guardar-jefe" style="display:none;" onclick="guardarJefe()">Guardar</button>
-      <button class="btn btn-back" onclick="showPanel('jefes')">Volver</button>
+      <button class="btn" onclick="imprimirFichaJefe()" title="Imprimir la ficha de este jefe de obra">Imprimir ficha</button>
+      <button class="btn btn-primary" id="btn-editar-jefe" onclick="toggleEditarJefe()" title="Editar los datos de este jefe de obra">Editar</button>
+      <button class="btn btn-success" id="btn-guardar-jefe" style="display:none;" onclick="guardarJefe()" title="Guardar los cambios en la ficha del jefe de obra">Guardar</button>
+      <button class="btn btn-back" onclick="showPanel('jefes')" title="Volver al listado de jefes de obra">Volver</button>
     </div>
   </div>
   <div class="card" id="jefe-ficha-content" style="max-width:700px;">
@@ -758,7 +758,7 @@
 <!-- GREMIOS -->
 <div id="panel-gremios" class="panel">
   <div class="topbar"><h1>Gremios / Especialidades</h1>
-    <button class="btn btn-primary" onclick="abrirModalGremio()">+ Crear gremio</button>
+    <button class="btn btn-primary" onclick="abrirModalGremio()" title="Crear un nuevo gremio o especialidad en el catálogo">+ Crear gremio</button>
   </div>
   <div class="card">
     <table class="data-table">
@@ -778,8 +778,8 @@
       <div style="font-size:10px;color:#aaa;margin-top:4px;">El código se genera automáticamente a partir del nombre.</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" onclick="cerrarModalGremio()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarGremio()">Guardar</button>
+      <button class="btn" onclick="cerrarModalGremio()" title="Cancelar sin guardar">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarGremio()" title="Guardar el nuevo gremio en el catálogo">Guardar</button>
     </div>
   </div>
 </div>
@@ -787,7 +787,7 @@
 <!-- PANEL CATEGORÍAS PROVEEDOR -->
 <div id="panel-categorias-prov" class="panel">
   <div class="topbar"><h1>Categorías de Proveedor</h1>
-    <button class="btn btn-primary" onclick="abrirModalCategoria()">+ Crear categoría</button>
+    <button class="btn btn-primary" onclick="abrirModalCategoria()" title="Crear una nueva categoría de proveedor">+ Crear categoría</button>
   </div>
   <div class="card">
     <table class="data-table">
@@ -810,8 +810,8 @@
       <input type="text" id="mc-descripcion" placeholder="Descripción breve..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" onclick="cerrarModalCategoria()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarCategoriaProv()">Guardar</button>
+      <button class="btn" onclick="cerrarModalCategoria()" title="Cancelar sin guardar">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCategoriaProv()" title="Guardar la nueva categoría de proveedor">Guardar</button>
     </div>
   </div>
 </div>
@@ -821,7 +821,7 @@
   <div class="topbar">
     <h1>Recursos Humanos — Personal</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-primary" onclick="abrirFichaEmpleado(null)">+ Nuevo empleado</button>
+      <button class="btn btn-primary" onclick="abrirFichaEmpleado(null)" title="Dar de alta un nuevo empleado en el sistema">+ Nuevo empleado</button>
     </div>
   </div>
   <!-- Filtros -->
@@ -849,9 +849,9 @@
   <div class="topbar">
     <h1 id="rrhh-ficha-title">Ficha de empleado</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn" id="btn-editar-emp" onclick="toggleEditarEmpleado()" style="display:none;">Editar</button>
-      <button class="btn btn-success" id="btn-guardar-emp" onclick="guardarEmpleado()" style="display:none;">Guardar</button>
-      <button class="btn btn-back" onclick="showPanel('rrhh')">Volver al listado</button>
+      <button class="btn" id="btn-editar-emp" onclick="toggleEditarEmpleado()" style="display:none;" title="Editar los datos de este empleado">Editar</button>
+      <button class="btn btn-success" id="btn-guardar-emp" onclick="guardarEmpleado()" style="display:none;" title="Guardar los cambios en la ficha del empleado">Guardar</button>
+      <button class="btn btn-back" onclick="showPanel('rrhh')" title="Volver al listado de empleados">Volver al listado</button>
     </div>
   </div>
   <div id="rrhh-ficha-content" style="max-width:800px;">
@@ -863,7 +863,7 @@
 <div id="panel-rrhh-prl" class="panel">
   <div class="topbar">
     <h1>Alertas PRL — Vencimientos</h1>
-    <button class="btn btn-back" onclick="showPanel('rrhh')">Volver</button>
+    <button class="btn btn-back" onclick="showPanel('rrhh')" title="Volver al panel de RRHH">Volver</button>
   </div>
   <div id="rrhh-prl-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -877,7 +877,7 @@
   <div class="topbar">
     <h1>PRL / Documentación subcontratas</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-primary" onclick="showPanel('prl-alertas')">⚠️ Ver alertas</button>
+      <button class="btn btn-primary" onclick="showPanel('prl-alertas')" title="Ver empleados con formaciones PRL o aptos médicos vencidos o próximos a vencer">⚠️ Ver alertas</button>
     </div>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
@@ -897,8 +897,8 @@
   <div class="topbar">
     <h1 id="prl-proyecto-title">Proyecto — PRL</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-primary" onclick="abrirModalAsignarSubcontrata()">+ Añadir subcontrata</button>
-      <button class="btn btn-back" onclick="showPanel('prl')">← Volver</button>
+      <button class="btn btn-primary" onclick="abrirModalAsignarSubcontrata()" title="Añadir una subcontrata a este proyecto PRL">+ Añadir subcontrata</button>
+      <button class="btn btn-back" onclick="showPanel('prl')" title="Volver al panel PRL">← Volver</button>
     </div>
   </div>
   <div id="prl-proyecto-content"><div class="loading">Cargando...</div></div>
@@ -909,8 +909,8 @@
   <div class="topbar">
     <h1 id="prl-ficha-title">Subcontrata — Documentación PRL</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-primary" onclick="abrirModalTrabajador(null)">+ Añadir trabajador</button>
-      <button class="btn btn-back" onclick="volverprlProyecto()">← Volver al proyecto</button>
+      <button class="btn btn-primary" onclick="abrirModalTrabajador(null)" title="Añadir un nuevo trabajador a este proyecto">+ Añadir trabajador</button>
+      <button class="btn btn-back" onclick="volverprlProyecto()" title="Volver a la ficha del proyecto PRL">← Volver al proyecto</button>
     </div>
   </div>
   <div id="prl-ficha-content"><div class="loading">Cargando...</div></div>
@@ -920,7 +920,7 @@
 <div id="panel-prl-alertas" class="panel">
   <div class="topbar">
     <h1>Alertas PRL — Vencimientos subcontratas</h1>
-    <button class="btn btn-back" onclick="showPanel('prl')">← Volver</button>
+    <button class="btn btn-back" onclick="showPanel('prl')" title="Volver al panel PRL">← Volver</button>
   </div>
   <div id="prl-alertas-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -948,8 +948,8 @@
       <textarea id="prl-modal-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" onclick="cerrarModalSubcontrata()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarAsignacionSubcontrata()">Añadir</button>
+      <button class="btn" onclick="cerrarModalSubcontrata()" title="Cancelar sin añadir la subcontrata">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAsignacionSubcontrata()" title="Añadir la subcontrata seleccionada a este proyecto">Añadir</button>
     </div>
   </div>
 </div>
@@ -993,8 +993,8 @@
       <textarea id="tw-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" onclick="cerrarModalTrabajador()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarTrabajador()">Guardar</button>
+      <button class="btn" onclick="cerrarModalTrabajador()" title="Cancelar sin guardar">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarTrabajador()" title="Guardar los datos del trabajador">Guardar</button>
     </div>
   </div>
 </div>
@@ -1004,8 +1004,8 @@
   <div class="topbar">
     <h1>⚙️ Requisitos PRL — Configuración</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-primary" onclick="abrirModalRequisito(null)">+ Nuevo requisito</button>
-      <button class="btn btn-back" onclick="showPanel('prl')">← Volver</button>
+      <button class="btn btn-primary" onclick="abrirModalRequisito(null)" title="Crear un nuevo requisito documental PRL">+ Nuevo requisito</button>
+      <button class="btn btn-back" onclick="showPanel('prl')" title="Volver al panel PRL">← Volver</button>
     </div>
   </div>
   <div style="background:#FEF9EC;border:1px solid #F9D56E;border-radius:8px;padding:10px 16px;margin-bottom:1rem;font-size:13px;color:#7A5C00;">
@@ -1080,9 +1080,9 @@
       <textarea id="req-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" id="btn-eliminar-req" style="display:none;color:#A32D2D;border-color:#A32D2D;" onclick="eliminarRequisito()">Eliminar</button>
-      <button class="btn" onclick="cerrarModalRequisito()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarRequisito()">Guardar</button>
+      <button class="btn" id="btn-eliminar-req" style="display:none;color:#A32D2D;border-color:#A32D2D;" onclick="eliminarRequisito()" title="Eliminar este requisito documental del sistema">Eliminar</button>
+      <button class="btn" onclick="cerrarModalRequisito()" title="Cancelar sin guardar">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarRequisito()" title="Guardar el requisito documental">Guardar</button>
     </div>
   </div>
 </div>
@@ -1097,7 +1097,7 @@
 <div id="panel-ejecucion" class="panel">
   <div class="topbar">
     <h1 id="ej-title">En ejecución</h1>
-    <button class="btn btn-back" onclick="volverDesdeEjecución()">Volver</button>
+    <button class="btn btn-back" onclick="volverDesdeEjecución()" title="Volver al listado de proyectos en ejecución">Volver</button>
   </div>
 
   <!-- INFO PROYECTO -->
@@ -1138,8 +1138,8 @@
         <div><label style="font-size:10px;color:#888;display:block;margin-bottom:2px;">Fase</label><input type="text" id="nh-gremio" placeholder="Demolición, Electricidad..." style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;"></div>
       </div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary btn-sm" onclick="guardarNuevoHitoPlanning()">Guardar hito</button>
-        <button class="btn btn-sm" onclick="document.getElementById('form-nuevo-hito').style.display='none'">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="guardarNuevoHitoPlanning()" title="Guardar este nuevo hito en el planning">Guardar hito</button>
+        <button class="btn btn-sm" onclick="document.getElementById('form-nuevo-hito').style.display='none'" title="Cancelar sin guardar">Cancelar</button>
       </div>
     </div>
     <div id="ej-planning-content"><div class="loading">Cargando planning...</div></div>
@@ -1149,7 +1149,7 @@
   <div id="ej-tab-hitos" style="display:none;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
       <div style="font-size:13px;color:#888;">Seguimiento real de hitos — registra el cumplimiento vs. lo planificado</div>
-      <button class="btn btn-primary btn-sm" id="btn-nuevo-hito" onclick="mostrarFormHitoEjecucion()" style="display:none;">+ Nuevo hito</button>
+      <button class="btn btn-primary btn-sm" id="btn-nuevo-hito" onclick="mostrarFormHitoEjecucion()" style="display:none;" title="Añadir un nuevo hito de seguimiento a esta obra">+ Nuevo hito</button>
     </div>
     <div id="ej-form-hito-exec" style="display:none;background:#f9f9f6;border:1px solid #ddd;border-radius:8px;padding:1rem;margin-bottom:1rem;">
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;">
@@ -1164,8 +1164,8 @@
           </select>
         </div>
         <div style="display:flex;gap:6px;align-items:flex-end;">
-          <button class="btn btn-primary btn-sm" onclick="guardarHitoEjecucion()">Guardar</button>
-          <button class="btn btn-sm" onclick="document.getElementById('ej-form-hito-exec').style.display='none'">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="guardarHitoEjecucion()" title="Guardar el nuevo hito en la obra">Guardar</button>
+          <button class="btn btn-sm" onclick="document.getElementById('ej-form-hito-exec').style.display='none'" title="Cancelar sin guardar">Cancelar</button>
         </div>
       </div>
       <div id="hito-exec-motivo-wrapper" style="margin-top:8px;">
@@ -1185,7 +1185,7 @@
   <div id="ej-tab-gastos" style="display:none;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
       <div style="font-size:13px;color:#888;">Albaranes, facturas y otros gastos registrados en obra</div>
-      <button class="btn btn-primary btn-sm" id="btn-registrar-gasto" onclick="abrirCargaGasto()" style="display:none;">+ Registrar gasto</button>
+      <button class="btn btn-primary btn-sm" id="btn-registrar-gasto" onclick="abrirCargaGasto()" style="display:none;" title="Registrar un nuevo albarán, factura o ticket de obra. La IA extraerá los datos automáticamente">+ Registrar gasto</button>
     </div>
     <!-- Input archivo oculto -->
     <input type="file" id="gasto-file-input" accept="image/*,application/pdf" style="display:none;" onchange="procesarArchivoGasto(this)">
@@ -1204,7 +1204,7 @@
         <div style="font-size:13px;font-weight:600;color:#1e40af;">Datos extraídos por IA — revisa y confirma</div>
         <div id="gasto-loading" style="display:none;font-size:11px;color:#888;margin-left:auto;">Analizando documento...</div>
         <div id="gasto-preview-btn" style="display:none;margin-left:auto;">
-          <button onclick="gastoVerDocumento()" style="background:#f0f4ff;border:1px solid #BFDBFE;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;color:#185FA5;display:flex;align-items:center;gap:5px;">
+          <button onclick="gastoVerDocumento()" style="background:#f0f4ff;border:1px solid #BFDBFE;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;color:#185FA5;display:flex;align-items:center;gap:5px;" title="Ver el documento original adjunto a este gasto">
             <span>📄</span> Ver documento
           </button>
         </div>
@@ -1238,8 +1238,8 @@
       </div>
       <div id="gasto-ia-confianza" style="font-size:11px;color:#888;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-success" onclick="confirmarGasto()">✓ Confirmar y guardar</button>
-        <button class="btn btn-sm" onclick="cancelarGasto()">Cancelar</button>
+        <button class="btn btn-success" onclick="confirmarGasto()" title="Guardar el gasto en el sistema (quedará pendiente de aprobación)">✓ Confirmar y guardar</button>
+        <button class="btn btn-sm" onclick="cancelarGasto()" title="Cancelar sin guardar el gasto">Cancelar</button>
       </div>
     </div>
     <div id="ej-gastos-content"><div class="loading">Cargando gastos...</div></div>
@@ -1249,7 +1249,7 @@
   <div id="ej-tab-certificaciones" style="display:none;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
       <div style="font-size:13px;color:#888;">Certificación final de obra — liquidación económica con el cliente</div>
-      <button class="btn btn-primary btn-sm" id="btn-nueva-cert" onclick="mostrarFormCertificacion()" style="display:none;">+ Nueva certificación</button>
+      <button class="btn btn-primary btn-sm" id="btn-nueva-cert" onclick="mostrarFormCertificacion()" style="display:none;" title="Crear una nueva certificación económica para este proyecto">+ Nueva certificación</button>
     </div>
     <!-- Formulario nueva certificación -->
     <div id="ej-form-cert" style="display:none;background:#f9f9f6;border:1px solid #ddd;border-radius:10px;padding:1.25rem;margin-bottom:1rem;">
@@ -1292,8 +1292,8 @@
         <textarea id="cert-notas" placeholder="Variaciones respecto al alcance inicial, trabajos adicionales, etc..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:60px;resize:vertical;font-family:inherit;"></textarea>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button class="btn" onclick="document.getElementById('ej-form-cert').style.display='none'">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarCertificacion()">Guardar certificación</button>
+        <button class="btn" onclick="document.getElementById('ej-form-cert').style.display='none'" title="Cancelar sin guardar la certificación">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarCertificacion()" title="Guardar la certificación en el sistema">Guardar certificación</button>
       </div>
     </div>
     <div id="ej-certs-content"><div class="loading">Cargando certificaciones...</div></div>
@@ -1304,7 +1304,7 @@
 <div id="panel-adjudicado" class="panel">
   <div class="topbar">
     <h1 id="adj-title">Proyecto adjudicado</h1>
-    <button class="btn btn-back" onclick="volverDesdeAdjudicado()">Volver</button>
+    <button class="btn btn-back" onclick="volverDesdeAdjudicado()" title="Volver al listado de proyectos adjudicados">Volver</button>
   </div>
 
   <!-- INFO PROYECTO -->
@@ -1351,12 +1351,12 @@
           </div>
           <div id="adj-current-manager" style="display:none;padding:10px;background:#f9f9f6;border-radius:6px;border:1px solid #e5e5e0;font-size:12px;"></div>
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-success" style="flex:1;" onclick="asignarJefeObra()">Asignar y pasar a Pendiente lanzamiento</button>
+            <button class="btn btn-success" style="flex:1;" onclick="asignarJefeObra()" title="Asignar el Jefe/a de Obra seleccionado/a y pasar el proyecto a Pendiente de lanzamiento">Asignar y pasar a Pendiente lanzamiento</button>
           </div>
           <div id="adj-reasignar-area" style="display:none;border-top:1px solid #f0f0ea;padding-top:12px;">
             <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;">Cambiar Jefe/a de Obra</div>
             <textarea id="adj-change-reason" placeholder="Motivo del cambio (enfermedad, disponibilidad...)" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:60px;resize:vertical;font-family:inherit;margin-bottom:8px;"></textarea>
-            <button class="btn btn-sm" style="border-color:#EF9F27;color:#854F0B;background:#FEF6EE;" onclick="cambiarJefeObra()">Confirmar cambio de Jefe/a de Obra</button>
+            <button class="btn btn-sm" style="border-color:#EF9F27;color:#854F0B;background:#FEF6EE;" onclick="cambiarJefeObra()" title="Confirmar el cambio de Jefe/a de Obra asignado/a a este proyecto">Confirmar cambio de Jefe/a de Obra</button>
           </div>
         </div>
       </div>
@@ -1374,7 +1374,7 @@
             <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="adj-req-financiero"> Confirmacion financiera recibida</label>
             <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="adj-req-subcontratas"> Subcontratas confirmadas</label>
           </div>
-          <button class="btn btn-primary" onclick="confirmarInicioObra()">Confirmar inicio de obra</button>
+          <button class="btn btn-primary" onclick="confirmarInicioObra()" title="Confirmar que todos los requisitos están listos e iniciar la obra. El proyecto pasará a estado En ejecución">Confirmar inicio de obra</button>
         </div>
       </div>
 
@@ -1400,7 +1400,7 @@
 <div id="panel-oferta-enviada" class="panel">
   <div class="topbar">
     <h1 id="oe-title">Oferta enviada</h1>
-    <button class="btn btn-back" onclick="volverDesdeOfertaEnviada()">Volver</button>
+    <button class="btn btn-back" onclick="volverDesdeOfertaEnviada()" title="Volver al listado de proyectos en oferta enviada">Volver</button>
   </div>
 
   <!-- INFO PROYECTO -->
@@ -1462,7 +1462,7 @@
             <label style="font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.03em;">Notas</label>
             <textarea id="oe-award-notes" placeholder="Condiciónes especiales, plazos acordados..." style="width:100%;padding:7px 10px;border:1px solid #C0DD97;border-radius:6px;font-size:12px;min-height:70px;resize:vertical;font-family:inherit;"></textarea>
           </div>
-          <button class="btn btn-success" onclick="registrarAdjudicación()">Confirmar adjudicación y pasar a Adjudicado </button>
+          <button class="btn btn-success" onclick="registrarAdjudicación()" title="El cliente ha aceptado la oferta. Registrar la adjudicación y avanzar el proyecto">Confirmar adjudicación y pasar a Adjudicado </button>
         </div>
       </div>
 
@@ -1478,7 +1478,7 @@
               <label style="font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.03em;">Motivo del rechazo</label>
               <textarea id="oe-reject-reason" placeholder="Precio, plazos, cambio de proveedor..." style="width:100%;padding:7px 10px;border:1px solid #F7C1C1;border-radius:6px;font-size:12px;min-height:70px;resize:vertical;font-family:inherit;"></textarea>
             </div>
-            <button class="btn btn-danger btn-sm" onclick="registrarRechazo()">Registrar como rechazado</button>
+            <button class="btn btn-danger btn-sm" onclick="registrarRechazo()" title="El cliente ha rechazado la oferta. El proyecto pasará a estado Cancelado">Registrar como rechazado</button>
           </div>
         </div>
 
@@ -1492,7 +1492,7 @@
               <label style="font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.03em;">Notas de negociación</label>
               <textarea id="oe-negoc-notes" placeholder="Qué pide el cliente, en qué punto estamos..." style="width:100%;padding:7px 10px;border:1px solid #FAC775;border-radius:6px;font-size:12px;min-height:60px;resize:vertical;font-family:inherit;"></textarea>
             </div>
-            <button class="btn btn-sm" style="border-color:#FAC775;color:#854F0B;background:#FEF6EE;" onclick="registrarNegociación()">Marcar en negociación</button>
+            <button class="btn btn-sm" style="border-color:#FAC775;color:#854F0B;background:#FEF6EE;" onclick="registrarNegociación()" title="El cliente ha pedido cambios o contraoferta. Marcar el proyecto en negociación">Marcar en negociación</button>
           </div>
         </div>
       </div>
@@ -1510,7 +1510,7 @@
         <div class="form-field"><label>Empresa competidora</label><input type="text" id="oe-comp-name" placeholder="Nombre de la empresa que ganó el concurso"></div>
         <div class="form-field"><label>Importe por el que ganó (€)</label><input type="number" id="oe-comp-amount" placeholder="0.00"></div>
         <div class="form-field"><label>Notas sobre el competidor</label><textarea id="oe-comp-notes" placeholder="Por qué ganaron, qué diferencia había en el precio, referencias..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:90px;resize:vertical;font-family:inherit;"></textarea></div>
-        <button class="btn btn-primary" onclick="guardarDatosCompetencia()">Guardar datos de competencia</button>
+        <button class="btn btn-primary" onclick="guardarDatosCompetencia()" title="Guardar los datos del competidor que ganó este proyecto para análisis estratégico">Guardar datos de competencia</button>
       </div>
     </div>
   </div>
@@ -1525,7 +1525,7 @@
 <div id="panel-oferta-curso" class="panel">
   <div class="topbar">
     <h1 id="oc-title">Oferta en curso</h1>
-    <button class="btn btn-back" onclick="volverDesdeOfertaCurso()">Volver</button>
+    <button class="btn btn-back" onclick="volverDesdeOfertaCurso()" title="Volver al listado de proyectos en oferta en curso">Volver</button>
   </div>
 
   <!-- INFO PROYECTO -->
@@ -1545,7 +1545,7 @@
       <div class="proj-tab" onclick="showOcTab('ofertas',this)">B. Ofertas recibidas</div>
       <div class="proj-tab" onclick="showOcTab('montaje',this)">C. Montaje oferta al cliente</div>
     </div>
-    <button class="btn btn-sm" onclick="mostrarAnalisisDocumentalOC()" style="font-size:11px;white-space:nowrap;color:#185FA5;border-color:#185FA5;">📋 Análisis documental</button>
+    <button class="btn btn-sm" onclick="mostrarAnalisisDocumentalOC()" style="font-size:11px;white-space:nowrap;color:#185FA5;border-color:#185FA5;" title="Consultar el análisis documental IA realizado en la fase de análisis">📋 Análisis documental</button>
   </div>
   <div id="oc-analisis-documental-panel" style="display:none;margin-bottom:1.5rem;"></div>
 
@@ -1576,7 +1576,7 @@
         <div class="card" style="text-align:center;border:2px solid #C0DD97;">
           <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#1A6B3C;">✔ Dept. Técnico</div>
           <div style="font-size:11px;color:#555;margin-bottom:8px;">Aprobación requerida</div>
-          <div id="aprov-tecnico-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('tecnico')">Aprobar márgenes</button></div>
+          <div id="aprov-tecnico-status"><button class="btn btn-success btn-sm" onclick="aprobarMargenes('tecnico')" title="Aprobar los márgenes de la oferta como Departamento Técnico">Aprobar márgenes</button></div>
         </div>
         <div class="card" style="text-align:center;background:#f9f9f6;">
           <div style="font-size:12px;font-weight:500;margin-bottom:8px;color:#888;">Dept. Comercial</div>
@@ -1595,7 +1595,7 @@
           <div style="font-size:12px;color:#3B6D11;margin-bottom:1rem;">Comercial y Dirección han sido notificados. La oferta está lista para enviar al cliente.</div>
           <textarea id="oc-email-cliente" style="width:100%;padding:10px;border:1px solid #C0DD97;border-radius:6px;font-size:12px;min-height:120px;resize:vertical;font-family:inherit;background:white;margin-bottom:10px;"></textarea>
           <div style="display:flex;gap:8px;justify-content:flex-end;">
-            <button class="btn btn-success" onclick="enviarOfertaCliente()">Enviar oferta al cliente y cerrar fase </button>
+            <button class="btn btn-success" onclick="enviarOfertaCliente()" title="Enviar la oferta al cliente y avanzar el proyecto a estado Oferta enviada">Enviar oferta al cliente y cerrar fase </button>
           </div>
         </div>
       </div>
@@ -1607,7 +1607,7 @@
 <div id="panel-analisis" class="panel">
   <div class="topbar">
     <h1 id="análisis-title">Proyecto en análisis</h1>
-    <button class="btn btn-back" onclick="volverDesdeAnálisis()">Volver</button>
+    <button class="btn btn-back" onclick="volverDesdeAnálisis()" title="Volver al listado de proyectos en análisis">Volver</button>
   </div>
 
   <!-- INFO + EMAIL ENVIADO -->
@@ -1658,7 +1658,7 @@
   <div class="card" style="margin-bottom:1rem;">
     <div class="card-header">
       <div class="card-title">Informe técnico de análisis</div>
-      <button class="btn btn-sm btn-primary" onclick="guardarInformeTécnico()">Guardar informe</button>
+      <button class="btn btn-sm btn-primary" onclick="guardarInformeTécnico()" title="Guardar las observaciones del informe técnico de análisis">Guardar informe</button>
     </div>
     <textarea id="an-tech-notes" placeholder="Escribe aquí las observaciones técnicas, puntualizaciones y detalles relevantes para el futuro de este proyecto..."
       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:140px;resize:vertical;font-family:inherit;line-height:1.6;color:#1a1a1a;"></textarea>
@@ -1675,9 +1675,9 @@
         style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:70px;resize:vertical;font-family:inherit;"></textarea>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-danger" onclick="accionAnálisis('cancelled')">Cancelar proyecto</button>
-      <button class="btn" style="border-color:#EF9F27;color:#854F0B;background:#FAEEDA;" onclick="accionAnálisis('info_requested')">Solicitar aclaraciones al cliente</button>
-      <button class="btn btn-success" onclick="accionAnálisis('oferta_en_curso')" style="margin-left:auto;">Confirmar y pasar a Oferta en curso </button>
+      <button class="btn btn-danger" onclick="accionAnálisis('cancelled')" title="El proyecto no es viable. Se cancelará y quedará archivado">Cancelar proyecto</button>
+      <button class="btn" style="border-color:#EF9F27;color:#854F0B;background:#FAEEDA;" onclick="accionAnálisis('info_requested')" title="La documentación es insuficiente. El proyecto queda en espera hasta recibir más información del cliente">Solicitar aclaraciones al cliente</button>
+      <button class="btn btn-success" onclick="accionAnálisis('oferta_en_curso')" style="margin-left:auto;" title="El análisis está completo. Avanzar el proyecto a la fase de Oferta en curso">Confirmar y pasar a Oferta en curso </button>
     </div>
   </div>
 </div>
@@ -1686,7 +1686,7 @@
 <div id="panel-evaluacion" class="panel">
   <div class="topbar">
     <h1 id="eval-title">Evaluación de proyecto</h1>
-    <button class="btn btn-back" onclick="volverDesdeEvaluación()">Volver</button>
+    <button class="btn btn-back" onclick="volverDesdeEvaluación()" title="Volver al listado de solicitudes recibidas">Volver</button>
   </div>
 
   <!-- INFO PROYECTO -->
@@ -1722,8 +1722,8 @@
         <textarea id="eval-reason-tecnico" placeholder="Observaciones técnicas (obligatorio si rechaza)..."
           style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-danger btn-sm" style="flex:1;" onclick="registrarEvaluación('tecnico','rejected')">Rechazar</button>
-          <button class="btn btn-success btn-sm" style="flex:1;" onclick="registrarEvaluación('tecnico','approved')">Aprobar</button>
+          <button class="btn btn-danger btn-sm" style="flex:1;" onclick="registrarEvaluación('tecnico','rejected')" title="Rechazar el proyecto. Si eres el Técnico, el proyecto quedará cancelado">Rechazar</button>
+          <button class="btn btn-success btn-sm" style="flex:1;" onclick="registrarEvaluación('tecnico','approved')" title="Aprobar el proyecto. Si eres el Técnico, avanzará automáticamente a En análisis">Aprobar</button>
         </div>
       </div>
     </div>
@@ -1742,7 +1742,7 @@
         <textarea id="eval-reason-comercial" placeholder="Observaciones comerciales (informativo)..."
           style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('comercial','approved')">Guardar observaciones</button>
+          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('comercial','approved')" title="Guardar tu valoración comercial del proyecto (informativa, no vinculante)">Guardar observaciones</button>
         </div>
       </div>
     </div>
@@ -1761,7 +1761,7 @@
         <textarea id="eval-reason-direccion" placeholder="Observaciones de dirección (informativo)..."
           style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:80px;resize:vertical;margin-bottom:8px;font-family:inherit;"></textarea>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('direccion','approved')">Guardar observaciones</button>
+          <button class="btn btn-sm" style="flex:1;background:#f5f5f0;border:1px solid #ddd;color:#555;" onclick="registrarEvaluación('direccion','approved')" title="Guardar tu valoración ejecutiva del proyecto (informativa, no vinculante)">Guardar observaciones</button>
         </div>
       </div>
     </div>
@@ -1776,7 +1776,7 @@
 
 <!-- PANEL NUEVO PROYECTO -->
 <div id="panel-nuevo-proyecto" class="panel">
-  <div class="topbar"><h1>Nuevo proyecto</h1><button class="btn btn-back" onclick="cerrarNuevoProyecto()">Cancelar</button></div>
+  <div class="topbar"><h1>Nuevo proyecto</h1><button class="btn btn-back" onclick="cerrarNuevoProyecto()" title="Cancelar el registro del nuevo proyecto y volver al dashboard">Cancelar</button></div>
   <div style="display:flex;margin-bottom:1.5rem;background:white;border:1px solid #e5e5e0;border-radius:10px;padding:1rem 1.5rem;align-items:center;">
     <div style="flex:1;text-align:center;"><div id="np-dot-1" style="width:28px;height:28px;border-radius:50%;background:#185FA5;color:white;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">1</div><div id="np-lbl-1" style="font-size:11px;color:#185FA5;font-weight:500;">Cliente</div></div>
     <div style="height:2px;background:#e5e5e0;flex:0.5;"></div>
@@ -1788,7 +1788,7 @@
   </div>
   <div id="np-paso-1"><div class="card" style="max-width:700px;">
     <div class="card-header"><div class="card-title">Paso 1 - Cliente</div></div>
-    <div style="display:flex;gap:8px;margin-bottom:1.5rem;"><button id="np-btn-existente" class="btn btn-primary" onclick="npSetClienteTipo('existente')">Cliente registrado</button><button id="np-btn-nuevo" class="btn" onclick="npSetClienteTipo('nuevo')">Nuevo cliente</button></div>
+    <div style="display:flex;gap:8px;margin-bottom:1.5rem;"><button id="np-btn-existente" class="btn btn-primary" onclick="npSetClienteTipo('existente')" title="Seleccionar un cliente ya registrado en el sistema">Cliente registrado</button><button id="np-btn-nuevo" class="btn" onclick="npSetClienteTipo('nuevo')" title="Crear un nuevo cliente en el momento de registrar el proyecto">Nuevo cliente</button></div>
     <div id="np-cliente-existente">
       <div class="form-field" style="margin-bottom:1rem;"><label>Buscar cliente</label><input type="text" id="np-buscar-cliente" placeholder="Nombre o acronimo..." style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:7px;font-size:13px;" oninput="npFiltrarClientes(this.value)"></div>
       <div id="np-lista-clientes" style="border:1px solid #e5e5e0;border-radius:8px;max-height:220px;overflow-y:auto;"></div>
@@ -1802,7 +1802,7 @@
       <div class="form-field"><label>Telefono</label><input type="text" id="np-new-telefono" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
       <div class="form-field"><label>Tipo cliente</label><input type="text" id="np-new-tipo" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
     </div></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:1.5rem;"><button class="btn btn-primary" onclick="npSiguiente(1)">Siguiente</button></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1.5rem;"><button class="btn btn-primary" onclick="npSiguiente(1)" title="Continuar al siguiente paso">Siguiente</button></div>
   </div></div>
   <div id="np-paso-2" style="display:none;"><div class="card" style="max-width:700px;">
     <div class="card-header"><div class="card-title">Paso 2 - Datos del proyecto</div></div>
@@ -1813,7 +1813,7 @@
       <div class="form-field"><label>Texto de la peticion</label><textarea id="np-proj-texto" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:140px;resize:vertical;font-family:inherit;"></textarea></div>
       <div class="form-field"><label>Observaciones internas</label><textarea id="np-proj-notas" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-height:80px;resize:vertical;font-family:inherit;"></textarea></div>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(2)">Anterior</button><button class="btn btn-primary" onclick="npSiguiente(2)">Siguiente</button></div>
+    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(2)" title="Volver al paso anterior">Anterior</button><button class="btn btn-primary" onclick="npSiguiente(2)" title="Continuar al siguiente paso">Siguiente</button></div>
   </div></div>
   <div id="np-paso-3" style="display:none;"><div class="card" style="max-width:700px;">
     <div class="card-header"><div class="card-title">Paso 3 - Archivos adjuntos</div></div>
@@ -1832,7 +1832,7 @@
     <div style="display:flex;gap:6px;margin-bottom:4px;">
       <input id="np-link-url" type="url" placeholder="https://wetransfer.com/... · drive.google.com · dropbox.com · onedrive..."
         style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px;outline:none;" />
-      <button onclick="npAgregarEnlace()" style="background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;">+ Enlace</button>
+      <button onclick="npAgregarEnlace()" style="background:#185FA5;color:white;border:none;padding:8px 14px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;" title="Guardar un enlace externo (WeTransfer, Drive, Dropbox, OneDrive) con la documentación del proyecto">+ Enlace</button>
     </div>
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:1rem;">
       <span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">WeTransfer</span>
@@ -1842,14 +1842,14 @@
       <span style="font-size:10px;color:#aaa;padding:2px 6px;background:#f5f5f0;border-radius:4px;">SharePoint</span>
     </div>
     <div id="np-archivos-lista"></div>
-    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(3)">Anterior</button><button class="btn btn-primary" onclick="npSiguiente(3)">Siguiente</button></div>
+    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(3)" title="Volver al paso anterior">Anterior</button><button class="btn btn-primary" onclick="npSiguiente(3)" title="Continuar al siguiente paso">Siguiente</button></div>
   </div></div>
   <div id="np-paso-4" style="display:none;"><div class="card" style="max-width:700px;">
     <div class="card-header"><div class="card-title">Paso 4 - Confirmar</div></div>
     <div id="np-resumen"></div>
     <div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:8px;padding:12px;margin-top:1rem;font-size:12px;color:#27500A;">El proyecto quedara en estado Solicitado con codigo de expediente automatico.</div>
     <div id="np-guardando" style="display:none;text-align:center;padding:1rem;font-size:13px;color:#185FA5;">Guardando...</div>
-    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(4)">Anterior</button><button class="btn btn-success" id="np-btn-guardar" onclick="npGuardar()">Registrar proyecto</button></div>
+    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;"><button class="btn" onclick="npAnterior(4)" title="Volver al paso anterior">Anterior</button><button class="btn btn-success" id="np-btn-guardar" onclick="npGuardar()" title="Registrar el proyecto en el sistema. Se le asignará un código de expediente automático">Registrar proyecto</button></div>
   </div></div>
 </div>
 
@@ -1873,8 +1873,8 @@
       <textarea id="modal-hito-notas" placeholder="Notas de interés para el equipo técnico y dirección..." style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;min-height:60px;resize:vertical;font-family:inherit;"></textarea>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" onclick="cerrarModalHito()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarModificacionHito()">Guardar cambios</button>
+      <button class="btn" onclick="cerrarModalHito()" title="Cancelar sin guardar los cambios">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarModificacionHito()" title="Guardar los cambios en la fecha del hito (se registrará el motivo del cambio)">Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -1885,8 +1885,8 @@
   <div class="topbar">
     <h1>Histórico de Proyectos</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-sm" onclick="imprimirInforme('informes-proyectos-content')">🖨️ Imprimir / PDF</button>
-      <button class="btn-refresh" onclick="cargarInformeProyectos()">Actualizar</button>
+      <button class="btn btn-sm" onclick="imprimirInforme('informes-proyectos-content')" title="Imprimir o exportar a PDF el informe de proyectos">🖨️ Imprimir / PDF</button>
+      <button class="btn-refresh" onclick="cargarInformeProyectos()" title="Recargar el informe con los datos más recientes">Actualizar</button>
     </div>
   </div>
   <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
@@ -1906,7 +1906,7 @@
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
     <div id="inf-proy-count" style="font-size:12px;color:#888;"></div>
-    <button class="btn btn-sm" onclick="limpiarFiltrosProyectos()" style="font-size:11px;">✕ Limpiar filtros</button>
+    <button class="btn btn-sm" onclick="limpiarFiltrosProyectos()" style="font-size:11px;" title="Quitar todos los filtros aplicados y mostrar todos los proyectos">✕ Limpiar filtros</button>
   </div>
   <div id="informes-proyectos-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -1916,8 +1916,8 @@
   <div class="topbar">
     <h1>Informe de Gastos</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-sm" onclick="imprimirInforme('informes-gastos-content')">🖨️ Imprimir / PDF</button>
-      <button class="btn-refresh" onclick="cargarInformeGastos()">Actualizar</button>
+      <button class="btn btn-sm" onclick="imprimirInforme('informes-gastos-content')" title="Imprimir o exportar a PDF el informe de gastos">🖨️ Imprimir / PDF</button>
+      <button class="btn-refresh" onclick="cargarInformeGastos()" title="Recargar el informe de gastos">Actualizar</button>
     </div>
   </div>
   <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
@@ -1939,8 +1939,8 @@
   <div class="topbar">
     <h1>Desviaciones de Obra</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-sm" onclick="imprimirInforme('informes-desviaciones-content')">🖨️ Imprimir / PDF</button>
-      <button class="btn-refresh" onclick="cargarInformeDesviaciones()">Actualizar</button>
+      <button class="btn btn-sm" onclick="imprimirInforme('informes-desviaciones-content')" title="Imprimir o exportar a PDF el informe de desviaciones de obra">🖨️ Imprimir / PDF</button>
+      <button class="btn-refresh" onclick="cargarInformeDesviaciones()" title="Recargar el informe de desviaciones">Actualizar</button>
     </div>
   </div>
   <div style="display:flex;gap:10px;margin-bottom:1rem;">
@@ -1955,7 +1955,7 @@
 <div id="panel-informes-analisis-proveedores" class="panel">
   <div class="topbar">
     <h1>Análisis de Proveedores</h1>
-    <button class="btn btn-sm" onclick="cargarInformeAnalisisProveedores()">🔄 Actualizar</button>
+    <button class="btn btn-sm" onclick="cargarInformeAnalisisProveedores()" title="Recargar el informe de análisis de proveedores">🔄 Actualizar</button>
   </div>
   <div class="content" id="panel-analisis-proveedores-content">
     <div class="loading">Cargando análisis...</div>
@@ -1966,8 +1966,8 @@
   <div class="topbar">
     <h1>Informes técnicos de análisis de Proyectos</h1>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-sm" onclick="imprimirInformeTecnicoAnalisis()">🖨️ Imprimir / PDF</button>
-      <button class="btn-refresh" onclick="cargarInformeTecnicoAnalisis()">Actualizar</button>
+      <button class="btn btn-sm" onclick="imprimirInformeTecnicoAnalisis()" title="Imprimir o exportar a PDF los informes técnicos de análisis">🖨️ Imprimir / PDF</button>
+      <button class="btn-refresh" onclick="cargarInformeTecnicoAnalisis()" title="Recargar los informes técnicos de análisis">Actualizar</button>
     </div>
   </div>
   <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
@@ -1977,7 +1977,7 @@
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
     <div id="inf-ta-count" style="font-size:12px;color:#888;"></div>
-    <button class="btn btn-sm" onclick="limpiarFiltrosTecnicoAnalisis()" style="font-size:11px;">✕ Limpiar filtros</button>
+    <button class="btn btn-sm" onclick="limpiarFiltrosTecnicoAnalisis()" style="font-size:11px;" title="Quitar todos los filtros y mostrar todos los informes">✕ Limpiar filtros</button>
   </div>
   <div id="informes-ta-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -2021,8 +2021,8 @@
     </div>
 
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn" onclick="cerrarModalOferta()">Cancelar</button>
-      <button class="btn btn-primary" onclick="enviarPeticionOferta()">📧 Confirmar y registrar petición</button>
+      <button class="btn" onclick="cerrarModalOferta()" title="Cancelar sin registrar la petición de oferta">Cancelar</button>
+      <button class="btn btn-primary" onclick="enviarPeticionOferta()" title="Registrar la petición de oferta como enviada al proveedor">📧 Confirmar y registrar petición</button>
     </div>
   </div>
 </div>
@@ -2151,8 +2151,8 @@ async function seleccionarJefeObraParaVista(btn) {
     '<div style="font-size:15px;font-weight:600;margin-bottom:1rem;color:#1a1a1a;">Selecciona Jefe/a de Obra</div>' +
     '<select id="modal-jefe-select" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:14px;margin-bottom:1rem;"><option value="">-- Seleccionar --</option>'+opts+'</select>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-    '<button id="modal-jefe-cancel" style="padding:7px 16px;border:1px solid #ddd;border-radius:7px;background:#f5f5f0;cursor:pointer;font-size:13px;">Cancelar</button>' +
-    '<button id="modal-jefe-confirm" style="padding:7px 16px;border:none;border-radius:7px;background:#0F6E56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Ver vista</button>' +
+    '<button id="modal-jefe-cancel" style="padding:7px 16px;border:1px solid #ddd;border-radius:7px;background:#f5f5f0;cursor:pointer;font-size:13px;" title="Cancelar sin cambiar la vista">Cancelar</button>' +
+    '<button id="modal-jefe-confirm" style="padding:7px 16px;border:none;border-radius:7px;background:#0F6E56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;" title="Ver la aplicación desde la perspectiva de este Jefe de Obra">Ver vista</button>' +
     '</div></div>';
   document.body.appendChild(modal);
   document.getElementById('modal-jefe-cancel').onclick = function(){ modal.remove(); };
@@ -2693,7 +2693,7 @@ function renderSupervision() {
     }).join('')+
     '</table><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0ea;">' +
     '<button class="btn btn-danger btn-sm" onclick="alert(\'Gremio rechazado.\')">Rechazar</button>' +
-    '<button class="btn btn-success btn-sm" id="btn-validar" onclick="validarGremio()">Validar gremio</button></div></div>';
+    '<button class="btn btn-success btn-sm" id="btn-validar" onclick="validarGremio()" title="Validar las partidas y proveedores de este gremio">Validar gremio</button></div></div>';
 }
 
 function showProjTab(tab, el) {
@@ -4182,9 +4182,9 @@ async function cargarPeticionesGremios(peticionesExistentes) {
         (yaEnviado ?
           '<div style="background:#EAF3DE;border-radius:6px;padding:8px 12px;font-size:12px;color:#3B6D11;">Petición enviada el '+(petExistente.sent_at?new Date(petExistente.sent_at).toLocaleDateString('es-ES'):'-')+'</div>' :
           '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;">' +
-          '<button class="btn btn-sm" onclick="descargarExcelPeticion(\'' + gremio + '\')" style="color:#1A6B3C;border-color:#1A6B3C;">\u2b07\ufe0f Excel petición</button>' +
-          '<button class="btn btn-sm" onclick="guardarBorradorGremio(this)">Guardar borrador</button>' +
-          '<button class="btn btn-primary btn-sm" onclick="enviarPeticionGremio(this)">Enviar petición de oferta</button></div>' 
+          '<button class="btn btn-sm" onclick="descargarExcelPeticion(\'' + gremio + '\')" style="color:#1A6B3C;border-color:#1A6B3C;" title="Descargar el Excel con las partidas para enviar al proveedor">⬇️ Excel petición</button>' +
+          '<button class="btn btn-sm" onclick="guardarBorradorGremio(this)" title="Guardar el email como borrador sin registrarlo como enviado">Guardar borrador</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="enviarPeticionGremio(this)" title="Registrar la petición de oferta como enviada a este proveedor">Enviar petición de oferta</button></div>' 
         ) +
         '</div>';
     }).join('');
@@ -4409,7 +4409,7 @@ async function cargarOfertasRecibidas() {
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span class="badge b-default">'+(MAPEO_GREMIOS[gremio]?MAPEO_GREMIOS[gremio].gremio:gremio)+'</span>' +
         '<span style="font-size:12px;color:#888;">'+respondidos+' de '+enviados+' ofertas recibidas</span>' +
         adjudicadoBadge + '</div>' +
-        (respondidos >= 2 ? '<button class="btn btn-primary btn-sm" onclick="verComparativoGremio(this)">Ver comparativo IA</button>' : '') +
+        (respondidos >= 2 ? '<button class="btn btn-primary btn-sm" onclick="verComparativoGremio(this)" title="Comparar las ofertas recibidas con IA y obtener una recomendación de proveedor">Ver comparativo IA</button>' : '') +
         '</div>' +
         '<table class="data-table"><thead><tr><th>Proveedor</th><th>Estado</th><th>Fecha límite</th><th>Acción</th></tr></thead>' +
         '<tbody>'+filas+'</tbody></table>' +
@@ -4472,18 +4472,18 @@ async function verOfertaRecibida(reqId) {
       (pdfUrl ?
         '<div style="display:flex;align-items:center;gap:8px;">' +
         '<a href="' + pdfUrl + '" target="_blank" style="font-size:12px;color:#185FA5;">📄 Ver PDF adjunto</a>' +
-        '<button onclick="eliminarPdfOferta(' + r.id + ')" style="background:none;border:none;color:#c00;font-size:11px;cursor:pointer;">Eliminar</button>' +
+        '<button onclick="eliminarPdfOferta(' + r.id + ')" style="background:none;border:none;color:#c00;font-size:11px;cursor:pointer;" title="Eliminar el PDF de esta oferta">Eliminar</button>' +
         '</div>' :
         '<div style="display:flex;align-items:center;gap:8px;">' +
         '<input type="file" id="oferta-pdf-input" accept=".pdf" style="font-size:12px;">' +
-        '<button class="btn btn-sm" onclick="subirPdfOferta(' + r.id + ')" id="btn-subir-pdf">Subir PDF</button>' +
+        '<button class="btn btn-sm" onclick="subirPdfOferta(' + r.id + ')" id="btn-subir-pdf" title="Subir el PDF de la oferta recibida del proveedor a Drive">Subir PDF</button>' +
         '</div>'
       ) +
       '</div>' +
 
       '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;">' +
       '<button class="btn" onclick="this.closest(\'[data-modal]\').remove()">Cerrar</button>' +
-      '<button class="btn" onclick="guardarNotasOferta(' + r.id + ',' + reqId + ')">Guardar notas</button>' +
+      '<button class="btn" onclick="guardarNotasOferta(' + r.id + ',' + reqId + ')" title="Guardar las notas sobre esta oferta">Guardar notas</button>' +
       '<input type="file" id="input-excel-proveedor-' + r.id + '" accept=".xlsx,.xls,.csv" style="display:none;" onchange="cargarPreciosDesdeExcel(this,' + r.id + ',\''+r.specialty_code+'\')">' +
       '<button class="btn" onclick="document.getElementById(\'input-excel-proveedor-' + r.id + '\').click()" title="Cargar precios partida a partida desde el Excel del proveedor" style="color:#185FA5;border-color:#185FA5;">\ud83d\udcc2 Cargar precios Excel</button>' +
       (seleccionado ? '<button class="btn" style="color:#c00;border-color:#c00;" onclick="deseleccionarOferta(' + r.id + ',' + reqId + ')">Quitar selección</button>' : '<button class="btn btn-primary" onclick="seleccionarOferta(' + r.id + ',' + reqId + ')">Seleccionar esta oferta</button>') +
@@ -4710,7 +4710,7 @@ async function registrarOfertaManual(reqId, specialtyCode) {
     '</div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0ea;padding-top:1rem;margin-top:1.25rem;">' +
     '<button class="btn" onclick="this.closest(\'[data-modal-manual]\').remove()">Cancelar</button>' +
-    '<button class="btn btn-primary" id="btn-guardar-manual" onclick="guardarOfertaManual('+reqId+',\''+specialtyCode+'\')">Guardar oferta</button>' +
+    '<button class="btn btn-primary" id="btn-guardar-manual" onclick="guardarOfertaManual('+reqId+',\''+specialtyCode+'\')" title="Guardar la oferta introducida manualmente en el sistema">Guardar oferta</button>' +
     '</div></div>';
 
   overlay.appendChild(box);
@@ -5400,20 +5400,20 @@ function _renderMontajeHeader(margenGlobal) {
     'onchange="aplicarMargenGlobal(this.value)" ' +
     'style="width:65px;padding:4px 8px;border:1px solid #185FA5;border-radius:6px;font-size:13px;text-align:center;font-weight:600;"> %' +
     '<span style="font-size:11px;color:#888;">Aplica a todos los gremios y partidas sin margen espec\u00edfico</span>' +
-    '<button class="btn btn-sm" onclick="aplicarMargenGlobal(document.getElementById(\'margen-global-input\').value)" style="margin-left:auto;">Aplicar a todo</button>' +
+    '<button class="btn btn-sm" onclick="aplicarMargenGlobal(document.getElementById(\'margen-global-input\').value)" style="margin-left:auto;" title="Aplicar el mismo porcentaje de margen a todas las partidas">Aplicar a todo</button>' +
     '</div>';
 }
 
 function _renderMontajeFooter(numPendientes) {
   return '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap;align-items:center;">' +
-    '<button class="btn" onclick="cargarMontajeOferta()">Actualizar</button>' +
+    '<button class="btn" onclick="cargarMontajeOferta()" title="Recargar la tabla de partidas y márgenes">Actualizar</button>' +
     '<span style="font-size:10px;color:#888;padding:0 4px;">Interno:</span>' +
     '<button class="btn" onclick="guardarVersionInterna()" style="color:#1A6B3C;border-color:#1A6B3C;" title="Excel con m\u00e1rgenes \u2192 Drive">\ud83d\udcc5 Guardar versi\u00f3n interna</button>' +
     '<span style="font-size:10px;color:#888;padding:0 4px;">Cliente:</span>' +
     '<button class="btn" onclick="descargarOfertaClientePDF()" style="color:#185FA5;border-color:#185FA5;" title="PDF sin m\u00e1rgenes para el cliente">\ud83d\udc41 Vista previa cliente</button>' +
     (numPendientes > 0 ?
-      '<button class="btn btn-primary" onclick="confirmarSometerConPendientes(' + numPendientes + ')">Someter a aprobaci\u00f3n de m\u00e1rgenes</button>' :
-      '<button class="btn btn-primary" onclick="someterAprobaci\u00f3nMargenes()">Someter a aprobaci\u00f3n de m\u00e1rgenes \u2714</button>') +
+      '<button class="btn btn-primary" onclick="confirmarSometerConPendientes(' + numPendientes + ')" title="Someter los márgenes a aprobación de los tres departamentos (hay partidas sin precio de proveedor)">Someter a aprobaci\u00f3n de m\u00e1rgenes</button>' :
+      '<button class="btn btn-primary" onclick="someterAprobaci\u00f3nMargenes()" title="Someter los márgenes a aprobación de los tres departamentos">Someter a aprobaci\u00f3n de m\u00e1rgenes \u2714</button>') +
     '</div>';
 }
 
@@ -5580,8 +5580,8 @@ async function mostrarAnalisisDocumentalOC() {
         '<div><strong style="font-size:13px;">\ud83d\udccc Análisis Documental</strong>' +
         '<span style="font-size:11px;color:#888;margin-left:8px;">Generado: ' + fecha + '</span></div>' +
         '<div style="display:flex;gap:8px;">' +
-        '<button class="btn btn-sm" onclick="ejecutarAnalisisIA(' + ocProyecto.id + ');mostrarAnalisisDocumentalOC();" style="font-size:11px;">\ud83d\udd04 Regenerar</button>' +
-        '<button class="btn btn-sm" onclick="document.getElementById(\'oc-analisis-documental-panel\').style.display=\'none\'" style="font-size:11px;">✕ Cerrar</button>' +
+        '<button class="btn btn-sm" onclick="ejecutarAnalisisIA(' + ocProyecto.id + ');mostrarAnalisisDocumentalOC();" style="font-size:11px;" title="Volver a ejecutar el análisis IA con los documentos actuales">\ud83d\udd04 Regenerar</button>' +
+        '<button class="btn btn-sm" onclick="document.getElementById(\'oc-analisis-documental-panel\').style.display=\'none\'" style="font-size:11px;" title="Cerrar el panel de análisis documental">✕ Cerrar</button>' +
         '</div></div>' +
         '<div style="font-size:12px;line-height:1.6;color:#333;white-space:pre-wrap;max-height:400px;overflow-y:auto;">' + (res.data.ai_report || '') + '</div>' +
         '</div>';
@@ -5589,7 +5589,7 @@ async function mostrarAnalisisDocumentalOC() {
       panel.innerHTML =
         '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:1.25rem;display:flex;align-items:center;justify-content:space-between;">' +
         '<div><strong>No hay análisis documental</strong><br><span style="font-size:12px;color:#888;">Genera el análisis de la documentación del proyecto.</span></div>' +
-        '<button class="btn btn-primary btn-sm" onclick="ejecutarAnalisisIA(' + ocProyecto.id + ');mostrarAnalisisDocumentalOC();">\ud83d\udd0d Analizar documentación</button>' +
+        '<button class="btn btn-primary btn-sm" onclick="ejecutarAnalisisIA(' + ocProyecto.id + ');mostrarAnalisisDocumentalOC();" title="Ejecutar el análisis IA sobre los documentos del proyecto">\ud83d\udd0d Analizar documentación</button>' +
         '</div>';
     }
   } catch(e) {
@@ -7031,7 +7031,7 @@ async function cargarHitos(projectId) {
         '<td style="padding:12px 14px;text-align:center;color:#555;">' + fmtFechaCorta(h.planned_date) + '</td>' +
         '<td style="padding:12px 14px;text-align:center;">' +
         (comp ? '<span style="color:#0F6E56;font-weight:500;">' + fmtFechaCorta(h.actual_date) + '</span>' :
-          (canEdit ? '<button class="btn btn-sm" style="font-size:11px;" onclick="marcarHitoCumplido(' + h.id + ',' + projectId + ')">Marcar cumplido</button>' : '-')) +
+          (canEdit ? '<button class="btn btn-sm" style="font-size:11px;" onclick="marcarHitoCumplido(' + h.id + ',' + projectId + ')" title="Registrar la fecha real de cumplimiento de este hito">Marcar cumplido</button>' : '-')) +
         '</td>' +
         '<td style="padding:12px 14px;text-align:center;">' +
         (dias !== null ? '<span style="font-weight:600;color:' + (dias > 0 ? '#C0392B' : '#0F6E56') + ';">' + (dias > 0 ? '+' : '') + dias + ' días</span>' : '-') +
@@ -7110,8 +7110,8 @@ async function marcarHitoCumplido(hitoId, projectId) {
     '<div style="font-size:15px;font-weight:600;margin-bottom:1rem;color:#1a1a1a;">Fecha de cumplimiento</div>' +
     '<input type="date" id="modal-fecha-hito" value="' + hoy.toISOString().split("T")[0] + '" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:14px;box-sizing:border-box;margin-bottom:1rem;">' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-    '<button id="modal-hito-cancel" style="padding:7px 16px;border:1px solid #ddd;border-radius:7px;background:#f5f5f0;cursor:pointer;font-size:13px;">Cancelar</button>' +
-    '<button id="modal-hito-confirm" style="padding:7px 16px;border:none;border-radius:7px;background:#0F6E56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Confirmar</button>' +
+    '<button id="modal-hito-cancel" style="padding:7px 16px;border:1px solid #ddd;border-radius:7px;background:#f5f5f0;cursor:pointer;font-size:13px;" title="Cancelar sin registrar la fecha">Cancelar</button>' +
+    '<button id="modal-hito-confirm" style="padding:7px 16px;border:none;border-radius:7px;background:#0F6E56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;" title="Confirmar la fecha de cumplimiento del hito">Confirmar</button>' +
     '</div></div>';
   document.body.appendChild(modal);
   document.getElementById('modal-hito-cancel').onclick = function(){ modal.remove(); };
@@ -7266,7 +7266,7 @@ async function cargarGastos(projectId) {
           '<td style="font-size:11px;">' + (g.supplier_name||'-') + '</td>' +
           '<td style="font-size:11px;">' + (g.concept||'-') + '</td>' +
           '<td style="text-align:right;font-weight:500;">' + parseFloat(g.amount).toLocaleString('es-ES',{minimumFractionDigits:2}) + ' EUR</td>' +
-          '<td>' + (g.approved ? '<span class="badge b-adjudicado">Aprobado</span>' : (currentDept === 'jefe_obra' || currentDept === 'tecnico' ? '<button class="btn btn-sm btn-success" style="padding:3px 8px;font-size:11px;" onclick="aprobarGasto(' + g.id + ',' + projectId + ')">Aprobar</button>' : '<span class="badge b-review">Pendiente</span>')) + '</td>' +
+          '<td>' + (g.approved ? '<span class="badge b-adjudicado">Aprobado</span>' : (currentDept === 'jefe_obra' || currentDept === 'tecnico' ? '<button class="btn btn-sm btn-success" style="padding:3px 8px;font-size:11px;" onclick="aprobarGasto(' + g.id + ',' + projectId + ')" title="Aprobar este gasto para que se contabilice en el estado económico">Aprobar</button>' : '<span class="badge b-review">Pendiente</span>')) + '</td>' +
           '<td>' + (g.ai_extracted ? '<span style="font-size:10px;background:#E6F1FB;color:#185FA5;padding:2px 6px;border-radius:4px;">IA</span>' : '-') + '</td>' +
           '<td>' + (g.document_url && ['jefe_obra','admin','direccion'].indexOf(currentDept) > -1 ?
             '<button onclick="verDocumentoGasto(&quot;' + g.document_url + '&quot;,&quot;' + (g.document_name||'documento') + '&quot;)" style="background:none;border:none;cursor:pointer;font-size:16px;" title="Ver documento original">📄</button>' : '') + '</td>' +
@@ -7613,8 +7613,8 @@ async function cargarPlanning(projectId) {
         '<span style="font-size:18px;">📋</span>' +
         '<div><div style="font-size:12px;font-weight:600;color:#92400e;">Planning pendiente de enviar a Dirección</div>' +
         '<div style="font-size:11px;color:#854F0B;margin-top:2px;">Crea los hitos del proyecto y envialos para que Dirección los revise</div></div>' +
-        '<button class="btn btn-primary btn-sm" style="margin-left:auto;white-space:nowrap;" onclick="enviarPlanningADirección(' + projectId + ')">Notificar Dirección</button>' +
-        '<button class="btn btn-primary btn-sm" style="font-size:11px;margin-left:6px;white-space:nowrap;" onclick="publicarPlanningJefeObra(' + projectId + ')">📋 Publicar a Jefe de Obra</button>' +
+        '<button class="btn btn-primary btn-sm" style="margin-left:auto;white-space:nowrap;" onclick="enviarPlanningADirección(' + projectId + ')" title="Notificar a Dirección que el planning está listo para revisión">Notificar Dirección</button>' +
+        '<button class="btn btn-primary btn-sm" style="font-size:11px;margin-left:6px;white-space:nowrap;" onclick="publicarPlanningJefeObra(' + projectId + ')" title="Publicar el planning al Jefe de Obra para que lo vea en su dashboard">📋 Publicar a Jefe de Obra</button>' +
         '</div>';
     } else if (planning_submitted) {
       var fechaEnvio = execRes.data.planning_submitted_at ? new Date(execRes.data.planning_submitted_at).toLocaleDateString('es-ES') : '';
@@ -7642,7 +7642,7 @@ async function cargarPlanning(projectId) {
     if (!esDireccion) {
       html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">' +
         '<div style="font-size:13px;font-weight:600;">Hitos del planning</div>' +
-        '<button class="btn btn-sm" style="background:#f0f0ea;" onclick="mostrarFormNuevoHito()">+ Añadir hito</button>' +
+        '<button class="btn btn-sm" style="background:#f0f0ea;" onclick="mostrarFormNuevoHito()" title="Añadir un nuevo hito al planning de esta obra">+ Añadir hito</button>' +
         '</div>';
     } else {
       html += '<div style="font-size:13px;font-weight:600;margin-bottom:0.75rem;">Hitos del planning</div>';
@@ -7676,7 +7676,7 @@ async function cargarPlanning(projectId) {
           '</div>' +
           (completado
             ? '<span class="badge b-adjudicado">Completado</span>'
-            : (!esDireccion ? '<button class="btn btn-sm btn-success" style="white-space:nowrap;" onclick="marcarHitoCompletado(' + m.id + ',' + projectId + ')">Marcar OK</button>' : '')
+            : (!esDireccion ? '<button class="btn btn-sm btn-success" style="white-space:nowrap;" onclick="marcarHitoCompletado(' + m.id + ',' + projectId + ')" title="Marcar este hito como completado e introducir la fecha real">Marcar OK</button>' : '')
           ) +
           '</div>';
       });
@@ -7705,7 +7705,7 @@ async function cargarPlanning(projectId) {
     // Input nuevo comentario
     html += '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
       '<input type="text" id="nuevo-comment-input" placeholder="Escribe un comentario para el planning..." style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;" onkeydown="if(event.key===&quot;Enter&quot;)enviarComentarioPlanning(' + projectId + ')">' +
-      '<button class="btn btn-primary btn-sm" onclick="enviarComentarioPlanning(' + projectId + ')">Enviar</button>' +
+      '<button class="btn btn-primary btn-sm" onclick="enviarComentarioPlanning(' + projectId + ')" title="Enviar el comentario al equipo del planning">Enviar</button>' +
       '</div>';
 
     html += '</div>'; // fin comentarios
@@ -8797,8 +8797,8 @@ async function renderPrlFichaContent() {
     html += '<div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">';
     html += '<div class="card-title">👷 Trabajadores en esta obra</div>';
     html += '<div style="display:flex;gap:8px;">';
-    html += '<button class="btn" style="font-size:12px;" onclick="abrirModalAsignarTrabajador()">+ Asignar trabajador existente</button>';
-    html += '<button class="btn btn-primary" style="font-size:12px;" onclick="abrirModalTrabajador(null)">+ Nuevo trabajador</button>';
+    html += '<button class="btn" style="font-size:12px;" onclick="abrirModalAsignarTrabajador()" title="Asignar un trabajador ya registrado en el sistema a este proyecto">+ Asignar trabajador existente</button>';
+    html += '<button class="btn btn-primary" style="font-size:12px;" onclick="abrirModalTrabajador(null)" title="Crear y añadir un nuevo trabajador a este proyecto">+ Nuevo trabajador</button>';
     html += '</div></div>';
 
     if (!workers.length) {
@@ -8895,8 +8895,8 @@ function abrirModalDocEmpresa(tipoKey, docId) {
     '<div style="margin-bottom:18px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Notas</label>' +
     '<textarea id="de-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea></div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-    '<button class="btn" onclick="document.getElementById(\'modal-prl-doc-empresa\').remove()">Cancelar</button>' +
-    '<button class="btn btn-primary" onclick="guardarDocEmpresa()">Guardar</button>' +
+    '<button class="btn" onclick="document.getElementById(\'modal-prl-doc-empresa\').remove()" title="Cancelar sin guardar">Cancelar</button>' +
+    '<button class="btn btn-primary" onclick="guardarDocEmpresa()" title="Guardar el documento de la empresa">Guardar</button>' +
     '</div></div>';
   document.body.appendChild(modal);
 
@@ -9035,8 +9035,8 @@ async function abrirModalAsignarTrabajador() {
     '<h2 style="margin:0 0 18px;font-size:16px;">Asignar trabajador existente</h2>' +
     '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">' + lista + '</div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-    '<button class="btn" onclick="document.getElementById(\'modal-prl-asignar-worker\').remove()">Cancelar</button>' +
-    (disponibles.length ? '<button class="btn btn-primary" onclick="confirmarAsignarWorkers()">Asignar</button>' : '') +
+    '<button class="btn" onclick="document.getElementById(\'modal-prl-asignar-worker\').remove()" title="Cancelar sin asignar">Cancelar</button>' +
+    (disponibles.length ? '<button class="btn btn-primary" onclick="confirmarAsignarWorkers()" title="Asignar los trabajadores seleccionados a este proyecto">Asignar</button>' : '') +
     '</div></div>';
   document.body.appendChild(modal);
 }
@@ -9123,8 +9123,8 @@ function abrirModalDocWorker(tipoKey, docId, workerId) {
     '<div style="margin-bottom:18px;"><label style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Notas</label>' +
     '<textarea id="dw-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea></div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-    '<button class="btn" onclick="document.getElementById(\'modal-prl-doc-worker\').remove()">Cancelar</button>' +
-    '<button class="btn btn-primary" onclick="guardarDocWorker()">Guardar</button>' +
+    '<button class="btn" onclick="document.getElementById(\'modal-prl-doc-worker\').remove()" title="Cancelar sin guardar">Cancelar</button>' +
+    '<button class="btn btn-primary" onclick="guardarDocWorker()" title="Guardar el documento del trabajador">Guardar</button>' +
     '</div></div>';
   document.body.appendChild(modal);
 
@@ -9739,7 +9739,7 @@ function _mostrarResumenIA(res, labelDoc) {
     '⚠️ Revisa los datos extraídos antes de dar por válido el documento. La IA puede cometer errores.' +
     '</div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
-    '<button class="btn btn-primary" onclick="document.getElementById(\'modal-prl-ia-result\').remove()">Entendido</button>' +
+    '<button class="btn btn-primary" onclick="document.getElementById(\'modal-prl-ia-result\').remove()" title="Cerrar este resultado">Entendido</button>' +
     '</div></div>';
   document.body.appendChild(modal);
 }
@@ -9855,8 +9855,8 @@ renderPrlFichaContent = async function() {
     html += '<div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">';
     html += '<div class="card-title">👷 Trabajadores en esta obra</div>';
     html += '<div style="display:flex;gap:8px;">';
-    html += '<button class="btn" style="font-size:12px;" onclick="abrirModalAsignarTrabajador()">+ Asignar existente</button>';
-    html += '<button class="btn btn-primary" style="font-size:12px;" onclick="abrirModalTrabajador(null)">+ Nuevo trabajador</button>';
+    html += '<button class="btn" style="font-size:12px;" onclick="abrirModalAsignarTrabajador()" title="Asignar un trabajador ya registrado en el sistema a este proyecto">+ Asignar existente</button>';
+    html += '<button class="btn btn-primary" style="font-size:12px;" onclick="abrirModalTrabajador(null)" title="Crear y añadir un nuevo trabajador a este proyecto">+ Nuevo trabajador</button>';
     html += '</div></div>';
 
     if (!workers.length) {
@@ -10095,13 +10095,13 @@ async function loadDashboardJefeObra() {
             var fecha = new Date(n.created_at).toLocaleDateString('es-ES');
             // Try to extract project_id from message to link directly
             var proyId = n.project_id || null;
-            var verBtn = proyId ? '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;" onclick="abrirEjecucion('+proyId+',\'\')">Ver hitos →</button>' : '';
+            var verBtn = proyId ? '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;" onclick="abrirEjecucion('+proyId+',\'\')" title="Ir a los hitos de esta obra">Ver hitos →</button>' : '';
             return '<div style="background:#E1F5EE;border:1px solid #A7DEC9;border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">' +
               '<div style="flex:1;">' +
               '<div style="font-size:12px;font-weight:500;color:#0F6E56;">' + n.error_message + '</div>' +
               '<div style="font-size:10px;color:#888;margin-top:2px;">' + fecha + '</div></div>' +
               '<div style="display:flex;gap:6px;flex-shrink:0;">' + verBtn +
-              '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:#f5f5f0;" onclick="marcarNotifLeida('+n.id+')">✓ Leída</button>' +
+              '<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:#f5f5f0;" onclick="marcarNotifLeida('+n.id+')" title="Marcar esta notificación como leída y descartarla">✓ Leída</button>' +
               '</div></div>';
           }).join('') + '</div>';
         el.innerHTML = notifHtml + el.innerHTML;
@@ -11650,7 +11650,7 @@ async function cargarProveedoresGremio(nombreGremio, idx) {
     });
     html += '</div>' +
       '<div style="margin-top:0.75rem;display:flex;justify-content:flex-end;">' +
-      '<button class="btn btn-primary btn-sm" onclick="prepararPeticionOferta(\''+nombreGremio+'\')" style="font-size:11px;">📧 Preparar petición de oferta</button>' +
+      '<button class="btn btn-primary btn-sm" onclick="prepararPeticionOferta(\''+nombreGremio+'\')" style="font-size:11px;" title="Preparar el email de petición de oferta para los proveedores de este gremio">📧 Preparar petición de oferta</button>' +
       '</div>';
     el.innerHTML = html;
 
@@ -12197,7 +12197,7 @@ async function cargarCertificaciones(projectId) {
       html += '<div style="display:flex;gap:8px;align-items:center;">';
       html += '<span style="font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500;background:' + estadoColor + ';">' + estadoLabel + '</span>';
       if (['tecnico','direccion'].indexOf(currentDept) > -1) {
-        html += '<button class="btn btn-sm" style="font-size:11px;" onclick="cambiarEstadoCert(' + c.id + ',\'' + estado + '\',' + projectId + ')">Cambiar estado</button>';
+        html += '<button class="btn btn-sm" style="font-size:11px;" onclick="cambiarEstadoCert(' + c.id + ',\'' + estado + '\',' + projectId + ')" title="Cambiar el estado de esta certificación">Cambiar estado</button>';
       }
       html += '</div></div>';
 
@@ -12209,13 +12209,13 @@ async function cargarCertificaciones(projectId) {
       if (docs.length > 0) {
         html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">';
         docs.forEach(function(d) {
-          html += '<button class="btn btn-sm" style="font-size:11px;" onclick="verDocCert(\'' + d.path + '\')">' + d.label + '</button>';
+          html += '<button class="btn btn-sm" style="font-size:11px;" onclick="verDocCert(\'' + d.path + '\')" title="Ver o descargar este documento de certificación">' + d.label + '</button>';
         });
         html += '</div>';
       }
         // Show compare button when both docs exist
         if (c.client_doc_path && c.byg_doc_path) {
-          html += '<button class="btn btn-primary btn-sm" style="font-size:11px;margin-top:6px;" onclick="compararCertificacionIA(' + c.id + ',' + projectId + ')">&#x1F916; Comparar con IA</button>';
+          html += '<button class="btn btn-primary btn-sm" style="font-size:11px;margin-top:6px;" onclick="compararCertificacionIA(' + c.id + ',' + projectId + ')" title="Comparar los dos documentos de certificación con IA y obtener un análisis de discrepancias">&#x1F916; Comparar con IA</button>';
         }
 
       // Contrapropuesta section
@@ -12237,7 +12237,7 @@ async function cargarCertificaciones(projectId) {
         html += '<div id="cert-contra-doc-nom-' + c.id + '" style="font-size:10px;color:#888;margin-top:2px;"></div>';
         html += '<input type="file" id="cert-contra-doc-' + c.id + '" accept=".pdf,.xlsx,.xls,.doc,.docx" style="display:none;" onchange="certContraFileOk(this,' + c.id + ')"></div>';
         html += '</div>';
-        html += '<button class="btn btn-primary btn-sm" style="font-size:11px;" onclick="guardarContrapropuesta(' + c.id + ',' + projectId + ')">Guardar contrapropuesta</button>';
+        html += '<button class="btn btn-primary btn-sm" style="font-size:11px;" onclick="guardarContrapropuesta(' + c.id + ',' + projectId + ')" title="Guardar la contrapropuesta de ByG para esta certificación">Guardar contrapropuesta</button>';
         html += '</div></div>';
       }
 
@@ -12418,7 +12418,7 @@ async function cargarSeccionAnalisisDocumental(projectId) {
     });
 
     if (hasAnalyzable) {
-      html += '<button class="btn btn-primary btn-sm" onclick="ejecutarAnalisisIA(' + projectId + ')">🔍 Analizar con IA</button>';
+      html += '<button class="btn btn-primary btn-sm" onclick="ejecutarAnalisisIA(' + projectId + ')" title="Ejecutar el análisis IA sobre los documentos subidos. Puede tardar entre 20 y 60 segundos por documento">🔍 Analizar con IA</button>';
     }
     html += '</div>';
 
@@ -12459,7 +12459,7 @@ async function cargarSeccionAnalisisDocumental(projectId) {
         html += '</select>';
 
         // Preview button
-        html += '<button class="btn btn-sm" style="font-size:11px;flex-shrink:0;" onclick="anDescargarArchivo(\'' + a.file_path + '\',\'' + a.file_name + '\',\'' + (a.storage_provider||'supabase') + '\',\'' + (a.drive_file_id||'') + '\')">👁 Ver</button>';
+        html += '<button class="btn btn-sm" style="font-size:11px;flex-shrink:0;" onclick="anDescargarArchivo(\'' + a.file_path + '\',\'' + a.file_name + '\',\'' + (a.storage_provider||'supabase') + '\',\'' + (a.drive_file_id||'') + '\')" title="Ver o descargar este documento">👁 Ver</button>';
 
         // Status badge
         if (isDWG) {
@@ -12481,7 +12481,7 @@ async function cargarSeccionAnalisisDocumental(projectId) {
       html += '<div style="font-size:11px;color:#888;margin-bottom:6px;">Informe generado ' + (repData.ai_report_generated_at ? new Date(repData.ai_report_generated_at).toLocaleDateString('es-ES') : '') + ' · ' + (repData.ai_report_by || '') + '</div>';
       html += '<div id="an-ai-report-content" style="font-size:12px;line-height:1.6;color:#333;background:#f9f9f6;border-radius:8px;padding:1rem;white-space:pre-wrap;">' + repData.ai_report + '</div>';
       html += '<div style="margin-top:10px;display:flex;gap:8px;">';
-      html += '<button class="btn btn-primary btn-sm" onclick="generarPdfInforme(' + projectId + ', document.getElementById(\'an-ai-report-content\').textContent)">📥 Descargar informe PDF</button>';
+      html += '<button class="btn btn-primary btn-sm" onclick="generarPdfInforme(' + projectId + ', document.getElementById(\'an-ai-report-content\').textContent)" title="Descargar el informe de análisis técnico en formato PDF">📥 Descargar informe PDF</button>';
       html += '</div>';
       html += '</div>';
     } else {
@@ -12700,7 +12700,7 @@ async function ejecutarAnalisisIA(projectId) {
         '<div style="background:#f9f9f6;border:1px solid #e5e5e0;border-radius:10px;padding:1.25rem;">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">' +
         '<strong style="font-size:13px;">📋 Análisis Documental</strong>' +
-        '<button class="btn btn-sm" onclick="document.getElementById(\'oc-analisis-documental-panel\').style.display=\'none\'" style="font-size:11px;">✕ Cerrar</button>' +
+        '<button class="btn btn-sm" onclick="document.getElementById(\'oc-analisis-documental-panel\').style.display=\'none\'" style="font-size:11px;" title="Cerrar el panel de análisis documental">✕ Cerrar</button>' +
         '</div>' +
         '<div style="font-size:12px;line-height:1.6;color:#333;white-space:pre-wrap;max-height:400px;overflow-y:auto;">' + informeFinal + '</div>' +
         '</div>';
