@@ -6709,9 +6709,29 @@ async function abrirEjecucion(id, nameEnc) {
       var exec = execRes.data;
       document.getElementById('ej-start').textContent = exec.start_date ? new Date(exec.start_date).toLocaleDateString('es-ES') : '-';
       document.getElementById('ej-end').textContent = exec.planned_end_date ? new Date(exec.planned_end_date).toLocaleDateString('es-ES') : '-';
+      // Calcular avance desde hitos si progress_pct es 0
       var pct = parseFloat(exec.progress_pct) || 0;
+      if (pct === 0) {
+        var hitosCheck = await db.from('project_milestones').select('completed').eq('project_id', id);
+        if (hitosCheck.data && hitosCheck.data.length > 0) {
+          var totalH = hitosCheck.data.length;
+          var compH = hitosCheck.data.filter(function(h){ return h.completed; }).length;
+          pct = totalH > 0 ? Math.round(compH/totalH*100) : 0;
+          if (pct > 0) await db.from('project_execution').upsert({ project_id: id, progress_pct: pct }, { onConflict: 'project_id' });
+        }
+      }
       document.getElementById('ej-progress-bar').style.width = pct + '%';
       document.getElementById('ej-progress-pct').textContent = pct + '%';
+    } else {
+      // No hay fila en project_execution — calcular desde hitos
+      var hitosCheck2 = await db.from('project_milestones').select('completed').eq('project_id', id);
+      if (hitosCheck2.data && hitosCheck2.data.length > 0) {
+        var totalH2 = hitosCheck2.data.length;
+        var compH2 = hitosCheck2.data.filter(function(h){ return h.completed; }).length;
+        var pct2 = totalH2 > 0 ? Math.round(compH2/totalH2*100) : 0;
+        document.getElementById('ej-progress-bar').style.width = pct2 + '%';
+        document.getElementById('ej-progress-pct').textContent = pct2 + '%';
+      }
     }
 
     cargarPlanning(id);
@@ -7114,17 +7134,17 @@ async function cargarEconomico(projectId) {
   if (!el) return;
   try {
     var gastos = await db.from('project_expenses').select('amount,approved').eq('project_id',projectId);
-    var certs = await db.from('project_certifications').select('amount,cumulative_amount,invoiced').eq('project_id',projectId).order('cert_number',{ascending:false});
-    var items = await db.from('offer_items').select('supplier_cost,final_price,quantity').eq('project_id',projectId);
+    var certs = await db.from('project_certifications').select('amount,cumulative_amount,invoiced,byg_amount,client_amount').eq('project_id',projectId).order('cert_number',{ascending:false});
+    var items = await db.from('project_items').select('supplier_price,sale_price,quantity').eq('project_id',projectId);
 
     // Obtener importe adjudicado de project_awards
     var awardRes = await db.from('project_awards').select('awarded_amount').eq('project_id',projectId).eq('award_type','adjudicado').order('created_at',{ascending:false}).limit(1);
     var importeAdjudicado = awardRes.data && awardRes.data.length ? parseFloat(awardRes.data[0].awarded_amount)||0 : 0;
 
-    var totalPresupuesto = importeAdjudicado || (items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.final_price)||0)*(parseFloat(i.quantity)||1);},0) : 0);
-    var totalCoste = items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.supplier_cost)||0)*(parseFloat(i.quantity)||1);},0) : 0;
+    var totalPresupuesto = importeAdjudicado || (items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.sale_price)||0)*(parseFloat(i.quantity)||1);},0) : 0);
+    var totalCoste = items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.supplier_price)||0)*(parseFloat(i.quantity)||1);},0) : 0;
     var totalGastado = gastos.data ? gastos.data.filter(function(g){return g.approved;}).reduce(function(acc,g){return acc+(parseFloat(g.amount)||0);},0) : 0;
-    var totalCertificado = certs.data && certs.data.length ? parseFloat(certs.data[0].cumulative_amount)||0 : 0;
+    var totalCertificado = certs.data ? certs.data.reduce(function(acc,c){ return acc + (parseFloat(c.byg_amount)||parseFloat(c.client_amount)||parseFloat(c.amount)||0); }, 0) : 0;
     var margenTeorico = totalPresupuesto > 0 ? ((totalPresupuesto-totalCoste)/totalPresupuesto*100).toFixed(1) : 0;
     var margenReal = totalPresupuesto > 0 ? ((totalPresupuesto-totalGastado)/totalPresupuesto*100).toFixed(1) : 0;
     var colorMargen = parseFloat(margenReal) >= parseFloat(margenTeorico)*0.8 ? '#0F6E56' : '#A32D2D';
