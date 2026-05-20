@@ -24,22 +24,17 @@ Si no puedes extraer algún campo con seguridad, ponlo como null.`;
     let messages;
 
     if (isPdf) {
-      // Para PDFs: enviar como documento base64 a GPT-4o
+      // Para PDFs: decodificar base64 a texto y enviarlo como texto plano
+      const pdfText = Buffer.from(base64, 'base64').toString('latin1')
+        .replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 4000);
+
       messages = [
         {
           role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:application/pdf;base64,${base64}`
-              }
-            }
-          ]
+          content: `${prompt}\n\nContenido del documento:\n${pdfText}`
         }
       ];
     } else {
@@ -50,14 +45,9 @@ Si no puedes extraer algún campo con seguridad, ponlo como null.`;
           content: [
             {
               type: 'image_url',
-              image_url: {
-                url: `data:${mediaType};base64,${base64}`
-              }
+              image_url: { url: `data:${mediaType};base64,${base64}` }
             },
-            {
-              type: 'text',
-              text: prompt
-            }
+            { type: 'text', text: prompt }
           ]
         }
       ];
