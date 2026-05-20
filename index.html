@@ -62,6 +62,7 @@
     .dept-btn.active-tecnico    { background: #1a1a1a; color: white; border-color: #1a1a1a; }
     .dept-btn.active-direccion  { background: #1e40af; color: white; border-color: #1e40af; }
     .dept-btn.active-comercial  { background: #166534; color: white; border-color: #166534; }
+    .dept-btn.active-jefe_obra  { background: #0F6E56; color: white; border-color: #0F6E56; }
     .dept-btn.active-prl        { background: #92400e; color: white; border-color: #92400e; }
     .dept-btn.active-admin      { background: #5b21b6; color: white; border-color: #5b21b6; }
     .btn-refresh { background: #185FA5; color: white; border: none; padding: 7px 14px; border-radius: 7px; font-size: 12px; cursor: pointer; }
@@ -504,6 +505,7 @@
           <button class="dept-btn active-tecnico" onclick="setDept('tecnico',this)">Técnico</button>
           <button class="dept-btn" onclick="setDept('direccion',this)">Dirección</button>
           <button class="dept-btn" onclick="setDept('comercial',this)">Comercial</button>
+          <button class="dept-btn" onclick="setDept('jefe_obra',this)">Jefe de Obra</button>
           <button class="dept-btn" onclick="setDept('prl',this)">PRL</button>
           <button class="dept-btn" onclick="setDept('admin',this)">Admin</button>
         </div>
@@ -1131,7 +1133,7 @@
       <div style="display:grid;grid-template-columns:1fr 160px 140px;gap:8px;margin-bottom:8px;">
         <div><label style="font-size:10px;color:#888;display:block;margin-bottom:2px;">Nombre del hito *</label><input type="text" id="nh-nombre" placeholder="Ej: Cierre electricidad" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;"></div>
         <div><label style="font-size:10px;color:#888;display:block;margin-bottom:2px;">Fecha prevista</label><input type="date" id="nh-fecha" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;"></div>
-        <div><label style="font-size:10px;color:#888;display:block;margin-bottom:2px;">Gremio</label><input type="text" id="nh-gremio" placeholder="Electricidad..." style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;"></div>
+        <div><label style="font-size:10px;color:#888;display:block;margin-bottom:2px;">Fase</label><input type="text" id="nh-gremio" placeholder="Demolición, Electricidad..." style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;"></div>
       </div>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-primary btn-sm" onclick="guardarNuevoHitoPlanning()">Guardar hito</button>
@@ -1255,7 +1257,7 @@
           <label style="font-size:11px;color:#888;display:block;margin-bottom:3px;text-transform:uppercase;font-weight:600;">¿Quién inicia?</label>
           <select id="cert-iniciado-por" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;" onchange="toggleCertModo()">
             <option value="cliente">El cliente envía propuesta</option>
-            <option value="byg">ByG emite la certificación</option>
+            <option value="byg" selected>ByG emite la certificación</option>
           </select>
         </div>
         <div>
@@ -1336,6 +1338,10 @@
           <div>
             <label style="font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.03em;">Fecha prevista de inicio</label>
             <input type="date" id="adj-start-date" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;">Fecha prevista de fin</label>
+            <input type="date" id="adj-end-date" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
           </div>
           <div>
             <label style="font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.03em;">Instrucciones para el/la Jefe/a de Obra</label>
@@ -2125,7 +2131,7 @@ var currentDept = 'tecnico';
 
 function setDept(dept, btn) {
   document.querySelectorAll('.dept-btn').forEach(function(b){
-    b.classList.remove('active-tecnico','active-direccion','active-comercial','active-prl','active-admin');
+    b.classList.remove('active-tecnico','active-direccion','active-comercial','active-prl','active-admin','active-jefe_obra');
   });
   btn.classList.add('active-'+dept);
   document.body.className = 'dept-'+dept;
@@ -6236,6 +6242,15 @@ async function asignarJefeObra() {
       updated_at: new Date().toISOString()
     }).eq('id', adjProyecto.id);
 
+    // Guardar fechas inicio y fin en project_execution
+    var endDate = document.getElementById('adj-end-date') ? document.getElementById('adj-end-date').value : null;
+    await db.from('project_execution').upsert({
+      project_id: adjProyecto.id,
+      start_date: startDate,
+      planned_end_date: endDate || null,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'project_id' });
+
     // Cambiar estado a pendiente_lanzamiento
     var stRes = await db.from('project_statuses').select('id').eq('code','pendiente_lanzamiento').single();
     if (stRes.data) {
@@ -6616,7 +6631,7 @@ function iniciarApp() {
 
   // Activar boton de departamento
   document.querySelectorAll('.dept-btn').forEach(function(b) {
-    b.classList.remove('active-tecnico','active-direccion','active-comercial','active-prl','active-admin');
+    b.classList.remove('active-tecnico','active-direccion','active-comercial','active-prl','active-admin','active-jefe_obra');
   });
   var activeBtn = document.querySelector('.dept-btn[onclick*="' + dept + '"]');
   if (activeBtn) activeBtn.classList.add('active-' + dept);
@@ -6995,23 +7010,49 @@ async function guardarHitoEjecucion() {
 }
 
 async function marcarHitoCumplido(hitoId, projectId) {
-  var fecha = prompt('Fecha de cumplimiento (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
-  if (!fecha) return;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) { alert('Formato incorrecto. Usa YYYY-MM-DD'); return; }
-  try {
-    var hito = await db.from('project_milestones').select('planned_date').eq('id', hitoId).single();
-    var dias = null;
-    if (hito.data && hito.data.planned_date) {
-      dias = Math.round((new Date(fecha) - new Date(hito.data.planned_date)) / (1000*60*60*24));
-    }
-    await db.from('project_milestones').update({
-      completed: true,
-      actual_date: fecha,
-      deviation_days: dias,
-      completed_by: currentUser ? currentUser.email : null
-    }).eq('id', hitoId);
-    cargarHitos(projectId);
-  } catch(e) { alert('Error: ' + e.message); }
+  // Modal propio en lugar de prompt nativo
+  var hoy = new Date();
+  var fechaDefault = ('0' + hoy.getDate()).slice(-2) + '/' + ('0' + (hoy.getMonth()+1)).slice(-2) + '/' + hoy.getFullYear();
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:1.5rem;min-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+    '<div style="font-size:15px;font-weight:600;margin-bottom:1rem;color:#1a1a1a;">Fecha de cumplimiento</div>' +
+    '<input type="date" id="modal-fecha-hito" value="' + hoy.toISOString().split("T")[0] + '" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:14px;box-sizing:border-box;margin-bottom:1rem;">' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+    '<button id="modal-hito-cancel" style="padding:7px 16px;border:1px solid #ddd;border-radius:7px;background:#f5f5f0;cursor:pointer;font-size:13px;">Cancelar</button>' +
+    '<button id="modal-hito-confirm" style="padding:7px 16px;border:none;border-radius:7px;background:#0F6E56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Confirmar</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+  document.getElementById('modal-hito-cancel').onclick = function(){ modal.remove(); };
+  document.getElementById('modal-hito-confirm').onclick = async function() {
+    var fecha = document.getElementById('modal-fecha-hito').value;
+    modal.remove();
+    if (!fecha) return;
+    try {
+      var hito = await db.from('project_milestones').select('planned_date').eq('id', hitoId).single();
+      var dias = null;
+      if (hito.data && hito.data.planned_date) {
+        dias = Math.round((new Date(fecha) - new Date(hito.data.planned_date)) / (1000*60*60*24));
+      }
+      await db.from('project_milestones').update({
+        completed: true, actual_date: fecha, deviation_days: dias,
+        completed_by: currentUser ? currentUser.email : null
+      }).eq('id', hitoId);
+      // Actualizar progress_pct automáticamente
+      var todosHitos = await db.from('project_milestones').select('completed').eq('project_id', projectId);
+      if (todosHitos.data) {
+        var total = todosHitos.data.length;
+        var completados = todosHitos.data.filter(function(h){ return h.completed; }).length;
+        var pct = total > 0 ? Math.round(completados/total*100) : 0;
+        await db.from('project_execution').upsert({ project_id: projectId, progress_pct: pct }, { onConflict: 'project_id' });
+        var bar = document.getElementById('ej-progress-bar');
+        var pctEl = document.getElementById('ej-progress-pct');
+        if (bar) bar.style.width = pct + '%';
+        if (pctEl) pctEl.textContent = pct + '%';
+      }
+      cargarHitos(projectId);
+    } catch(e) { alert('Error: ' + e.message); }
+  };
 }
 
 async function editarFechaHito(hitoId, projectId, fechaActual) {
@@ -7076,7 +7117,11 @@ async function cargarEconomico(projectId) {
     var certs = await db.from('project_certifications').select('amount,cumulative_amount,invoiced').eq('project_id',projectId).order('cert_number',{ascending:false});
     var items = await db.from('offer_items').select('supplier_cost,final_price,quantity').eq('project_id',projectId);
 
-    var totalPresupuesto = items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.final_price)||0)*(parseFloat(i.quantity)||1);},0) : 0;
+    // Obtener importe adjudicado de project_awards
+    var awardRes = await db.from('project_awards').select('awarded_amount').eq('project_id',projectId).eq('award_type','adjudicado').order('created_at',{ascending:false}).limit(1);
+    var importeAdjudicado = awardRes.data && awardRes.data.length ? parseFloat(awardRes.data[0].awarded_amount)||0 : 0;
+
+    var totalPresupuesto = importeAdjudicado || (items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.final_price)||0)*(parseFloat(i.quantity)||1);},0) : 0);
     var totalCoste = items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.supplier_cost)||0)*(parseFloat(i.quantity)||1);},0) : 0;
     var totalGastado = gastos.data ? gastos.data.filter(function(g){return g.approved;}).reduce(function(acc,g){return acc+(parseFloat(g.amount)||0);},0) : 0;
     var totalCertificado = certs.data && certs.data.length ? parseFloat(certs.data[0].cumulative_amount)||0 : 0;
@@ -7373,7 +7418,25 @@ async function confirmarGasto() {
     var fileInput = document.getElementById('gasto-file-input');
     if (fileInput && fileInput.files && fileInput.files[0]) {
       var file = fileInput.files[0];
-      var driveResGasto = await storageUpload(file, ejProyecto.id, null, null, 'Gastos', null);
+      // Patrón anti-duplicado para subcarpeta Gastos/Costes de Obra
+      var gastosFolder = ejProyecto.drive_gastos_folder_id || null;
+      if (!gastosFolder) {
+        var bdChkG = await db.from('projects').select('drive_gastos_folder_id').eq('id', ejProyecto.id).single();
+        if (bdChkG.data && bdChkG.data.drive_gastos_folder_id) {
+          gastosFolder = bdChkG.data.drive_gastos_folder_id;
+          ejProyecto.drive_gastos_folder_id = gastosFolder;
+        }
+      }
+      var driveResGasto;
+      if (gastosFolder) {
+        driveResGasto = await storageUpload(file, ejProyecto.id, null, null, null, gastosFolder);
+      } else {
+        driveResGasto = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', 'Gastos/Costes de Obra', ejProyecto.drive_folder_id||null);
+        if (driveResGasto && driveResGasto.folder_id) {
+          ejProyecto.drive_gastos_folder_id = driveResGasto.folder_id;
+          await db.from('projects').update({drive_gastos_folder_id: driveResGasto.folder_id}).eq('id', ejProyecto.id);
+        }
+      }
       if (driveResGasto) {
         data.document_url = driveResGasto.viewUrl;
         data.document_name = file.name;
@@ -11889,9 +11952,26 @@ async function guardarCertificacion() {
       if (iniciado === 'cliente') clientDocPath = file.name;
       else bygDocPath = file.name;
 
-      // Upload a Google Drive via n8n
+      // Upload a Google Drive - patrón anti-duplicado para subcarpeta Certificaciones
       try {
-        var driveResCert = await storageUpload(file, ejProyecto.id, null, null, 'Certificaciones', null);
+        var certFolder = ejProyecto.drive_certificaciones_folder_id || null;
+        if (!certFolder) {
+          var bdChkC = await db.from('projects').select('drive_certificaciones_folder_id').eq('id', ejProyecto.id).single();
+          if (bdChkC.data && bdChkC.data.drive_certificaciones_folder_id) {
+            certFolder = bdChkC.data.drive_certificaciones_folder_id;
+            ejProyecto.drive_certificaciones_folder_id = certFolder;
+          }
+        }
+        var driveResCert;
+        if (certFolder) {
+          driveResCert = await storageUpload(file, ejProyecto.id, null, null, null, certFolder);
+        } else {
+          driveResCert = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', 'Certificaciones', ejProyecto.drive_folder_id||null);
+          if (driveResCert && driveResCert.folder_id) {
+            ejProyecto.drive_certificaciones_folder_id = driveResCert.folder_id;
+            await db.from('projects').update({drive_certificaciones_folder_id: driveResCert.folder_id}).eq('id', ejProyecto.id);
+          }
+        }
         if (driveResCert) {
           if (iniciado === 'cliente') { clientDocPath = driveResCert.viewUrl; clientDocDriveId = driveResCert.fileId; }
           else { bygDocPath = driveResCert.viewUrl; bygDocDriveId = driveResCert.fileId; }
