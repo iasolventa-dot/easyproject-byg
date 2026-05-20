@@ -21,38 +21,47 @@ export default async function handler(req, res) {
 }
 Si no puedes extraer algún campo con seguridad, ponlo como null.`;
 
-    const content = isPdf
-      ? [
-          { type: 'text', text: prompt },
-          { type: 'text', text: `Documento PDF en base64: analiza su contenido y extrae los datos solicitados.` }
-        ]
-      : [
-          {
-            type: 'image_url',
-            image_url: { url: `data:${mediaType};base64,${base64}` }
-          },
-          { type: 'text', text: prompt }
-        ];
+    let messages;
 
-    // Para PDFs usamos text extraction via base64
-    const messages = isPdf
-      ? [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt + '\n\nContenido del documento (PDF):\n' + Buffer.from(base64, 'base64').toString('utf-8').substring(0, 3000)
+    if (isPdf) {
+      // Para PDFs: enviar como documento base64 a GPT-4o
+      messages = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:application/pdf;base64,${base64}`
               }
-            ]
-          }
-        ]
-      : [
-          {
-            role: 'user',
-            content: content
-          }
-        ];
+            }
+          ]
+        }
+      ];
+    } else {
+      // Para imágenes
+      messages = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mediaType};base64,${base64}`
+              }
+            },
+            {
+              type: 'text',
+              text: prompt
+            }
+          ]
+        }
+      ];
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -69,6 +78,12 @@ Si no puedes extraer algún campo con seguridad, ponlo como null.`;
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error('OpenAI error:', JSON.stringify(data));
+      return res.status(500).json({ error: data.error?.message || 'OpenAI error', resultado: { confianza: 'baja' } });
+    }
+
     const text = data.choices?.[0]?.message?.content || '';
 
     let resultado = null;
@@ -83,6 +98,6 @@ Si no puedes extraer algún campo con seguridad, ponlo como null.`;
 
   } catch (e) {
     console.error('Error gastos-ia:', e);
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message, resultado: { confianza: 'baja' } });
   }
 }
