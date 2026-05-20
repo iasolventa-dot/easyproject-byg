@@ -508,6 +508,7 @@
           <button class="dept-btn" onclick="setDept('jefe_obra',this)">Jefe de Obra</button>
           <button class="dept-btn" onclick="setDept('prl',this)">PRL</button>
           <button class="dept-btn" onclick="setDept('admin',this)">Admin</button>
+          <button class="dept-btn" onclick="volverSuperadmin(this)" style="background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-size:10px;">↩ Superadmin</button>
         </div>
       </div>
     </div>
@@ -2128,6 +2129,7 @@ function showPanel(name) {
 }
 
 var currentDept = 'tecnico';
+var esSuperadmin = false;
 
 function setDept(dept, btn) {
   // Si es jefe_obra desde superadmin, mostrar selector primero
@@ -2164,6 +2166,23 @@ async function seleccionarJefeObraParaVista(btn) {
     window._jefeObraSimulado = { id: parseInt(jefeId), full_name: jefeName, email: jefeEmail };
     _aplicarDept('jefe_obra', btn);
   };
+}
+
+function volverSuperadmin(btn) {
+  window._jefeObraSimulado = null;
+  _aplicarDept('tecnico', document.querySelector('.dept-btn.active-tecnico') || btn);
+  // Restaurar indicador superadmin
+  document.getElementById('user-name').textContent = 'Solventa IA (Admin)';
+  document.getElementById('dept-badge').textContent = 'SUPERADMIN';
+  document.getElementById('dept-indicator').textContent = 'Vista: Superadmin — acceso a todos los departamentos';
+  // Restaurar sidebar si estaba oculto
+  var sidebar = document.querySelector('.sidebar');
+  var main = document.querySelector('.main');
+  var hamburger = document.getElementById('hamburger-btn');
+  if (sidebar) sidebar.style.display = '';
+  if (main) main.style.marginLeft = '';
+  if (hamburger) hamburger.style.display = '';
+  loadDashboard();
 }
 
 function _aplicarDept(dept, btn) {
@@ -6647,7 +6666,7 @@ function iniciarApp() {
   var deptMapped = deptByEmail[email] || 'tecnico';
   // Superadmin entra como tecnico pero con botones de dept visibles
   var dept = (deptMapped === 'superadmin') ? 'tecnico' : deptMapped;
-  var esSuperadmin = (deptMapped === 'superadmin');
+  esSuperadmin = (deptMapped === 'superadmin'); // variable global
   currentDept = dept;
 
   // Mostrar/ocultar botones de cambio de departamento
