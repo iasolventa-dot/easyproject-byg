@@ -11891,6 +11891,8 @@ function mostrarFormCertificacion() {
     // Set default date
     var fechaEl = document.getElementById('cert-fecha');
     if (fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().split('T')[0];
+    // Aplicar modo correcto según valor por defecto del select
+    toggleCertModo();
   }
 }
 
