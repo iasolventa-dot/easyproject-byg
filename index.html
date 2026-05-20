@@ -2130,6 +2130,43 @@ function showPanel(name) {
 var currentDept = 'tecnico';
 
 function setDept(dept, btn) {
+  // Si es jefe_obra desde superadmin, mostrar selector primero
+  if (dept === 'jefe_obra' && esSuperadmin) {
+    seleccionarJefeObraParaVista(btn);
+    return;
+  }
+  _aplicarDept(dept, btn);
+}
+
+async function seleccionarJefeObraParaVista(btn) {
+  var jefesRes = await db.from('project_managers').select('id,full_name,email').eq('active',true).order('full_name');
+  var jefes = (jefesRes.data || []);
+  var opts = jefes.map(function(j){ return '<option value="'+j.id+'" data-email="'+(j.email||'')+'">'+j.full_name+'</option>'; }).join('');
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:1.5rem;min-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+    '<div style="font-size:15px;font-weight:600;margin-bottom:1rem;color:#1a1a1a;">Selecciona Jefe/a de Obra</div>' +
+    '<select id="modal-jefe-select" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:14px;margin-bottom:1rem;"><option value="">-- Seleccionar --</option>'+opts+'</select>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+    '<button id="modal-jefe-cancel" style="padding:7px 16px;border:1px solid #ddd;border-radius:7px;background:#f5f5f0;cursor:pointer;font-size:13px;">Cancelar</button>' +
+    '<button id="modal-jefe-confirm" style="padding:7px 16px;border:none;border-radius:7px;background:#0F6E56;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Ver vista</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+  document.getElementById('modal-jefe-cancel').onclick = function(){ modal.remove(); };
+  document.getElementById('modal-jefe-confirm').onclick = function() {
+    var sel = document.getElementById('modal-jefe-select');
+    var jefeId = sel.value;
+    var jefeName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+    var jefeEmail = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].getAttribute('data-email') : '';
+    if (!jefeId) { alert('Selecciona un jefe de obra'); return; }
+    modal.remove();
+    // Simular usuario como ese jefe de obra
+    window._jefeObraSimulado = { id: parseInt(jefeId), full_name: jefeName, email: jefeEmail };
+    _aplicarDept('jefe_obra', btn);
+  };
+}
+
+function _aplicarDept(dept, btn) {
   document.querySelectorAll('.dept-btn').forEach(function(b){
     b.classList.remove('active-tecnico','active-direccion','active-comercial','active-prl','active-admin','active-jefe_obra');
   });
@@ -2137,8 +2174,8 @@ function setDept(dept, btn) {
   document.body.className = 'dept-'+dept;
   currentDept = dept;
   var cfg = deptConfig[dept];
-  document.getElementById('user-name').textContent = cfg.name;
-  document.getElementById('user-email').textContent = cfg.email;
+  document.getElementById('user-name').textContent = dept === 'jefe_obra' && window._jefeObraSimulado ? window._jefeObraSimulado.full_name : cfg.name;
+  document.getElementById('user-email').textContent = dept === 'jefe_obra' && window._jefeObraSimulado ? window._jefeObraSimulado.email : cfg.email;
   document.getElementById('dept-badge').textContent = cfg.badge;
   document.getElementById('dept-badge').className = 'dept-badge dept-'+dept+'-badge';
   document.getElementById('dept-indicator').textContent = cfg.desc;
@@ -7142,7 +7179,13 @@ async function cargarEconomico(projectId) {
     var importeAdjudicado = awardRes.data && awardRes.data.length ? parseFloat(awardRes.data[0].awarded_amount)||0 : 0;
 
     var totalPresupuesto = importeAdjudicado || (items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.sale_price)||0)*(parseFloat(i.quantity)||1);},0) : 0);
-    var totalCoste = items.data ? items.data.reduce(function(acc,i){return acc+(parseFloat(i.supplier_price)||0)*(parseFloat(i.quantity)||1);},0) : 0;
+    // Coste presupuestado: suma de supplier_price * quantity de project_items
+    var totalCoste = 0;
+    if (items.data && items.data.length > 0) {
+      // Solo sumar si los valores parecen razonables (precio unitario, no total)
+      var sumCoste = items.data.reduce(function(acc,i){ return acc+(parseFloat(i.supplier_price)||0)*(parseFloat(i.quantity)||0);},0);
+      totalCoste = sumCoste;
+    }
     var totalGastado = gastos.data ? gastos.data.filter(function(g){return g.approved;}).reduce(function(acc,g){return acc+(parseFloat(g.amount)||0);},0) : 0;
     var totalCertificado = certs.data ? certs.data.reduce(function(acc,c){ return acc + (parseFloat(c.byg_amount)||parseFloat(c.client_amount)||parseFloat(c.amount)||0); }, 0) : 0;
     var margenTeorico = totalPresupuesto > 0 ? ((totalPresupuesto-totalCoste)/totalPresupuesto*100).toFixed(1) : 0;
@@ -9870,17 +9913,22 @@ async function loadDashboardJefeObra() {
   if (main) main.style.marginLeft = '0';
   if (hamburger) hamburger.style.display = 'none';
 
-  var email = currentUser ? currentUser.email : '';
+  // Si superadmin simula un jefe de obra, usar sus datos
+  var email = (esSuperadmin && window._jefeObraSimulado && window._jefeObraSimulado.email) ? window._jefeObraSimulado.email : (currentUser ? currentUser.email : '');
   var nombre = email.split('@')[0].replace('.',' ');
   document.getElementById('jo-title').textContent = 'Mis proyectos';
   var joEmail = document.getElementById('jo-email');
   if (joEmail) joEmail.textContent = email;
   // Buscar nombre completo del empleado
   try {
-    var empNombre = await db.from('employees').select('nombre,apellidos').eq('email_login', email).single();
     var joNombre = document.getElementById('jo-nombre');
-    if (joNombre && empNombre.data) {
-      joNombre.textContent = empNombre.data.nombre + ' ' + empNombre.data.apellidos;
+    if (esSuperadmin && window._jefeObraSimulado) {
+      if (joNombre) joNombre.textContent = window._jefeObraSimulado.full_name;
+    } else {
+      var empNombre = await db.from('employees').select('nombre,apellidos').eq('email_login', email).single();
+      if (joNombre && empNombre.data) {
+        joNombre.textContent = empNombre.data.nombre + ' ' + empNombre.data.apellidos;
+      }
     }
   } catch(en) {}
 
@@ -9891,15 +9939,19 @@ async function loadDashboardJefeObra() {
     // Buscar el empleado por email para obtener su id
     var empRes = await db.from('employees').select('id,nombre,apellidos').eq('email_login', email).single();
 
-    // Buscar en project_managers por email o nombre
-    var pmRes = await db.from('project_managers').select('id,full_name').ilike('email', email);
-    var pmIds = pmRes.data ? pmRes.data.map(function(p){return p.id;}) : [];
-
-    // Si no hay coincidencia exacta buscar por nombre
-    if (!pmIds.length && empRes.data) {
-      var nombreCompleto = empRes.data.nombre + ' ' + empRes.data.apellidos;
-      var pmRes2 = await db.from('project_managers').select('id,full_name').ilike('full_name', '%' + empRes.data.apellidos + '%');
-      if (pmRes2.data && pmRes2.data.length) pmIds = pmRes2.data.map(function(p){return p.id;});
+    // Si superadmin simula un jefe de obra, usar su ID directamente
+    var pmIds = [];
+    if (esSuperadmin && window._jefeObraSimulado && window._jefeObraSimulado.id) {
+      pmIds = [window._jefeObraSimulado.id];
+    } else {
+      // Buscar en project_managers por email o nombre
+      var pmRes = await db.from('project_managers').select('id,full_name').ilike('email', email);
+      pmIds = pmRes.data ? pmRes.data.map(function(p){return p.id;}) : [];
+      // Si no hay coincidencia exacta buscar por nombre
+      if (!pmIds.length && empRes.data) {
+        var pmRes2 = await db.from('project_managers').select('id,full_name').ilike('full_name', '%' + empRes.data.apellidos + '%');
+        if (pmRes2.data && pmRes2.data.length) pmIds = pmRes2.data.map(function(p){return p.id;});
+      }
     }
 
     // Buscar proyectos asignados (activos e histórico)
