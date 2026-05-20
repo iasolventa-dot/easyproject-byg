@@ -7512,8 +7512,19 @@ async function confirmarGasto() {
       }
       var driveResGasto;
       if (gastosFolder) {
-        driveResGasto = await storageUpload(file, ejProyecto.id, null, null, null, gastosFolder);
+        // Subcarpeta ya existe — subir directamente sin crear nueva carpeta
+        var arrBuf = await file.arrayBuffer();
+        var bytes = new Uint8Array(arrBuf);
+        var bin = ''; var chunk = 8192;
+        for (var gi = 0; gi < bytes.length; gi += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(gi, gi+chunk));
+        var b64 = btoa(bin);
+        var dirRes = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({file_base64: b64, file_name: file.name, mime_type: file.type||'application/octet-stream', folder_id: gastosFolder})
+        });
+        if (dirRes.ok) driveResGasto = await dirRes.json();
       } else {
+        // Primera vez — crear subcarpeta y guardar su folder_id
         driveResGasto = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', 'Gastos/Costes de Obra', ejProyecto.drive_folder_id||null);
         if (driveResGasto && driveResGasto.folder_id) {
           ejProyecto.drive_gastos_folder_id = driveResGasto.folder_id;
@@ -12068,8 +12079,19 @@ async function guardarCertificacion() {
         }
         var driveResCert;
         if (certFolder) {
-          driveResCert = await storageUpload(file, ejProyecto.id, null, null, null, certFolder);
+          // Subcarpeta ya existe — subir directamente
+          var arrBufC = await file.arrayBuffer();
+          var bytesC = new Uint8Array(arrBufC);
+          var binC = ''; var chunkC = 8192;
+          for (var ci = 0; ci < bytesC.length; ci += chunkC) binC += String.fromCharCode.apply(null, bytesC.subarray(ci, ci+chunkC));
+          var b64C = btoa(binC);
+          var dirResC = await fetch('https://n8n.solventaapi.com/webhook/subir-archivo-directo', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({file_base64: b64C, file_name: file.name, mime_type: file.type||'application/pdf', folder_id: certFolder})
+          });
+          if (dirResC.ok) driveResCert = await dirResC.json();
         } else {
+          // Primera vez — crear subcarpeta y guardar su folder_id
           driveResCert = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', 'Certificaciones', ejProyecto.drive_folder_id||null);
           if (driveResCert && driveResCert.folder_id) {
             ejProyecto.drive_certificaciones_folder_id = driveResCert.folder_id;
