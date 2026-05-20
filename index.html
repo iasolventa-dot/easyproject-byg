@@ -4270,7 +4270,7 @@ async function descargarExcelPeticion(specialtyCode) {
     var filename = 'Peticion_' + specialtyCode + '_' + (ocProyecto.code||'BYG') + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
     XLSX.writeFile(wb, filename);
 
-    // Subir a Drive subcarpeta "Peticiones de Oferta para enviar a proveedores"
+    // Subir a Drive subcarpeta "2. Peticiones de Oferta para enviar a proveedores"
     if (ocProyecto.drive_folder_id) {
       try {
         var wbOut2 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
@@ -4284,7 +4284,7 @@ async function descargarExcelPeticion(specialtyCode) {
             project_id: ocProyecto.id,
             project_code: ocProyecto.code||'',
             project_name: ocProyecto.name||'',
-            subcarpeta: 'Peticiones de Oferta para enviar a proveedores'
+            subcarpeta: '2. Peticiones de Oferta para enviar a proveedores'
           })
         });
         console.log('Excel petición subido a Drive');
@@ -4619,7 +4619,7 @@ async function subirPdfOferta(responseId) {
         ocProyecto.drive_proveedores_folder_id = provFolderA;
       }
     }
-    var driveRes = await storageUpload(file, ocProyecto ? ocProyecto.id : null, projCode, projName, 'Ofertas recibidas de proveedores', provFolderA || (ocProyecto ? ocProyecto.drive_folder_id : null));
+    var driveRes = await storageUpload(file, ocProyecto ? ocProyecto.id : null, projCode, projName, '3. Ofertas recibidas de proveedores', provFolderA || (ocProyecto ? ocProyecto.drive_folder_id : null));
     if (driveRes && driveRes.folder_id && ocProyecto && !ocProyecto.drive_proveedores_folder_id) {
       ocProyecto.drive_proveedores_folder_id = driveRes.folder_id;
       await db.from('projects').update({drive_proveedores_folder_id: driveRes.folder_id}).eq('id', ocProyecto.id);
@@ -4780,7 +4780,7 @@ async function guardarOfertaManual(reqId, specialtyCode) {
           ocProyecto.drive_proveedores_folder_id = provFolderB;
         }
       }
-      var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', 'Ofertas recibidas de proveedores', provFolderB || ocProyecto.drive_folder_id||null);
+      var driveRes = await storageUpload(file, ocProyecto.id, ocProyecto.code||'', ocProyecto.name||'', '3. Ofertas recibidas de proveedores', provFolderB || ocProyecto.drive_folder_id||null);
       if (driveRes) {
         await db.from('offer_responses').update({ pdf_url: driveRes.viewUrl, pdf_drive_file_id: driveRes.fileId }).eq('id', newResponseId);
         if (driveRes.folder_id && !ocProyecto.drive_proveedores_folder_id) {
@@ -5157,7 +5157,7 @@ async function seleccionarOfertaComp(responseId, gremio, reqId) {
           driveRes = directText && directText.trim() ? JSON.parse(directText) : null;
         } else {
           // Primera vez — crear subcarpeta dentro de la carpeta del proyecto
-          driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, 'Análisis IA de Ofertas de Proveedores', proyectoFolderId);
+          driveRes = await storageUpload(pdfFile, ocProyecto.id, projCode2, projName2, '4. Análisis IA de Ofertas de Proveedores', proyectoFolderId);
           // Guardar el folder_id de la subcarpeta para futuras subidas
           if (driveRes && driveRes.folder_id) {
             await db.from('projects').update({drive_analisis_folder_id: driveRes.folder_id}).eq('id', ocProyecto.id);
@@ -5779,7 +5779,7 @@ async function guardarVersionInterna() {
     var btn = document.querySelector('[onclick="guardarVersionInterna()"]'); if(btn){btn.textContent='Subiendo...';btn.disabled=true;}
     try {
       // Patrón anti-duplicado: reusar folder_id si la subcarpeta ya existe
-      var internasSubcarpeta = 'Ofertas enviadas al Cliente (versiones INTERNAS con Factor)';
+      var internasSubcarpeta = '5. 6. Ofertas enviadas al Cliente (versiones INTERNAS con Factor)';
       var internasFolder = ocProyecto.drive_internas_folder_id || null;
       if (!internasFolder) {
         var bdChk = await db.from('projects').select('drive_internas_folder_id').eq('id', ocProyecto.id).single();
@@ -5912,7 +5912,7 @@ async function enviarOfertaCliente() {
           var pdfBase64 = window._ofertaClientePDFDoc.output('datauristring').split(',')[1];
           var pdfFilename = window._ofertaClientePDFNombre || ('Oferta_Cliente_'+(ocProyecto.code||'BYG')+'.pdf');
           // Patrón anti-duplicado: reusar folder_id si la subcarpeta ya existe
-          var enviadasSubcarpeta = 'Ofertas enviadas al Cliente';
+          var enviadasSubcarpeta = '6. Ofertas enviadas al Cliente';
           var enviadasFolder = ocProyecto.drive_enviadas_folder_id || null;
           if (!enviadasFolder) {
             var bdChkE = await db.from('projects').select('drive_enviadas_folder_id').eq('id', ocProyecto.id).single();
@@ -7515,7 +7515,7 @@ async function confirmarGasto() {
     var fileInput = document.getElementById('gasto-file-input');
     if (fileInput && fileInput.files && fileInput.files[0]) {
       var file = fileInput.files[0];
-      // Patrón anti-duplicado para subcarpeta Gastos / Costes de Obra
+      // Patrón anti-duplicado para subcarpeta 7. Gastos / Costes de Obra
       var gastosFolder = ejProyecto.drive_gastos_folder_id || null;
       if (!gastosFolder) {
         var bdChkG = await db.from('projects').select('drive_gastos_folder_id').eq('id', ejProyecto.id).single();
@@ -7539,7 +7539,7 @@ async function confirmarGasto() {
         if (dirRes.ok) driveResGasto = await dirRes.json();
       } else {
         // Primera vez — crear subcarpeta y guardar su folder_id
-        driveResGasto = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', 'Gastos / Costes de Obra', ejProyecto.drive_folder_id||null);
+        driveResGasto = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', '7. Gastos / Costes de Obra', ejProyecto.drive_folder_id||null);
         if (driveResGasto && driveResGasto.folder_id) {
           ejProyecto.drive_gastos_folder_id = driveResGasto.folder_id;
           await db.from('projects').update({drive_gastos_folder_id: driveResGasto.folder_id}).eq('id', ejProyecto.id);
@@ -10189,7 +10189,7 @@ async function storageUpload(file, projectId, projectCode, projectName, subcarpe
       project_id:   projectId   || null,
       project_code: projectCode || null,
       project_name: projectName || null,
-      subcarpeta:   subcarpeta  || 'Archivos Adjuntos a la petición de oferta',
+      subcarpeta:   subcarpeta  || '1. Archivos Adjuntos a la petición de oferta',
       folder_id:    folderIdKnown || null
     };
 
@@ -10753,7 +10753,7 @@ async function npGuardar() {
               // Subir cada archivo descomprimido individualmente
               for (var z=0; z<archivosZip.length; z++) {
                 var za = archivosZip[z];
-                var zaRes = await storageUpload(za.file, proyectoId, projCode, newProj.name, 'Archivos Adjuntos a la petición de oferta', driveFolderId);
+                var zaRes = await storageUpload(za.file, proyectoId, projCode, newProj.name, '1. Archivos Adjuntos a la petición de oferta', driveFolderId);
                 if (!zaRes) { console.error('Error subiendo archivo del ZIP:', za.nombre); continue; }
                 if (zaRes.folder_id && !driveFolderId) driveFolderId = zaRes.folder_id;
                 if (zaRes.folder_id && !adjuntosFolderId) adjuntosFolderId = zaRes.folder_id;
@@ -10808,7 +10808,7 @@ async function npGuardar() {
         driveRes = dt2 && dt2.trim() ? JSON.parse(dt2) : null;
       } else {
         // Primera vez — usar storageUpload que crea la subcarpeta y devuelve su folder_id
-        driveRes = await storageUpload(arch.file,proyectoId,projCode,newProj.name,'Archivos Adjuntos a la petición de oferta',driveFolderId);
+        driveRes = await storageUpload(arch.file,proyectoId,projCode,newProj.name,'1. Archivos Adjuntos a la petición de oferta',driveFolderId);
         if(driveRes && driveRes.folder_id) {
           adjuntosFolderId = driveRes.folder_id; // Guardar para siguientes archivos
           if(!driveFolderId) driveFolderId = driveRes.folder_id;
@@ -12081,7 +12081,7 @@ async function guardarCertificacion() {
       if (iniciado === 'cliente') clientDocPath = file.name;
       else bygDocPath = file.name;
 
-      // Upload a Google Drive - patrón anti-duplicado para subcarpeta Certificaciones
+      // Upload a Google Drive - patrón anti-duplicado para subcarpeta 8. Certificaciones
       try {
         var certFolder = ejProyecto.drive_certificaciones_folder_id || null;
         if (!certFolder) {
@@ -12106,7 +12106,7 @@ async function guardarCertificacion() {
           if (dirResC.ok) driveResCert = await dirResC.json();
         } else {
           // Primera vez — crear subcarpeta y guardar su folder_id
-          driveResCert = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', 'Certificaciones', ejProyecto.drive_folder_id||null);
+          driveResCert = await storageUpload(file, ejProyecto.id, ejProyecto.code||'', ejProyecto.name||'', '8. Certificaciones', ejProyecto.drive_folder_id||null);
           if (driveResCert && driveResCert.folder_id) {
             ejProyecto.drive_certificaciones_folder_id = driveResCert.folder_id;
             await db.from('projects').update({drive_certificaciones_folder_id: driveResCert.folder_id}).eq('id', ejProyecto.id);
@@ -12273,7 +12273,7 @@ async function guardarContrapropuesta(certId, projectId) {
   if (fileInput && fileInput.files && fileInput.files[0]) {
     var file = fileInput.files[0];
     try {
-      var driveResContra = await storageUpload(file, null, null, null, 'Certificaciones', null);
+      var driveResContra = await storageUpload(file, null, null, null, '8. Certificaciones', null);
       if (driveResContra) bygDocPath = driveResContra.viewUrl;
     } catch(eu) { console.error('Upload Drive error:', eu); }
   }
