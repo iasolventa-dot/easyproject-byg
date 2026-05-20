@@ -7224,6 +7224,46 @@ async function procesarArchivoGasto(input) {
     var isPdf = file.type === 'application/pdf';
     var mediaType = isPdf ? 'application/pdf' : file.type;
 
+    // Para PDFs: extraer texto con PDF.js y enviarlo como texto a OpenAI
+    if (isPdf) {
+      try {
+        var arrayBuffer = await file.arrayBuffer();
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        var pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        var pdfText = '';
+        for (var pi = 1; pi <= pdfDoc.numPages; pi++) {
+          var page = await pdfDoc.getPage(pi);
+          var textContent = await page.getTextContent();
+          pdfText += textContent.items.map(function(i){ return i.str; }).join(' ') + ' ';
+        }
+        pdfText = pdfText.trim().substring(0, 4000);
+
+        var promptPdf = 'Analiza este documento (albarán, factura o ticket) y extrae los siguientes datos en formato JSON. Responde SOLO con el JSON, sin explicaciones ni texto adicional:\n{\n  "tipo": "albaran" o "factura" o "ticket",\n  "importe": numero con decimales (solo el total, sin simbolo de moneda),\n  "proveedor": "nombre del proveedor emisor",\n  "concepto": "descripcion breve del concepto o servicio",\n  "fecha": "YYYY-MM-DD",\n  "confianza": "alta", "media" o "baja"\n}\nSi no puedes extraer algun campo con seguridad, ponlo como null.\n\nContenido del documento:\n' + pdfText;
+
+        var resPdf = await fetch('/api/gastos-ia', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ texto: pdfText, prompt: promptPdf, isPdf: true })
+        });
+        var textoPdf = await resPdf.text();
+        var respuestaPdf = JSON.parse(textoPdf);
+        var extractedPdf = (respuestaPdf.resultado && typeof respuestaPdf.resultado === 'object') ? respuestaPdf.resultado : respuestaPdf;
+
+        if (extractedPdf.importe) document.getElementById('gasto-importe').value = extractedPdf.importe;
+        if (extractedPdf.proveedor) document.getElementById('gasto-proveedor').value = extractedPdf.proveedor;
+        if (extractedPdf.concepto) document.getElementById('gasto-concepto').value = extractedPdf.concepto;
+        if (extractedPdf.fecha) document.getElementById('gasto-fecha').value = extractedPdf.fecha;
+        if (extractedPdf.tipo) document.getElementById('gasto-tipo').value = extractedPdf.tipo;
+        var confPdf = extractedPdf.confianza || 'media';
+        var colConfPdf = confPdf === 'alta' ? '#0F6E56' : (confPdf === 'media' ? '#854F0B' : '#A32D2D');
+        document.getElementById('gasto-ia-confianza').innerHTML = '<span style="color:'+colConfPdf+';font-weight:500;">Confianza IA: '+confPdf.toUpperCase()+'</span> — Revisa los datos antes de confirmar';
+        loading.style.display = 'none';
+        return;
+      } catch(pdfErr) {
+        console.error('Error extrayendo texto PDF:', pdfErr);
+      }
+    }
+
     // Convertir archivo a base64, comprimiendo imágenes para reducir tamaño
     var base64 = await new Promise(function(resolve, reject) {
       if (isPdf) {
@@ -7271,28 +7311,21 @@ async function procesarArchivoGasto(input) {
       }]
     };
 
-    // Llamar al webhook de n8n (evita CORS)
-    var n8nUrl = '/api/gastos-ia';
     // Guardar para preview
     _gastoBase64Actual = base64;
     _gastoMediaTypeActual = mediaType;
     var prevBtn = document.getElementById('gasto-preview-btn');
     if (prevBtn) prevBtn.style.display = 'block';
-    var payload = {
-      base64: base64,
-      mediaType: mediaType,
-      isPdf: isPdf
-    };
 
-    var res = await fetch(n8nUrl, {
+    // Llamar a /api/gastos-ia (OpenAI GPT-4o en servidor)
+    var res = await fetch('/api/gastos-ia', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ base64: base64, mediaType: mediaType, isPdf: isPdf })
     });
 
     var texto = await res.text();
     var respuesta = JSON.parse(typeof texto === 'string' ? texto : JSON.stringify(texto));
-    // Soportar tanto respuesta directa como respuesta anidada en resultado
     var extracted = (respuesta.resultado && typeof respuesta.resultado === 'object') ? respuesta.resultado : respuesta;
 
     // Rellenar campos con los datos extraídos

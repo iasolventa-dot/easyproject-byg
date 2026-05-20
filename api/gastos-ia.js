@@ -7,10 +7,20 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { base64, mediaType, isPdf } = req.body;
-    if (!base64) return res.status(400).json({ error: 'No se recibió archivo' });
+    const { base64, mediaType, isPdf, texto, prompt } = req.body;
 
-    const prompt = `Analiza este documento (albarán, factura o ticket) y extrae los siguientes datos en formato JSON. Responde SOLO con el JSON, sin explicaciones ni texto adicional:
+    let messages;
+
+    if (texto) {
+      // PDF con texto extraído — enviar como texto a GPT-4o
+      messages = [{ role: 'user', content: prompt || texto }];
+    } else if (base64) {
+      // Imagen — enviar como image_url
+      messages = [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64}` } },
+          { type: 'text', text: `Analiza este documento (albarán, factura o ticket) y extrae los siguientes datos en formato JSON. Responde SOLO con el JSON, sin explicaciones ni texto adicional:
 {
   "tipo": "albaran" o "factura" o "ticket",
   "importe": numero con decimales (solo el total, sin símbolo de moneda),
@@ -19,38 +29,11 @@ export default async function handler(req, res) {
   "fecha": "YYYY-MM-DD",
   "confianza": "alta", "media" o "baja"
 }
-Si no puedes extraer algún campo con seguridad, ponlo como null.`;
-
-    let messages;
-
-    if (isPdf) {
-      // Para PDFs: decodificar base64 a texto y enviarlo como texto plano
-      const pdfText = Buffer.from(base64, 'base64').toString('latin1')
-        .replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 4000);
-
-      messages = [
-        {
-          role: 'user',
-          content: `${prompt}\n\nContenido del documento:\n${pdfText}`
-        }
-      ];
+Si no puedes extraer algún campo con seguridad, ponlo como null.` }
+        ]
+      }];
     } else {
-      // Para imágenes
-      messages = [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: `data:${mediaType};base64,${base64}` }
-            },
-            { type: 'text', text: prompt }
-          ]
-        }
-      ];
+      return res.status(400).json({ error: 'No se recibió archivo ni texto' });
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -59,27 +42,20 @@ Si no puedes extraer algún campo con seguridad, ponlo como null.`;
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 500,
-        temperature: 0.1,
-        messages: messages
-      })
+      body: JSON.stringify({ model: 'gpt-4o', max_tokens: 500, temperature: 0.1, messages })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
       console.error('OpenAI error:', JSON.stringify(data));
-      return res.status(500).json({ error: data.error?.message || 'OpenAI error', resultado: { confianza: 'baja' } });
+      return res.status(500).json({ error: data.error?.message, resultado: { confianza: 'baja' } });
     }
 
     const text = data.choices?.[0]?.message?.content || '';
-
-    let resultado = null;
+    let resultado;
     try {
-      const clean = text.replace(/```json|```/g, '').trim();
-      resultado = JSON.parse(clean);
+      resultado = JSON.parse(text.replace(/```json|```/g, '').trim());
     } catch (e) {
       resultado = { raw: text, confianza: 'baja' };
     }
