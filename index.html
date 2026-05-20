@@ -9923,26 +9923,8 @@ abrirDocsWorker = function(workerId) {
 // ---- DASHBOARD JEFE DE OBRA ----
 function volverASuperadmin() {
   window._jefeObraSimulado = null;
-  // Restaurar sidebar
-  var sidebar = document.querySelector('.sidebar');
-  var main = document.querySelector('.main');
-  var hamburger = document.getElementById('hamburger-btn');
-  if (sidebar) sidebar.style.display = '';
-  if (main) main.style.marginLeft = '';
-  if (hamburger) hamburger.style.display = '';
-  // Volver al dept técnico (vista por defecto del superadmin)
-  var btnTecnico = document.querySelector('.dept-btn.active-tecnico') || document.querySelector('.dept-btn');
-  currentDept = 'tecnico';
-  document.body.className = 'dept-tecnico';
-  document.getElementById('user-name').textContent = 'Solventa IA (Admin)';
-  document.getElementById('dept-badge').textContent = 'SUPERADMIN';
-  document.getElementById('dept-indicator').textContent = 'Vista: Superadmin — acceso a todos los departamentos';
-  document.querySelectorAll('.dept-btn').forEach(function(b){
-    b.classList.remove('active-tecnico','active-direccion','active-comercial','active-prl','active-admin','active-jefe_obra');
-  });
-  var primerBtn = document.querySelector('.dept-btn');
-  if (primerBtn) primerBtn.classList.add('active-tecnico');
-  loadDashboard();
+  // Recargar página para restaurar estado limpio de superadmin
+  window.location.reload();
 }
 
 async function loadDashboardJefeObra() {
