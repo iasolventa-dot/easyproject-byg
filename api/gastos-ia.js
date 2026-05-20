@@ -1,0 +1,88 @@
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const { base64, mediaType, isPdf } = req.body;
+    if (!base64) return res.status(400).json({ error: 'No se recibió archivo' });
+
+    const prompt = `Analiza este documento (albarán, factura o ticket) y extrae los siguientes datos en formato JSON. Responde SOLO con el JSON, sin explicaciones ni texto adicional:
+{
+  "tipo": "albaran" o "factura" o "ticket",
+  "importe": numero con decimales (solo el total, sin símbolo de moneda),
+  "proveedor": "nombre del proveedor emisor",
+  "concepto": "descripcion breve del concepto o servicio",
+  "fecha": "YYYY-MM-DD",
+  "confianza": "alta", "media" o "baja"
+}
+Si no puedes extraer algún campo con seguridad, ponlo como null.`;
+
+    const content = isPdf
+      ? [
+          { type: 'text', text: prompt },
+          { type: 'text', text: `Documento PDF en base64: analiza su contenido y extrae los datos solicitados.` }
+        ]
+      : [
+          {
+            type: 'image_url',
+            image_url: { url: `data:${mediaType};base64,${base64}` }
+          },
+          { type: 'text', text: prompt }
+        ];
+
+    // Para PDFs usamos text extraction via base64
+    const messages = isPdf
+      ? [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt + '\n\nContenido del documento (PDF):\n' + Buffer.from(base64, 'base64').toString('utf-8').substring(0, 3000)
+              }
+            ]
+          }
+        ]
+      : [
+          {
+            role: 'user',
+            content: content
+          }
+        ];
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 500,
+        temperature: 0.1,
+        messages: messages
+      })
+    });
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+
+    let resultado = null;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      resultado = JSON.parse(clean);
+    } catch (e) {
+      resultado = { raw: text, confianza: 'baja' };
+    }
+
+    return res.status(200).json({ status: 'ok', resultado });
+
+  } catch (e) {
+    console.error('Error gastos-ia:', e);
+    return res.status(500).json({ error: e.message });
+  }
+}
